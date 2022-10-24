@@ -40,6 +40,7 @@ class DispatchService(
 		// This make sure that we keep the existing index if we have it.
 		// I think the dispatcher can not be used as is.
 		Dispatcher.sessionManager = sessionManager
+		ChatbotLoader.init(File("./jardir/"), botPrefix)
 		Dispatcher.logger.info("finish the builder initialization.")
 	}
 
