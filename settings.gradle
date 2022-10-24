@@ -1,0 +1,16 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+includeBuild("../core")
+
+rootProject.name = 'extensions'
+
+include 'google'
+include 'meta'
+include 'helloworld'
+include 'spring'
