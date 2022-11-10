@@ -3,7 +3,7 @@ package me.test.component_0915
 import com.fasterxml.jackson.`annotation`.JsonIgnore
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.core.*
-import io.opencui.core.da.CompositeDialogAct
+import io.opencui.core.da.DialogActRewriter
 import io.opencui.du.BertStateTracker
 import io.opencui.du.DUMeta
 import io.opencui.du.DUSlotMeta
@@ -25,7 +25,7 @@ public data class Agent(
   public override val stateTracker: StateTracker
     public get() = Agent.stateTracker
 
-  public override val rewriteRules: MutableList<KClass<out CompositeDialogAct>> = mutableListOf()
+  public override val rewriteRules: MutableList<KClass<out DialogActRewriter>> = mutableListOf()
 
   public override val routing: Map<String, RoutingInfo> = mapOf()
 
