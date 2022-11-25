@@ -6,7 +6,10 @@ pluginManagement {
     }
 }
 
-includeBuild("../core")
+boolean inComposite = gradle.parent != null
+if (!inComposite) {
+    includeBuild("../core")
+}
 
 rootProject.name = 'extensions'
 
