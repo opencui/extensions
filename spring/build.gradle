@@ -23,7 +23,7 @@ plugins {
 }
 
 group "io.opencui.dispatcher"
-
+version '1.0-SNAPSHOT'
 
 compileKotlin {
     kotlinOptions {
