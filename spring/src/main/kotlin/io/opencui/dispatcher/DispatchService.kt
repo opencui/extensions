@@ -19,7 +19,7 @@ import java.io.File
 
 
 @Configuration
-@SpringBootApplication(scanBasePackages = ["io.opencui"])
+@SpringBootApplication(scanBasePackages = ["io.opencui","me.Stripe"])
 class DispatchService(
 	@Value("\${du.duckling}") val duDuckling: String,
 	@Value("\${du.host}") val duHost: String,
