@@ -5,8 +5,15 @@ var card = ""
 //meta information for the routes
 //fetch publishable key from server on load event
 window.onload = async function () {
+const language = routeParams[routeParams.length - 1];
+const paymentMethod = routeParams[routeParams.length - 2];
+const amount = routeParams[routeParams.length - 3];
+const currency = routeParams[routeParams.length - 4];
+const label = routeParams[routeParams.length - 6];
+const provider = routeParams[routeParams.length - 7];
+console.log(paymentMethod, amount, currency, provider, language, label);
 
-await fetch("/IPayment_1940/v1/provider/TYIO/publishable-key/en").
+await fetch(`/IPayment_1940/v1/${provider}/${label}/publishable-key/${language}`).
 then(response => response.json()).
 then(res => {
         data = res;
@@ -27,9 +34,13 @@ const routeParams = window.location.pathname.split('/');
 const btn =  document.querySelector('#submit')
 
 
+const language = routeParams[routeParams.length - 1];
 const paymentMethod = routeParams[routeParams.length - 2];
 const amount = routeParams[routeParams.length - 3];
 const currency = routeParams[routeParams.length - 4];
+const label = routeParams[routeParams.length - 6];
+const provider = routeParams[routeParams.length - 7];
+console.log(paymentMethod, amount, currency, provider, language, label);
 
 
 
@@ -55,7 +66,7 @@ form.addEventListener('submit',  async (e) => {
 //Here we fetch the client secret by sending amount, currency and payment method to the server
 //The server will create a payment intent and return the client secret
 //The client secret is used to confirm the payment
-  const res = await  fetch('/IPayment_1940/v1/PROVIDER/TYIO/create-payment-intent/en', {
+  const res = await  fetch(`/IPayment_1940/v1/${provider}/${label}/create-payment-intent/${language}`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json',},
     body: JSON.stringify({

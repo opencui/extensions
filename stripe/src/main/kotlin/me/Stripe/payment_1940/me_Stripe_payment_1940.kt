@@ -36,14 +36,15 @@ data class paymentPayload (
     var amount        : Int?              = null,
     var paymentMethod : ArrayList<String> = arrayListOf()
 )
+
 public data class Agent(
     public val user: String?
 ) : IChatbot() {
     public override val duMeta: DUMeta
-        public get() = Companion.duMeta
+        public get() = Agent.duMeta
 
     public override val stateTracker: StateTracker
-        public get() = Companion.stateTracker
+        public get() = Agent.stateTracker
 
     public override val rewriteRules: MutableList<KClass<out DialogActRewriter>> = mutableListOf()
 
@@ -52,8 +53,7 @@ public data class Agent(
     public constructor() : this("")
 
     public companion object {
-        public val duMeta: DUMeta = loadDUMetaDsl(
-            struct, Agent::class.java.classLoader, "me.Stripe",
+        public val duMeta: DUMeta = loadDUMetaDsl(struct, Agent::class.java.classLoader, "me.Stripe",
             "payment_1940", "struct", "769257801632452608", "271", "Asia/Shanghai")
 
         public val stateTracker: StateTracker = BertStateTracker(duMeta)
@@ -136,21 +136,27 @@ public object struct : LangPack {
 
 public interface IPayment_1940 : IService {
     @JsonIgnore
-    public fun getPaymentLink(amount: Int): String?
+    public fun getPaymentLink(amount: Int, currency: String): String?
 }
-
 data class StripeProvider(
     val config : Configuration,
     override var session: UserSession? = null
 ): IPayment_1940, IProvider{
-    override fun getPaymentLink(amount: Int): String {
-        return "hello there"
+    override fun getPaymentLink(amount: Int, currency: String): String {
+        val baseurl = "https://5d4b-102-140-206-132.ngrok.io"
+        val label =  config[LABEL] as String
+        val lang  =  config[LANG] as String
+        val provider = config[PROVIDER] as String
+
+        return "$baseurl/IPayment_1940/v1/$provider/$label/payment/$currency/$amount/card/$lang"
     }
     companion object: ExtensionBuilder<IPayment_1940> {
         const val APIKEY="api_secret"
         const val ENDPOINTSECRET= "webhook_secret"
         const val PUBLISHABLEKEY="publishable_key"
-
+        const val LABEL = "label"
+        const val PROVIDER="provider"
+        const val LANG = "lang"
         override fun invoke(config: Configuration): IPayment_1940 {
             return StripeProvider(config)
         }
@@ -222,7 +228,7 @@ class StripeResource(){
             @PathVariable label: String,
             @PathVariable lang: String
 
-            ): Any {
+            ): ResponseEntity<Any> {
 
             val botInfo = BotInfo("", "", lang)
 
@@ -240,9 +246,10 @@ class StripeResource(){
                 .build()
 
             val paymentIntent = PaymentIntent.create(paymentIntentParams)
-            return mapOf("clientSecret" to paymentIntent.clientSecret)
+            val body = mapOf("clientSecret" to paymentIntent.clientSecret)
+            return ResponseEntity(body, HttpStatus.OK)
         }
-        return "OK"
+        return ResponseEntity("OK", HttpStatus.OK)
 
     }
 //    get publishable key endpoint
@@ -251,12 +258,13 @@ class StripeResource(){
         @PathVariable provider: String,
         @PathVariable label: String,
         @PathVariable lang: String
-    ): Any {
+    ): ResponseEntity<Any> {
         val botInfo = BotInfo("", "", lang)
         val info = Dispatcher.getChatbot(botInfo).getConfiguration<IPayment_1940>(label)
             ?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
         Logger.getLogger("Configuration meta").info("payload: $info")
-        return mapOf("publishableKey" to info[PUBLISHABLEKEY])
+        val res = mapOf("publishableKey" to info[PUBLISHABLEKEY])
+        return ResponseEntity(res, HttpStatus.OK)
     }
 
 
@@ -264,6 +272,9 @@ class StripeResource(){
         const val APIKEY="api_secret"
         const val ENDPOINTSECRET= "webhook_secret"
         const val PUBLISHABLEKEY="publishable_key"
+        const val LABEL = "label"
+        const val PROVIDER="provider"
+        const val LANG = "lang"
     }
 }
 
