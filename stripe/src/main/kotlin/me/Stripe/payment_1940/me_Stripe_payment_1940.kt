@@ -143,7 +143,7 @@ data class StripeProvider(
     override var session: UserSession? = null
 ): IPayment_1940, IProvider{
     override fun getPaymentLink(amount: Int, currency: String): String {
-        val baseurl = "https://5d4b-102-140-206-132.ngrok.io"
+        val baseurl = config[BASEURL] as String
         val label =  config[LABEL] as String
         val lang  =  config[LANG] as String
         val provider = config[PROVIDER] as String
@@ -157,6 +157,7 @@ data class StripeProvider(
         const val LABEL = "label"
         const val PROVIDER="provider"
         const val LANG = "lang"
+        const val BASEURL = "baseurl"
         override fun invoke(config: Configuration): IPayment_1940 {
             return StripeProvider(config)
         }
