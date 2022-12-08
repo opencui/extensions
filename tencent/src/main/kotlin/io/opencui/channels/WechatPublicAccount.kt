@@ -1,4 +1,4 @@
-package io.opencui.channels
+package io.opencui.channel
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
