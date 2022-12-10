@@ -1,4 +1,4 @@
-package me.Stripe.payment_1940
+package io.opencui.payment
 
 import com.fasterxml.jackson.`annotation`.JsonIgnore
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -9,7 +9,6 @@ import com.stripe.model.PaymentIntent
 import com.stripe.model.PaymentMethod
 import com.stripe.net.Webhook
 import com.stripe.param.PaymentIntentCreateParams
-import io.opencui.channel.IChannel
 import io.opencui.core.*
 import io.opencui.core.da.DialogActRewriter
 import io.opencui.du.BertStateTracker
@@ -36,103 +35,6 @@ data class paymentPayload (
     var amount        : Int?              = null,
     var paymentMethod : ArrayList<String> = arrayListOf()
 )
-
-public data class Agent(
-    public val user: String?
-) : IChatbot() {
-    public override val duMeta: DUMeta
-        public get() = Agent.duMeta
-
-    public override val stateTracker: StateTracker
-        public get() = Agent.stateTracker
-
-    public override val rewriteRules: MutableList<KClass<out DialogActRewriter>> = mutableListOf()
-
-    public override val routing: Map<String, RoutingInfo> = mapOf()
-
-    public constructor() : this("")
-
-    public companion object {
-        public val duMeta: DUMeta = loadDUMetaDsl(struct, Agent::class.java.classLoader, "me.Stripe",
-            "payment_1940", "struct", "769257801632452608", "271", "Asia/Shanghai")
-
-        public val stateTracker: StateTracker = BertStateTracker(duMeta)
-    }
-}
-
-public object struct : LangPack {
-    public override val frames: List<ObjectNode> = listOf()
-
-    public override val entityTypes: Map<String, EntityType> = mapOf("kotlin.Int" to
-            entityType("kotlin.Int") {
-                children(listOf())
-                recognizer("DucklingRecognizer")
-            }
-        ,
-        "kotlin.Float" to entityType("kotlin.Float") {
-            children(listOf())
-            recognizer("DucklingRecognizer")
-        }
-        ,
-        "kotlin.String" to entityType("kotlin.String") {
-            children(listOf())
-        }
-        ,
-        "kotlin.Boolean" to entityType("kotlin.Boolean") {
-            children(listOf())
-            recognizer("ListRecognizer")
-        }
-        ,
-        "kotlin.Unit" to entityType("kotlin.Unit") {
-            children(listOf())
-        }
-        ,
-        "java.time.LocalDateTime" to entityType("java.time.LocalDateTime") {
-            children(listOf())
-            recognizer("DucklingRecognizer")
-        }
-        ,
-        "java.time.Year" to entityType("java.time.Year") {
-            children(listOf())
-            recognizer("DucklingRecognizer")
-        }
-        ,
-        "java.time.YearMonth" to entityType("java.time.YearMonth") {
-            children(listOf())
-            recognizer("DucklingRecognizer")
-        }
-        ,
-        "java.time.LocalDate" to entityType("java.time.LocalDate") {
-            children(listOf())
-            recognizer("DucklingRecognizer")
-        }
-        ,
-        "java.time.LocalTime" to entityType("java.time.LocalTime") {
-            children(listOf())
-            recognizer("DucklingRecognizer")
-        }
-        ,
-        "java.time.DayOfWeek" to entityType("java.time.DayOfWeek") {
-            children(listOf())
-            recognizer("ListRecognizer")
-        }
-        ,
-        "java.time.ZoneId" to entityType("java.time.ZoneId") {
-            children(listOf())
-            recognizer("ListRecognizer")
-        }
-        ,
-        "kotlin.Any" to entityType("kotlin.Any") {
-            children(listOf())
-        }
-    )
-
-    public override val frameSlotMetas: Map<String, List<DUSlotMeta>> = mapOf("kotlin.Pair" to listOf(
-    ),
-    )
-
-    public override val typeAlias: Map<String, List<String>> = mapOf()
-}
 
 public interface IPayment_1940 : IService {
     @JsonIgnore
@@ -178,7 +80,7 @@ class StripeResource(){
     @PostMapping(
         value = [
             "/IPayment_1940/v1/{provider}/{label}/webhook/{lang}",
-         ]
+        ]
     )
     fun handleWebhook(
         @RequestBody payload: String,
@@ -229,7 +131,7 @@ class StripeResource(){
             @PathVariable label: String,
             @PathVariable lang: String
 
-            ): ResponseEntity<Any> {
+        ): ResponseEntity<Any> {
 
             val botInfo = BotInfo("", "", lang)
 
@@ -253,7 +155,7 @@ class StripeResource(){
         return ResponseEntity("OK", HttpStatus.OK)
 
     }
-//    get publishable key endpoint
+    //    get publishable key endpoint
     @GetMapping("/IPayment_1940/v1/{provider}/{label}/publishable-key/{lang}", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getPublishableKey(
         @PathVariable provider: String,

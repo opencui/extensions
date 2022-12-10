@@ -19,7 +19,7 @@ import java.io.File
 
 
 @Configuration
-@SpringBootApplication(scanBasePackages = ["io.opencui","me.Stripe"])
+@SpringBootApplication(scanBasePackages = ["io.opencui"])
 class DispatchService(
 	@Value("\${du.duckling}") val duDuckling: String,
 	@Value("\${du.host}") val duHost: String,
@@ -33,7 +33,7 @@ class DispatchService(
 
 		RuntimeConfig.put(DucklingRecognizer::class, duDuckling)
 		RuntimeConfig.put(TfRestBertNLUModel::class, Triple(duHost, duPort.toInt(), duProtocol))
- 		RuntimeConfig.put(ChatbotLoader::class, InMemoryBotStore())
+		RuntimeConfig.put(ChatbotLoader::class, InMemoryBotStore())
 
 		val sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore())
 
@@ -52,4 +52,3 @@ class DispatchService(
 		}
 	}
 }
-

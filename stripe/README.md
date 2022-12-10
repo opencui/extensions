@@ -17,32 +17,32 @@ you to charge your users for services and products using a chatbot interface aid
 
 
 1. We need to understand extensions, please read the
-documentation [here](https://docs.opencui.io/docs/extensions/overview.html).
-> Note: The OpenCUI is designed to have a open architecture, so that it is easy to 
-> make functionality available to chatbot. The core of this open architecture is separation 
+   documentation [here](https://docs.opencui.io/docs/extensions/overview.html).
+> Note: The OpenCUI is designed to have a open architecture, so that it is easy to
+> make functionality available to chatbot. The core of this open architecture is separation
 > between interface and implementation, so that conversational behavior
 can be defined on the interface, while implementation can come in various form.
 
 2. In summary, extensions are made in three steps:
-    1. Define the interface
-    2. Implement the interface
-    3. Register the implementation
+   1. Define the interface
+   2. Implement the interface
+   3. Register the implementation
 
 3. We need to import the following interface to the chatbot we wish to use this native provider.
-    1. Go to the [component](https://build.opencui.io/org/63845e6901beb60ccdfa1030/agent/63885c4f01beb60ccdfad236/service_schema) page and import the component/service.
-    2. To learn how to import, follow the documentation [here](https://opencui.io/reference/providers/extension.html#_5-wire-and-configure-in-chatbot).
-    3. Go back to the chatbot , *click* **settings** and *click* **integrations** tab > **select Service**
-    4. Select **me.Stripe.hosted_native** 
-   ![image](./images/select%20native%20provider.png)
+   1. Go to the [component](https://build.opencui.io/org/63845e6901beb60ccdfa1030/agent/63885c4f01beb60ccdfad236/service_schema) page and import the component/service.
+   2. To learn how to import, follow the documentation [here](https://opencui.io/reference/providers/extension.html#_5-wire-and-configure-in-chatbot).
+   3. Go back to the chatbot , *click* **settings** and *click* **integrations** tab > **select Service**
+   4. Select **me.Stripe.hosted_native**
+      ![image](./images/select%20native%20provider.png)
    5. Fill in the required fields
-    ![image](./images/Configuration.png)
+      ![image](./images/Configuration.png)
    > To aquire the **secret key** and **publishable key** , go to your stripe account and navigate to
    > Developers > API keys
    > Webhooks can be aquired from the same page, but you need to create a webhook first.
 
    6. Click **Save**
-   7. Go to **Skills** tab and *click* **Create** 
-   8. Create a new skill and *click* **Enter** 
+   7. Go to **Skills** tab and *click* **Create**
+   8. Create a new skill and *click* **Enter**
    9. Go to **Services** section and click **Select Service**
    10. Select **me.stripe.Payment_1940.IPayment_1940** > **Save**
    11. Go to **Responses** section and *click* **Select types of action** > *Select* **Single value message** > **Commit**
@@ -55,59 +55,59 @@ can be defined on the interface, while implementation can come in various form.
 2. We export the Component and implement the interface.
 3. We register the implementation.
 4. We use the following configuration:
-  ###### Provider class Name
- eg `me.stripe.Payment_1940.IPayment_1940`
+###### Provider class Name
+eg `io.opencui.payment.StripeProvider`
 This is the full name of the provider class, which is the name of the interface we are implementing.
 
-  ###### Configuration meta
->> I think we might need to determine how to add a webhook url to the platform. Should be similar to the 
+###### Configuration meta
+>> I think we might need to determine how to add a webhook url to the platform. Should be similar to the
 >> one used in channels.
 
 ```json
 [
-  {
-    "key": "webhook_secret",
-    "label": "Webhook Secret",
-    "type": "String"
-  },
-  {
-    "key": "publishable_key",
-    "label": "Publishable Key",
-    "type": "String"
-  },
-  {
-    "key": "api_secret",
-    "label": "API_secret",
-    "type": "String"
-  },
-  {
-    "key": "provider",
-    "label": "provider",
-    "default_value": "me.Stripe.payment_1940.StripeProvider",
-    "type": "String"
-  },
- {
-    "key": "baseurl",
-    "label": "baseurl",
-    "default_value": "https://example.com",
-    "type": "String"
-  },
-{
-    "key": "Lang",
-    "label": "Language",
-    "placeholder": "Please select",
-    "default_value": "en",
-    "options": [
-      {
-        "value": "en",
-        "label": "EN"
-      },
-      {
-        "value": "zh",
-        "label": "ZH"
-      }
-    ]
-  }
+   {
+      "key": "webhook_secret",
+      "label": "Webhook Secret",
+      "type": "String"
+   },
+   {
+      "key": "publishable_key",
+      "label": "Publishable Key",
+      "type": "String"
+   },
+   {
+      "key": "api_secret",
+      "label": "API_secret",
+      "type": "String"
+   },
+   {
+      "key": "provider",
+      "label": "provider",
+      "default_value": "me.Stripe.payment_1940.StripeProvider",
+      "type": "String"
+   },
+   {
+      "key": "baseurl",
+      "label": "baseurl",
+      "default_value": "https://example.com",
+      "type": "String"
+   },
+   {
+      "key": "Lang",
+      "label": "Language",
+      "placeholder": "Please select",
+      "default_value": "en",
+      "options": [
+         {
+            "value": "en",
+            "label": "EN"
+         },
+         {
+            "value": "zh",
+            "label": "ZH"
+         }
+      ]
+   }
 ]
 
 ```
