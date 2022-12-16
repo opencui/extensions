@@ -133,6 +133,7 @@ docker run -it --rm -p 8501:8501 registry.us-east-1.aliyuncs.com/framely/apps:du
  java -Ddu.host=127.0.0.1 -Ddu.port=8501 -Dbot.prefix={org.botname} -Ddu.duckling=http://127.0.0.1:8080/parse -jar build/libs/dispatcher-1.1-SNAPSHOT.jar
  
  // org.botname eg me.Stripe.hosted_chatbot
+ 
 
 ```
 
