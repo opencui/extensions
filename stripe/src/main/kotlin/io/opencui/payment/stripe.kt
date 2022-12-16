@@ -1,4 +1,4 @@
-package me.Stripe.hosted_chatbot
+package io.opencui.payment
 
 import com.fasterxml.jackson.`annotation`.JsonIgnore
 import com.stripe.Stripe
