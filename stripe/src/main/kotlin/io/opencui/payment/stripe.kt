@@ -1,7 +1,6 @@
-package io.opencui.payment
+package me.Stripe.hosted_chatbot
 
 import com.fasterxml.jackson.`annotation`.JsonIgnore
-import com.fasterxml.jackson.databind.node.ObjectNode
 import com.stripe.Stripe
 import com.stripe.exception.SignatureVerificationException
 import com.stripe.model.Event
@@ -10,13 +9,6 @@ import com.stripe.model.PaymentMethod
 import com.stripe.net.Webhook
 import com.stripe.param.PaymentIntentCreateParams
 import io.opencui.core.*
-import io.opencui.core.da.DialogActRewriter
-import io.opencui.du.BertStateTracker
-import io.opencui.du.DUMeta
-import io.opencui.du.DUSlotMeta
-import io.opencui.du.EntityType
-import io.opencui.du.LangPack
-import io.opencui.du.StateTracker
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -25,10 +17,6 @@ import org.springframework.web.bind.annotation.*
 import java.util.logging.Logger
 import kotlin.Int
 import kotlin.String
-import kotlin.collections.List
-import kotlin.collections.Map
-import kotlin.collections.MutableList
-import kotlin.reflect.KClass
 
 data class paymentPayload (
     var currency      : String?           = null,
