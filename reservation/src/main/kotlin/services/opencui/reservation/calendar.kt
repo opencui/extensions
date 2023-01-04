@@ -34,6 +34,8 @@ import io.opencui.du.LangPack
 import io.opencui.du.StateTracker
 import io.opencui.serialization.Json
 import io.opencui.support.ISupport
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import java.io.ByteArrayInputStream
 import java.lang.Class
 import java.time.LocalDate
@@ -1097,7 +1099,7 @@ public interface IReservation : IService {
 //    val reservation = ReservationProvider()
 //    val startDate = LocalDate.of(2023, 1, 16)
 //    val startTime = LocalTime.of(20, 0)
-//    reservation.makeReservation(1,"c_1880ducogn7muitjg5v5b79e6vdtq@resource.calendar.google.com",startDate,startTime)
+//    reservation.makeReservation(1,"c_1880ducogn7muitjg5v5b79e6vdtq@resource.calendar.google.com",LocalDate.of(2023, 2, 16), LocalTime.of(20, 0))
 //    reservation.listReservation("1")
 //    reservation.cancelReservation("nnnn13idquv6julkfpj6jdtm0k")
 
@@ -1107,9 +1109,14 @@ public interface IReservation : IService {
 
 
 data class ReservationProvider(
-//    val config: Configuration,
+    val config: Configuration,
     override var session: UserSession? = null
 ) : IReservation, IProvider {
+
+    val botInfo = BotInfo("", "", "en")
+    val info = Dispatcher.getChatbot(botInfo).getConfiguration<IReservation>(label="")
+        ?: ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
+
     //    service builder
     val HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
     val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
@@ -1195,7 +1202,15 @@ data class ReservationProvider(
         return reservations
     }
 
+    /**
+     * Returns a list of resources of a given type, filtered by a list of features.
+     *
+     * @param type the type of resources to return
+     * @param features an optional list of features to filter the resources by
+     * @return a list of resources that match the specified type and feature filters
+     */
     override fun listResource(type: ResourceType, features: List<ResourceFeature>?): List<Resource> {
+
         TODO("Not yet implemented")
     }
 
