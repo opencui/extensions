@@ -8,7 +8,6 @@ import com.fasterxml.jackson.`annotation`.JsonSubTypes
 import com.fasterxml.jackson.`annotation`.JsonTypeInfo
 import com.fasterxml.jackson.`annotation`.JsonValue
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.databind.node.TextNode
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.JsonFactory
@@ -18,14 +17,12 @@ import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventDateTime
-import com.google.gson.JsonObject
-import io.opencui.channel.IChannel
+import com.google.api.services.directory.Directory
+import com.google.api.services.directory.DirectoryScopes
 import io.opencui.core.*
 import io.opencui.core.Annotation
 import io.opencui.core.da.DialogActRewriter
-import io.opencui.core.da.SlotOfferSepInformConfirm
 import io.opencui.core.da.SlotRequest
-//import io.opencui.core.getAllInstances
 import io.opencui.du.BertStateTracker
 import io.opencui.du.DUMeta
 import io.opencui.du.DUSlotMeta
@@ -33,9 +30,6 @@ import io.opencui.du.EntityType
 import io.opencui.du.LangPack
 import io.opencui.du.StateTracker
 import io.opencui.serialization.Json
-import io.opencui.support.ISupport
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import java.io.ByteArrayInputStream
 import java.lang.Class
 import java.time.LocalDate
@@ -50,8 +44,6 @@ import kotlin.collections.Map
 import kotlin.collections.MutableList
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
-import kotlin.reflect.full.isSubclassOf
-import kotlin.time.Duration
 
 public data class Agent(
     public val user: String?
@@ -1046,7 +1038,7 @@ public data class Location(
 public interface IReservation : IService {
     @JsonIgnore
     public fun makeReservation(
-        userId: Int,
+        userId: String,
         resourceId: String,
         startDate: LocalDate,
         startTime: LocalTime
@@ -1095,42 +1087,75 @@ public interface IReservation : IService {
 }
 
 //functions for debugging
-
+//fun main(){
+//        val reservation = ReservationProvider()
+//val t = listOf<ResourceFeature>()
+//    reservation.reservationUpdatable("1", LocalDate.now(), LocalTime.now(), t)
+//
+////        reservation.listLocation()
+////    reservation.reservationUpdatable(
+////        "1",
+////        LocalDate.of(2021, 5, 1),
+////        LocalTime.of(10, 0),
+////
+////    )
+//}
 //    val reservation = ReservationProvider()
+
 //    val startDate = LocalDate.of(2023, 1, 16)
 //    val startTime = LocalTime.of(20, 0)
 //    reservation.makeReservation(1,"c_1880ducogn7muitjg5v5b79e6vdtq@resource.calendar.google.com",LocalDate.of(2023, 2, 16), LocalTime.of(20, 0))
 //    reservation.listReservation("1")
 //    reservation.cancelReservation("nnnn13idquv6julkfpj6jdtm0k")
 
-//    reservation.resourceAvailable(startDate, startTime, "c_1880ducogn7muitjg5v5b79e6vdtq@resource.calendar.google.com")
-
-
+//    reservation.resourceAvailable( LocalDate.of(2023, 1, 16), LocalTime.of(20, 0), "c_1880ducogn7muitjg5v5b79e6vdtq@resource.calendar.google.com")
 
 
 data class ReservationProvider(
     val config: Configuration,
-    override var session: UserSession? = null
+    override var session: UserSession? = null,
 ) : IReservation, IProvider {
 
-    val botInfo = BotInfo("", "", "en")
-    val info = Dispatcher.getChatbot(botInfo).getConfiguration<IReservation>(label="")
-        ?: ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
 
     //    service builder
     val HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
     val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
-    val serviceAccountStream = ByteArrayInputStream(CLIENT_SECRET.toByteArray())
+    val secrets_json = config[CLIENT_SECRET] as String
+
+    fun printConfig(): Any {
+        println(config)
+        return ""
+    }
+
+
     inline fun <reified S> buildService(): Calendar? {
-        val credential = GoogleCredential.fromStream(serviceAccountStream, HTTP_TRANSPORT, JSON_FACTORY)
-            .createScoped(listOf(CalendarScopes.CALENDAR)).createDelegated(DELEGATED_USER)
-        println(credential)
+        printConfig()
+        val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
+            .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
+            .createDelegated(config[DELEGATED_USER] as String)
+
         return Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
             .setApplicationName("Calendar API")
             .build()
     }
 
-    override fun makeReservation(userId: Int, resourceId: String, startDate: LocalDate, startTime: LocalTime): String? {
+    inline fun <reified S> buildAdminService(): Directory? {
+        val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
+            .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
+            .createDelegated(config[DELEGATED_USER] as String)
+        println(credential)
+        return Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
+            .setApplicationName("Calendar API")
+            .build()
+    }
+
+
+    override fun makeReservation(
+        userId: String,
+        resourceId: String,
+        startDate: LocalDate,
+        startTime: LocalTime
+    ): String? {
         val service = buildService<Calendar>()
         val event = Event()
         val events = service?.events()?.list(resourceId)
@@ -1158,7 +1183,7 @@ data class ReservationProvider(
                     .setDateTime(endDateTime)
                     .setTimeZone("Africa/Nairobi")
                 event.end = end
-                val calendarId = CALENDAR_ID
+                val calendarId = config[CALENDAR_ID] as String
                 val createdEvent = service?.events()?.insert(calendarId, event)?.execute()
                 println(createdEvent?.htmlLink)
                 println(createdEvent)
@@ -1172,7 +1197,7 @@ data class ReservationProvider(
     override fun listReservation(userId: String): List<Reservation> {
         val service = buildService<Calendar>()
         val now = DateTime(System.currentTimeMillis())
-        val events = service?.events()?.list(CALENDAR_ID)
+        val events = service?.events()?.list(config[CALENDAR_ID] as String)
             ?.setTimeMin(now)
             ?.setOrderBy("startTime")
             ?.setSingleEvents(true)
@@ -1210,177 +1235,164 @@ data class ReservationProvider(
      * @return a list of resources that match the specified type and feature filters
      */
     override fun listResource(type: ResourceType, features: List<ResourceFeature>?): List<Resource> {
-
         TODO("Not yet implemented")
     }
+}
 
-    override fun cancelReservation(id: String): Boolean? {
-        val service = buildService<Calendar>()
-        service?.events()?.delete(CALENDAR_ID, id)?.execute()
-        return true
+override fun cancelReservation(id: String): Boolean? {
+    val service = buildService<Calendar>()
+    service?.events()?.delete(config[CALENDAR_ID] as String, id)?.execute()
+    return true
+}
+
+override fun resourceAvailable(date: LocalDate, time: LocalTime, resourceId: String): Boolean? {
+    val service = buildService<Calendar>()
+    val now = DateTime(System.currentTimeMillis())
+    val events = service?.events()?.list(config[CALENDAR_ID] as String)
+        ?.setTimeMin(now)
+        ?.setOrderBy("startTime")
+        ?.setSingleEvents(true)
+        ?.execute()
+        ?.items
+    if (events != null) {
+        for (event in events) {
+            val start = event.start.dateTime?.value ?: event.start.date.value
+            val end = event.end.dateTime?.value ?: event.end.date.value
+
+            if (date.toString() == LocalDate.ofEpochDay(start / 86400000).toString()) {
+                if (time.toString() == LocalTime.ofNanoOfDay(start % 86400000000000).toString()) {
+                    println("Not available")
+                    return false
+                }
+            }
+
+        }
     }
+    println("Available")
+    return true
+}
 
-    override fun resourceAvailable(date: LocalDate, time: LocalTime, resourceId: String): Boolean? {
-        val service = buildService<Calendar>()
-        val now = DateTime(System.currentTimeMillis())
-        val events = service?.events()?.list(CALENDAR_ID)
-            ?.setTimeMin(now)
-            ?.setOrderBy("startTime")
-            ?.setSingleEvents(true)
-            ?.execute()
-            ?.items
-        if (events != null) {
-            for (event in events) {
-                val start = event.start.dateTime?.value ?: event.start.date.value
-                val end = event.end.dateTime?.value ?: event.end.date.value
-
+override fun reservationUpdatable(
+    reservationId: String,
+    date: LocalDate,
+    time: LocalTime,
+    features: List<ResourceFeature>
+): Boolean? {
+    val service = buildService<Calendar>()
+    val now = DateTime(System.currentTimeMillis())
+    val events = service?.events()?.list(config[CALENDAR_ID] as String)
+        ?.setTimeMin(now)
+        ?.setOrderBy("startTime")
+        ?.setSingleEvents(true)
+        ?.execute()
+        ?.items
+    if (events != null) {
+        for (event in events) {
+            val start = event.start.dateTime?.value ?: event.start.date.value
+            val end = event.end.dateTime?.value ?: event.end.date.value
+            if (event.id !== reservationId) {
                 if (date.toString() == LocalDate.ofEpochDay(start / 86400000).toString()) {
                     if (time.toString() == LocalTime.ofNanoOfDay(start % 86400000000000).toString()) {
                         println("Not available")
                         return false
                     }
                 }
-
             }
         }
-        println("Available")
-        return true
+
     }
+    println("Available")
+    return true
+}
 
-    override fun reservationUpdatable(
-        reservationId: String,
-        date: LocalDate,
-        time: LocalTime,
-        features: List<ResourceFeature>
-    ): Boolean? {
-        val service = buildService<Calendar>()
-        val now = DateTime(System.currentTimeMillis())
-        val events = service?.events()?.list(CALENDAR_ID)
-            ?.setTimeMin(now)
-            ?.setOrderBy("startTime")
-            ?.setSingleEvents(true)
-            ?.execute()
-            ?.items
-        if (events != null) {
-            for (event in events) {
-                val start = event.start.dateTime?.value ?: event.start.date.value
-                val end = event.end.dateTime?.value ?: event.end.date.value
-                if (event.id == reservationId) {
-                    if (date.toString() == LocalDate.ofEpochDay(start / 86400000).toString()) {
-                        if (time.toString() == LocalTime.ofNanoOfDay(start % 86400000000000).toString()) {
+override fun updateReservation(
+    reservationId: String,
+    date: LocalDate,
+    time: LocalTime,
+    features: List<ResourceFeature>
+): Boolean? {
 
-                            return false
-                        }
-                    }
-                }
-            }
+    val service = buildService<Calendar>()
+    val event = service?.events()?.get("primary", reservationId)?.execute()
+    val startDateTime = DateTime(date.toString() + "T" + time.toString() + ":00+08:00")
+    val endDateTime = DateTime(date.toString() + "T" + time.plusHours(1).toString() + ":00+08:00")
+    val start = EventDateTime()
+        .setDateTime(startDateTime)
+        .setTimeZone("Africa/Nairobi")
+    event?.start = start
+    val end = EventDateTime()
+        .setDateTime(endDateTime)
+        .setTimeZone("Africa/Nairobi")
+    event?.end = end
+    val calendarId = config[CALENDAR_ID] as String
+    service?.events()?.update(calendarId, reservationId, event)?.execute()
+    return true
+}
 
-        }
-        return true
-    }
-
-    override fun updateReservation(
-        reservationId: String,
-        date: LocalDate,
-        time: LocalTime,
-        features: List<ResourceFeature>
-    ): Boolean? {
-
-        val service = buildService<Calendar>()
-        val event = service?.events()?.get("primary", reservationId)?.execute()
-        val startDateTime = DateTime(date.toString() + "T" + time.toString() + ":00+08:00")
-        val endDateTime = DateTime(date.toString() + "T" + time.plusHours(1).toString() + ":00+08:00")
-        val start = EventDateTime()
-            .setDateTime(startDateTime)
-            .setTimeZone("Africa/Nairobi")
-        event?.start = start
-        val end = EventDateTime()
-            .setDateTime(endDateTime)
-            .setTimeZone("Africa/Nairobi")
-        event?.end = end
-        val calendarId = CALENDAR_ID
-        service?.events()?.update(calendarId, reservationId, event)?.execute()
-        return true
-    }
-
-    override fun reservationCancelable(id: String): Boolean? {
-        val service = buildService<Calendar>()
-        val now = DateTime(System.currentTimeMillis())
-        val events = service?.events()?.list(CALENDAR_ID)
-            ?.setTimeMin(now)
-            ?.setOrderBy("startTime")
-            ?.setSingleEvents(true)
-            ?.execute()
-            ?.items
-        if (events != null) {
-            for (event in events) {
-                val start = event.start.dateTime?.value ?: event.start.date.value
-                val end = event.end.dateTime?.value ?: event.end.date.value
-                if (event.id == id) {
-                    if (LocalDate.ofEpochDay(start / 86400000).toString() == LocalDate.now().toString()) {
-                        if (LocalTime.ofNanoOfDay(start % 86400000000000).toString() == LocalTime.now().toString()) {
-                            return false
-                        }
+override fun reservationCancelable(id: String): Boolean? {
+    val service = buildService<Calendar>()
+    val now = DateTime(System.currentTimeMillis())
+    val events = service?.events()?.list(config[CALENDAR_ID] as String)
+        ?.setTimeMin(now)
+        ?.setOrderBy("startTime")
+        ?.setSingleEvents(true)
+        ?.execute()
+        ?.items
+    if (events != null) {
+        for (event in events) {
+            val start = event.start.dateTime?.value ?: event.start.date.value
+            val end = event.end.dateTime?.value ?: event.end.date.value
+            if (event.id == id) {
+                if (LocalDate.ofEpochDay(start / 86400000).toString() == LocalDate.now().toString()) {
+                    if (LocalTime.ofNanoOfDay(start % 86400000000000).toString() == LocalTime.now().toString()) {
+                        return false
                     }
                 }
             }
         }
-        return true
     }
+    return true
+}
 
-    override fun listLocation(): List<Location> {
-
-        val service = buildService<Calendar>()
-        val now = DateTime(System.currentTimeMillis())
-        val events = service?.events()?.list("primary")
-            ?.setTimeMin(now)
-            ?.setOrderBy("startTime")
-            ?.setSingleEvents(true)
-            ?.execute()
-            ?.items
-        val locations = mutableListOf<Location>()
-        if (events != null) {
-            for (event in events) {
-                val location = Location()
-                location.id = event.description
-                locations.add(location)
-            }
+override fun listLocation(): List<Location> {
+    val service = buildAdminService<Directory>()
+    val buildings = service?.resources()?.buildings()?.list("my_customer")?.execute()?.buildings
+    val locations = mutableListOf<Location>()
+    if (buildings != null) {
+        for (building in buildings) {
+            val location = Location(session = null)
+            location.id = building.buildingId
+            print(location.id)
+            location.summary = building.buildingName
+            locations.add(location)
         }
-        return locations
     }
+    return locations
 
-    override fun pickLocation(locationId: String): Location? {
-        val service = buildService<Calendar>()
-        val now = DateTime(System.currentTimeMillis())
-        val events = service?.events()?.list(CALENDAR_ID)
-            ?.setTimeMin(now)
-            ?.setOrderBy("startTime")
-            ?.setSingleEvents(true)
-            ?.execute()
-            ?.items
-        val locations = mutableListOf<Location>()
-        if (events != null) {
-            for (event in events) {
-                val location = Location()
-                location.id = event.description
-                locations.add(location)
-            }
-        }
-        for (location in locations) {
-            if (location.id == locationId) {
-                return location
-            }
-        }
-        return null
-    }
+}
 
-    companion object : ExtensionBuilder<IReservation> {
+override fun pickLocation(locationId: String): Location? {
+    val service = buildAdminService<Directory>()
+    val building = service?.resources()?.buildings()?.get("my_customer", locationId)?.execute()
+    val location = Location(session = null)
+    location.id = building?.buildingId
+    location.summary = building?.buildingName
+    return location
+}
 
-        const val CLIENT_SECRET = "client_secret"
-        const val CALENDAR_ID = "calendar_id"
-        const val DELEGATED_USER = "delegated_user"
-        override fun invoke(config: Configuration): IReservation {
-            return ReservationProvider(config)
-        }
+companion object : ExtensionBuilder<IReservation> {
+
+    const val CLIENT_SECRET = "client_secret"
+    const val CALENDAR_ID = "calendar_id"
+    const val DELEGATED_USER = "delegated_user"
+    override fun invoke(config: Configuration): IReservation {
+        return ReservationProvider(config)
     }
 }
+
+//    override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder {
+//        TODO("Not yet implemented")
+//    }
+}
+
+
