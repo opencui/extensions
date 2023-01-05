@@ -1087,7 +1087,6 @@ public interface IReservation : IService {
 }
 
 //functions for debugging
-//fun main(){
 //        val reservation = ReservationProvider()
 //val t = listOf<ResourceFeature>()
 //    reservation.reservationUpdatable("1", LocalDate.now(), LocalTime.now(), t)
@@ -1099,7 +1098,6 @@ public interface IReservation : IService {
 ////        LocalTime.of(10, 0),
 ////
 ////    )
-//}
 //    val reservation = ReservationProvider()
 
 //    val startDate = LocalDate.of(2023, 1, 16)
