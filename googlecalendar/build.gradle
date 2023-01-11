@@ -1,0 +1,92 @@
+buildscript {
+    ext.kotlin_version = '1.6.10'
+    ext.jackson_version = '2.13.1'
+    ext.boot_version = '2.7.6'
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+plugins {
+    id "org.jetbrains.kotlin.jvm" version "${kotlin_version}"
+    id "org.jetbrains.kotlin.plugin.spring" version "${kotlin_version}"
+    id 'org.jetbrains.kotlin.plugin.serialization' version "${kotlin_version}"
+    id "idea"
+    id 'java-library'
+    id "maven-publish"
+}
+
+
+compileKotlin {
+    kotlinOptions {
+        freeCompilerArgs = ["-Xjsr305=strict"]
+        jvmTarget = "11"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        freeCompilerArgs = ["-Xjsr305=strict"]
+        jvmTarget = "11"
+    }
+}
+
+repositories {
+    maven { url 'https://repository.jboss.org/nexus/content/groups/public/' }
+    mavenLocal()
+    mavenCentral()
+}
+
+
+jar.enabled = true
+
+dependencies {
+    implementation('io.opencui:core')
+    implementation('io.opencui.extensions:reservation')
+    implementation 'com.google.apis:google-api-services-admin-directory:directory_v1-rev20220919-2.0.0'
+    implementation 'com.google.api-client:google-api-client:2.0.0'
+    implementation 'com.google.oauth-client:google-oauth-client-jetty:1.34.1'
+    implementation 'com.google.apis:google-api-services-calendar:v3-rev20220715-2.0.0'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.12.3'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.3'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.12.3'
+    implementation 'org.springframework.boot:spring-boot-starter-web:2.7.6'
+    implementation 'org.springframework.session:spring-session-core:2.7.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
+    implementation "org.jetbrains.kotlin:kotlin-reflect"
+    implementation "org.jetbrains.kotlin:kotlin-compiler"
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    testImplementation "org.springframework.boot:spring-boot-starter-test:${boot_version}"
+}
+
+group "io.opencui.extensions"
+version '1.0-SNAPSHOT'
+
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            def releasesRepoUrl = "$buildDir/repos/releases"
+            def snapshotsRepoUrl = "$buildDir/repos/snapshots"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        }
+    }
+}
