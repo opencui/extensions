@@ -65,10 +65,10 @@ configuration Meta:
 - calendar_id should be "primary"
 - client_secret is the secrets.json string for a service account
 provider ClassName:
-`services.opencui.reservation.ReservationProvider`
+`services.google.calendar.ReservationProvider`
 
 Implementation:
-`io.opencui.extensions:reservation`
+`io.opencui.extensions:googlecalendar`
 
 
 ## Making a resource on Google Admin
