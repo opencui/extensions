@@ -64,7 +64,7 @@ dependencies {
     testImplementation "org.springframework.boot:spring-boot-starter-test:${boot_version}"
 }
 
-group "io.opencui.extensions"
+group "services.opencui.reservation"
 version '1.0-SNAPSHOT'
 
 
