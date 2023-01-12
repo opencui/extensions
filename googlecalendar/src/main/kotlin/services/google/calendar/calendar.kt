@@ -43,28 +43,47 @@ data class ImplResource(
     }
 
 }
+fun main(){
+    val reservation = ReservationProvider()
+    val resourceType = ResourceType("table")
+    val date = LocalDate.now().plusDays(3)
+    val time = LocalTime.of(10,0)
+//    reservation.makeReservation("User1", resourceType,date,time, null)
+//    reservation.listReservation("User1", resourceType)
+}
 
 data class ReservationProvider(
-    val config: Configuration,
+//    val config: Configuration,
     override var session: UserSession? = null,
 ) : IReservation, IProvider {
-    val delegatedUser = config[DELEGATED_USER] as String
+    val delegatedUser = "karani@jkarani.com"
 
-    val calendarId = config[CALENDAR_ID] as String
+    val calendarId = "primary"
 
-    val openHour = config[OPEN_HOUR].toString().toInt()
+    val openHour = 9
 
-    val closeHour = config[CLOSE_HOUR].toString().toInt()
+    val closeHour = 17
 
     val open = LocalTime.of(openHour, 0)
 
     val close = LocalTime.of(closeHour, 0)
 
-    val range = config[TIMERANGE].toString().toInt()
+    val range = 1
 
-    val dayRange = config[DAYRANGE].toString().toInt()
+    val dayRange = 5
 
-    val secrets_json = config[CLIENT_SECRET] as String
+    val secrets_json = "{\n" +
+            "  \"type\": \"service_account\",\n" +
+            "  \"project_id\": \"calendly-374213\",\n" +
+            "  \"private_key_id\": \"24a781d37d71b2a4a6b0635e207723a011c49cbc\",\n" +
+            "  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDKAQq5EzQ+jG8s\\n76n3Q/+tgFNyfiNlXXp5YumpNVCZjmsg5jbBtyUW6KNLhN7Uh0NDBx0gCJkH56Uq\\ntpN7e1fJCxkA+JzjX9xq4OBfyPlr4EvnZhNr6cYaJl2eD4Xg50pq6Pi2QP9XWKdq\\nJtisQVQRm2tAW0pJergEPD4JLtuJndWAScIvhTC7T3MEpPd9YpcmIIo4z1l0N5HK\\nzq92oBqWEcIffMqKLlQRCgn43mkCo3ovul2GTowqOSMKl90CS/JxtN9RnuIJtTfc\\nEKEMUE2HogiEwCS4aEWk1Rg+5pBDocVdJ8kuLSVuP9CXv+dNQInwdYYNTzfc7I0X\\nWZhPSh0lAgMBAAECggEADjwbD5YzGwpF5laANXC5Ana1yq5pW6IF+KpX+WjMpHmF\\nApU+fBGmHzJnGXIEStk6S+2jJ4f7krNH8BXcGDpFoiDyUt9yHNK7Q1vT6+QLcYbl\\nimmmyja3001rUPFal5Hs7FI8/ojfhX31lDUnFSJoZHI9kVQtjLaFY6UEIR0Icu7I\\ngtfDeHI/UECvl/onSrmxKtwudj72OwFWKNWhi08n5jzbRYAq1L7FirQK2BXzzr6o\\nkKuStHBTdE1pW+33ebq0bqkElCOHNbOD+L1EN8Z+hN+Ntj/W5Ga7V7g1qS7x2tz3\\nqdXCQSIDBCo/MAnRBWmFl7YRMOMg5fCCpHiEhvz2cQKBgQD0131eOxUZpfiRfg1J\\nVgeMdf3nzyNBnG6f20MFWrclbo9FzLhLYeGUoT6D44MgwVmxRYb2eAsIi1wS9xJW\\nx8oBAtwWuiZu8bYYkaEl3q3+LFdriKl3ewCX6Q0ZiBsGjUjxyP/4J+QMpoU4wOZB\\nDYeVMt/wUiPjPkpDCxnRfemSsQKBgQDTNcZtj4oBE6YTDy1/rjWW35Dim3t6+LGy\\nKlC7nXU7MuohLEJoEyIB6kuuNZLxMBCFHelTBCxgiedZsvffWk1GBCgGSv7sOmve\\n5+tOKjofYyin/7r74ofil0MogIVi5ISd0gWxaA2jL0oZ/gNKIrOJiRhQPEfufu6I\\nIg2HA9lGtQKBgQDY0oA2U5IS/ZTLm1o+yI20yMTKZPgu4U5iCDUo57Xq0ybTxECs\\nmQjAq66F85OrDS7VuuGTIKl8rpUiQmSeLx1nmdW31q+0bh85ULXpqHJi9XeRRhv1\\nMBtNa9fq9Uohmjqvy7VKWGEvBsRRhxohH88ixEPmOYeIdSAkkQ8TIzMWcQKBgF1v\\nLJjLJwHS72T/EeGp74sO28ljfvynh/SJQ627umC15V1HdxkTXbf7Lf+jM53+5U/+\\nK3nOHtOWLgJAaecky4ptzEb8Zkmajp3NewrZI10/QH0RZGaJkBNtVwhT0q4s6X3n\\nqx0QKvhFs0JMXKgvMb1mKJtWD3wyKtOOPO29hiEBAoGBAI7USn+oaInG5KvqdIuV\\n5pfuYMbFn6Z2zaJkpBJj6986NncMnxDhr3JCCguPXqgc0TJ+z/ViTobEHwwEF5mj\\nU7OuOyLUSv3S+AcuMerACExWoTcB9CZ8ZNDSX9AI5Lj5fkzuZ6f1pohkDKMquyrt\\nYT67nZ7aTey+g5oG4dkBMmry\\n-----END PRIVATE KEY-----\\n\",\n" +
+            "  \"client_email\": \"karani@calendly-374213.iam.gserviceaccount.com\",\n" +
+            "  \"client_id\": \"106731815922577767769\",\n" +
+            "  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n" +
+            "  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n" +
+            "  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n" +
+            "  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/karani%40calendly-374213.iam.gserviceaccount.com\"\n" +
+            "}"
 
     val HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
     val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
@@ -89,60 +108,106 @@ data class ReservationProvider(
     override fun makeReservation(
         userId: String, resourceType: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<ResourceFeature>?
     ): Reservation? {
-        val first = findFirstAndBreak(
-            resourceType, date, time, filter
-        )
-        if (first.isNullOrEmpty()) {
-            return null
-        } else {
-            val calendar = buildService<Calendar>()
-            val event = Event()
-            val resource = first[0]
-            event.summary = "Reservation for $userId"
-            event.description = "Reservation booked for ${resource.resourceName}"
-            event.start = EventDateTime().setDateTime(DateTime(date.toString() + "T" + time.toString() + ":00+00:00"))
-            event.end = EventDateTime().setDateTime(
-                DateTime(
-                    date.toString() + "T" + time?.plusHours(1).toString() + ":00+00:00"
-                )
-            )
-            event.attendees = listOf(EventAttendee().setResource(true).setEmail(resource.resourceEmail))
-            val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
-            val reservation = Reservation()
-            val r = ImplResource(session = null, resourceType, name = resource.resourceName)
-            r.id = createdEvent?.id
-            reservation.id = createdEvent?.id
-            reservation.duration = 1
-            reservation.endDate = date
-            reservation.endTime = time
-            reservation.getResourceInfo()
-            reservation.userId = userId
-            reservation.resourceId = resource.resourceId
-            reservation.startTime = time
-            return reservation
-        }
+        val reservation = Reservation()
 
+        val listOfResources = mutableListOf<CalendarResource>()
+
+        if (filter == null) {
+            val resources = getResourcesWhenFilterIsNull(resourceType)
+            if (resources.isNullOrEmpty()) {
+                return Reservation()
+
+            } else {
+                resources.forEach {
+                    val event = getOneEvent(date!!, it.resourceEmail, time!!, time.plusHours(range.toLong()))
+                    if (event.isNullOrEmpty()) {
+                        listOfResources.add(it)
+                    }
+                }
+                if (listOfResources.isNotEmpty()) {
+                    val calendar = buildService<Calendar>()
+                    val event = Event()
+                    val resource = listOfResources[0]
+                    event.summary = "Reservation for $userId"
+                    event.description = "Reservation booked for ${resource.resourceName}"
+                    event.start =
+                        EventDateTime().setDateTime(DateTime(date.toString() + "T" + time.toString() + ":00+00:00"))
+                    event.end = EventDateTime().setDateTime(
+                        DateTime(
+                            date.toString() + "T" + time?.plusHours(1).toString() + ":00+00:00"
+                        )
+                    )
+                    event.attendees = listOf(EventAttendee().setResource(true).setEmail(resource.resourceEmail))
+                    val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
+                    val reservation = Reservation()
+                    val r = ImplResource(session = null, resourceType, name = resource.resourceName)
+                    r.id = createdEvent?.id
+                    reservation.id = createdEvent?.id
+                    reservation.duration = 1
+                    reservation.endDate = date
+                    reservation.endTime = time
+                    reservation.getResourceInfo()
+                    reservation.userId = userId
+                    reservation.resourceId = resource.resourceId
+                    reservation.startTime = time
+                    return reservation
+
+                }
+
+            }
+        } else {
+            val resources = getResourcesWhenFilterIsNotNull(resourceType, filter)
+            resources.forEach {
+                val event = getOneEvent(date!!, it.resourceEmail, time!!, time.plusHours(range.toLong()))
+                if (event.isNullOrEmpty()) {
+                    listOfResources.add(it)
+                }
+            }
+            if (listOfResources.isNotEmpty()) {
+                val calendar = buildService<Calendar>()
+                val event = Event()
+                val resource = listOfResources[0]
+                event.summary = "Reservation for $userId"
+                event.description = "Reservation booked for ${resource.resourceName}"
+                event.start =
+                    EventDateTime().setDateTime(DateTime(date.toString() + "T" + time.toString() + ":00+00:00"))
+                event.end = EventDateTime().setDateTime(
+                    DateTime(
+                        date.toString() + "T" + time?.plusHours(1).toString() + ":00+00:00"
+                    )
+                )
+                event.attendees = listOf(EventAttendee().setResource(true).setEmail(resource.resourceEmail))
+                val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
+                val r = ImplResource(session = null, resourceType, name = resource.resourceName)
+                r.id = createdEvent?.id
+                reservation.id = createdEvent?.id
+                reservation.duration = 1
+                reservation.endDate = date
+                reservation.endTime = time
+                reservation.getResourceInfo()
+                reservation.userId = userId
+                reservation.resourceId = resource.resourceId
+                reservation.startTime = time
+                return reservation
+
+            }
+
+        }
+        return reservation
     }
+
+
 
 
     override fun listReservation(userId: String, resourceType: ResourceType): List<Reservation> {
         val service = buildService<Calendar>()
         val now = DateTime(System.currentTimeMillis())
         val reservations = mutableListOf<Reservation>()
-
         val events = service?.events()?.list("primary")?.setTimeMin(now)?.setOrderBy("startTime")?.setSingleEvents(true)
             ?.execute()?.items
         if (events != null) {
             for (event in events) {
                 val reservation = Reservation()
-
-                val rId = event.attendees?.get(0)?.email
-                if (rId != null) {
-                    getResourceInfo(rId)?.let { r ->
-                        reservation.resourceId = r.id
-                        reservation.getResourceInfo()
-                    }
-                }
                 reservation.id = event.id
                 reservation.userId = userId
                 reservation.resourceId = event.attendees?.get(0)?.email
@@ -153,7 +218,6 @@ data class ReservationProvider(
                 reservation.endTime =
                     Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.systemDefault())
                         .toLocalTime()
-                reservation.getResourceInfo()
                 reservations.add(reservation)
                 return reservations
             }
@@ -184,19 +248,19 @@ data class ReservationProvider(
                 return validationResult
             }
         }
-        val first = findFirstAndBreak(
-            type, date, time, filter
-        )
-        if (first != null) {
-            val validationResult = ValidationResult(session = null)
-            validationResult.success = false
-            validationResult.message = "No resources available"
-            return validationResult
-        } else {
+        val first = availableDates(type,time, filter)
+        if (first.isNullOrEmpty()) {
             val validationResult = ValidationResult(session = null)
             validationResult.success = true
             validationResult.message = "Resources available"
             return validationResult
+
+        } else {
+            val validationResult = ValidationResult(session = null)
+            validationResult.success = false
+            validationResult.message = "No resources available"
+            return validationResult
+
         }
 
     }
@@ -204,53 +268,129 @@ data class ReservationProvider(
     override fun reservationUpdatable(
         reservationId: String, date: LocalDate, time: LocalTime, features: List<ResourceFeature>?
     ): ValidationResult {
-        val first = findFirstAndBreak(resourceType = ResourceType("table"), date, time, features)
-        if (first.isNullOrEmpty()) {
-            val result = ValidationResult()
-            result.success = true
-            result.message = "Reservation can be updated"
-            return result
-        } else {
-            val result = ValidationResult()
-            result.success = false
-            result.message = "Reservation cannot be updated"
-            return result
+        val validationResult = ValidationResult()
+        if(features == null){
+            val resources = getResourcesWhenFilterIsNull(ResourceType("table"))
+            if(resources.isNullOrEmpty()){
+                validationResult.message="not updatable"
+                validationResult.success=false
+            }else{
+                resources.forEach{
+                    val service = buildService<Calendar>()
+                    val event = service?.events()?.get(it.resourceEmail,reservationId)
+                    if(event.isNullOrEmpty()){
+                        validationResult.message="reservation is not updatable"
+                        validationResult.success=false
+                    }else{
+                        validationResult.message="reservation is not updatable"
+                        validationResult.success=false
+                    }
+                }
+            }
+        }else{
+            val resources = getResourcesWhenFilterIsNotNull(ResourceType("table"), features)
+            if(resources.isNullOrEmpty()){
+                validationResult.message="not updatable"
+                validationResult.success=false
+            }else{
+                resources.forEach{
+                    val service = buildService<Calendar>()
+                    val event = service?.events()?.get(it.resourceEmail,reservationId)
+                    if(event.isNullOrEmpty()){
+                        validationResult.message="reservation is not updatable"
+                        validationResult.success=false
+                    }else{
+                        validationResult.message="reservation is not updatable"
+                        validationResult.success=false
+                    }
+                }
+            }
+
         }
+        return validationResult
+
     }
 
     override fun updateReservation(
         reservationId: String, date: LocalDate?, time: LocalTime?, features: List<ResourceFeature>
     ): ValidationResult {
-        val first = findFirstAndBreak(
-            resourceType = ResourceType("table"), date, time, features
-        )
-        val service = buildService<Calendar>()
-        val event = service?.events()?.get(
-            calendarId, reservationId
-        )?.execute()
-        if (first.isNullOrEmpty()) {
-            val result = ValidationResult()
-            result.success = false
-            result.message = "resource is not updatable"
-            return result
-        } else {
+        val calendar = buildService<Calendar>()
+        val validationResult = ValidationResult()
+        val listResources = mutableListOf<CalendarResource>()
+        if(features == null){
+            val resources = getResourcesWhenFilterIsNull(resourceType = ResourceType("table"))
+            val event = calendar?.Events()?.get(calendarId, reservationId)?.execute()
+            if(event.isNullOrEmpty()){
+                validationResult.message ="cannot update"
+                validationResult.success=false
+            }
+            if(resources.isNullOrEmpty()){
+                validationResult.message ="cannot update"
+                validationResult.success=false
+            }else{
+                resources.forEach{
+                    val service = buildService<Calendar>()
+                    val events = service?.events()?.list(calendarId)?.setTimeMax(event?.start?.dateTime)?.setTimeMin(event?.end?.dateTime)?.execute()?.items
+                    if(events.isNullOrEmpty()){
+                        listResources.add(it)
+                    }
+                }
+                if(listResources.isEmpty()){
+                    validationResult.message="cannot update"
+                    validationResult.success=false
+                }else{
+                    val calendar = buildService<Calendar>()
+                    val e = Event()
+                    val resource = listResources[0]
+                    e.summary = event?.summary
+                    e.description = event?.description
+                    e.start = event?.start
+                    e.attendees = event?.attendees
+                    val createdEvent = calendar?.events()?.insert(listResources[0].resourceEmail, event)?.execute()
+                    validationResult.success=true
+                    validationResult.message="updated resource"
 
-            event?.start = EventDateTime().setDateTime(DateTime(date.toString() + "T" + time.toString() + ":00+00:00"))
-            event?.end = EventDateTime().setDateTime(
-                DateTime(
-                    date.toString() + "T" + time?.plusHours(1).toString() + ":00+00:00"
-                )
-            )
-            event?.attendees = listOf(EventAttendee().setResource(true).setEmail(first[0].resourceEmail))
-            service?.events()?.patch(
-                calendarId, reservationId, event
-            )?.execute()
+                }
+            }
 
-            val validationResult = ValidationResult(session = null)
-            validationResult.success = false
-            validationResult.message = "Failed to update reservation"
-            return validationResult
+
+        }else{
+            val resources =getResourcesWhenFilterIsNotNull(resourceType = ResourceType("table"), features)
+            val event = calendar?.Events()?.get(calendarId, reservationId)?.execute()
+            if(event.isNullOrEmpty()){
+                validationResult.message ="cannot update"
+                validationResult.success=false
+            }
+            if(resources.isNullOrEmpty()){
+                validationResult.message ="cannot update"
+                validationResult.success=false
+            }else{
+                resources.forEach{
+                    val service = buildService<Calendar>()
+                    val events = service?.events()?.list(calendarId)?.setTimeMax(event?.start?.dateTime)?.setTimeMin(event?.end?.dateTime)?.execute()?.items
+                    if(events.isNullOrEmpty()){
+                        listResources.add(it)
+                    }
+                }
+                if(listResources.isEmpty()){
+                    validationResult.message="cannot update"
+                    validationResult.success=false
+                }else{
+                    val calendar = buildService<Calendar>()
+                    val e = Event()
+                    val resource = listResources[0]
+                    e.summary = event?.summary
+                    e.description = event?.description
+                    e.start = event?.start
+                    e.attendees = event?.attendees
+                    val createdEvent = calendar?.events()?.insert(listResources[0].resourceEmail, event)?.execute()
+                    validationResult.success=true
+                    validationResult.message="updated resource"
+
+                }
+            }
         }
+        return validationResult
 
     }
 
@@ -446,45 +586,6 @@ data class ReservationProvider(
 
     }
 
-    fun findFirstAndBreak(
-        resourceType: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<ResourceFeature>?
-    ): MutableList<CalendarResource> {
-        val service = buildService<Calendar>()
-        val adminService = buildAdminService<Directory>()
-        var rs = mutableListOf<CalendarResource>()
-        val availableResource = mutableListOf<CalendarResource>()
-        if (filter == null) {
-            rs = adminService?.resources()?.calendars()?.list("my_customer")?.execute()?.items?.filter {
-                it.resourceType == resourceType.value
-            } as MutableList<CalendarResource>
-        } else {
-            val calendarswithType =
-                adminService?.resources()?.calendars()?.list("my_customer")?.execute()?.items?.filter {
-                    it.resourceType == resourceType.value
-                }
-            calendarswithType?.forEach {
-                val rf = Json.decodeFromString<ResourceFeature>(it.resourceDescription)
-                if (rf.key == filter?.get(0)?.key && rf.value == filter?.get(0)?.value) {
-                    rs.add(it)
-                }
-            }
-
-            rs.forEach { resource ->
-                val start = DateTime(date.toString() + "T" + time.toString() + ":00+00:00")
-                val end = DateTime(date.toString() + "T" + time?.plusHours(1).toString() + ":00+00:00")
-                val events = service?.events()?.list(resource.resourceEmail)?.setTimeMin(start)?.setTimeMax(end)
-                    ?.execute()?.items
-                if (events.isNullOrEmpty()) {
-                    availableResource.add(resource)
-                }
-
-            }
-
-        }
-
-        return availableResource
-
-    }
 
     fun getResourcesWhenFilterIsNull(resourceType: ResourceType): List<CalendarResource>? {
         val adminService = buildAdminService<Directory>()
