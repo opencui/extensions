@@ -1,4 +1,4 @@
-package reservation
+package services.opencui.reservation
 
 import com.fasterxml.jackson.`annotation`.JsonIgnore
 import com.fasterxml.jackson.`annotation`.JsonInclude
@@ -21,7 +21,6 @@ import io.opencui.serialization.Json
 import java.lang.Class
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
 import java.util.*
 import kotlin.Any
 import kotlin.Boolean
@@ -56,7 +55,7 @@ public data class Agent(
     public companion object {
         public val duMeta: DUMeta = loadDUMetaDsl(
             struct, Agent::class.java.classLoader,
-            "services.opencui", "reservation", "struct", "769257801632452608", "271", "Asia/Shanghai")
+            "services.opencui", "services/opencui/reservation", "struct", "769257801632452608", "271", "Asia/Shanghai")
 
         public val stateTracker: StateTracker = BertStateTracker(duMeta)
     }
