@@ -43,47 +43,28 @@ data class ImplResource(
     }
 
 }
-fun main(){
-    val reservation = ReservationProvider()
-    val resourceType = ResourceType("table")
-    val date = LocalDate.now().plusDays(3)
-    val time = LocalTime.of(10,0)
-//    reservation.makeReservation("User1", resourceType,date,time, null)
-//    reservation.listReservation("User1", resourceType)
-}
 
 data class ReservationProvider(
-//    val config: Configuration,
+    val config: Configuration,
     override var session: UserSession? = null,
 ) : IReservation, IProvider {
-    val delegatedUser = "karani@jkarani.com"
+    val delegatedUser = config[DELEGATED_USER] as String
 
-    val calendarId = "primary"
+    val calendarId = config[CALENDAR_ID] as String
 
-    val openHour = 9
+    val openHour = config[OPEN_HOUR].toString().toInt()
 
-    val closeHour = 17
+    val closeHour = config[CLOSE_HOUR].toString().toInt()
 
     val open = LocalTime.of(openHour, 0)
 
     val close = LocalTime.of(closeHour, 0)
 
-    val range = 1
+    val range = config[TIMERANGE].toString().toInt()
 
-    val dayRange = 5
+    val dayRange = config[DAYRANGE].toString().toInt()
 
-    val secrets_json = "{\n" +
-            "  \"type\": \"service_account\",\n" +
-            "  \"project_id\": \"calendly-374213\",\n" +
-            "  \"private_key_id\": \"24a781d37d71b2a4a6b0635e207723a011c49cbc\",\n" +
-            "  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDKAQq5EzQ+jG8s\\n76n3Q/+tgFNyfiNlXXp5YumpNVCZjmsg5jbBtyUW6KNLhN7Uh0NDBx0gCJkH56Uq\\ntpN7e1fJCxkA+JzjX9xq4OBfyPlr4EvnZhNr6cYaJl2eD4Xg50pq6Pi2QP9XWKdq\\nJtisQVQRm2tAW0pJergEPD4JLtuJndWAScIvhTC7T3MEpPd9YpcmIIo4z1l0N5HK\\nzq92oBqWEcIffMqKLlQRCgn43mkCo3ovul2GTowqOSMKl90CS/JxtN9RnuIJtTfc\\nEKEMUE2HogiEwCS4aEWk1Rg+5pBDocVdJ8kuLSVuP9CXv+dNQInwdYYNTzfc7I0X\\nWZhPSh0lAgMBAAECggEADjwbD5YzGwpF5laANXC5Ana1yq5pW6IF+KpX+WjMpHmF\\nApU+fBGmHzJnGXIEStk6S+2jJ4f7krNH8BXcGDpFoiDyUt9yHNK7Q1vT6+QLcYbl\\nimmmyja3001rUPFal5Hs7FI8/ojfhX31lDUnFSJoZHI9kVQtjLaFY6UEIR0Icu7I\\ngtfDeHI/UECvl/onSrmxKtwudj72OwFWKNWhi08n5jzbRYAq1L7FirQK2BXzzr6o\\nkKuStHBTdE1pW+33ebq0bqkElCOHNbOD+L1EN8Z+hN+Ntj/W5Ga7V7g1qS7x2tz3\\nqdXCQSIDBCo/MAnRBWmFl7YRMOMg5fCCpHiEhvz2cQKBgQD0131eOxUZpfiRfg1J\\nVgeMdf3nzyNBnG6f20MFWrclbo9FzLhLYeGUoT6D44MgwVmxRYb2eAsIi1wS9xJW\\nx8oBAtwWuiZu8bYYkaEl3q3+LFdriKl3ewCX6Q0ZiBsGjUjxyP/4J+QMpoU4wOZB\\nDYeVMt/wUiPjPkpDCxnRfemSsQKBgQDTNcZtj4oBE6YTDy1/rjWW35Dim3t6+LGy\\nKlC7nXU7MuohLEJoEyIB6kuuNZLxMBCFHelTBCxgiedZsvffWk1GBCgGSv7sOmve\\n5+tOKjofYyin/7r74ofil0MogIVi5ISd0gWxaA2jL0oZ/gNKIrOJiRhQPEfufu6I\\nIg2HA9lGtQKBgQDY0oA2U5IS/ZTLm1o+yI20yMTKZPgu4U5iCDUo57Xq0ybTxECs\\nmQjAq66F85OrDS7VuuGTIKl8rpUiQmSeLx1nmdW31q+0bh85ULXpqHJi9XeRRhv1\\nMBtNa9fq9Uohmjqvy7VKWGEvBsRRhxohH88ixEPmOYeIdSAkkQ8TIzMWcQKBgF1v\\nLJjLJwHS72T/EeGp74sO28ljfvynh/SJQ627umC15V1HdxkTXbf7Lf+jM53+5U/+\\nK3nOHtOWLgJAaecky4ptzEb8Zkmajp3NewrZI10/QH0RZGaJkBNtVwhT0q4s6X3n\\nqx0QKvhFs0JMXKgvMb1mKJtWD3wyKtOOPO29hiEBAoGBAI7USn+oaInG5KvqdIuV\\n5pfuYMbFn6Z2zaJkpBJj6986NncMnxDhr3JCCguPXqgc0TJ+z/ViTobEHwwEF5mj\\nU7OuOyLUSv3S+AcuMerACExWoTcB9CZ8ZNDSX9AI5Lj5fkzuZ6f1pohkDKMquyrt\\nYT67nZ7aTey+g5oG4dkBMmry\\n-----END PRIVATE KEY-----\\n\",\n" +
-            "  \"client_email\": \"karani@calendly-374213.iam.gserviceaccount.com\",\n" +
-            "  \"client_id\": \"106731815922577767769\",\n" +
-            "  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n" +
-            "  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n" +
-            "  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n" +
-            "  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/karani%40calendly-374213.iam.gserviceaccount.com\"\n" +
-            "}"
+    val secrets_json = config[CLIENT_SECRET] as String
 
     val HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
     val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
