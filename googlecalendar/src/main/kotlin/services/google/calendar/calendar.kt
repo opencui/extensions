@@ -17,7 +17,7 @@ import kotlin.reflect.KMutableProperty0
 import io.opencui.core.*
 import io.opencui.core.da.*
 import io.opencui.serialization.Json
-import services.opencui.reservation.*
+import reservation.*
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
