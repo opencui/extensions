@@ -44,6 +44,7 @@ data class ImplResource(
 
 }
 
+
 data class ReservationProvider(
     val config: Configuration,
     override var session: UserSession? = null,
@@ -60,7 +61,7 @@ data class ReservationProvider(
 
     val close = LocalTime.of(closeHour, 0)
 
-    val range = config[TIMERANGE].toString().toInt()
+    val range = config[CLOSE_HOUR].toString().toInt()
 
     val dayRange = config[DAYRANGE].toString().toInt()
 
@@ -93,6 +94,7 @@ data class ReservationProvider(
 
         val listOfResources = mutableListOf<CalendarResource>()
 
+
         if (filter == null) {
             val resources = getResourcesWhenFilterIsNull(resourceType)
             if (resources.isNullOrEmpty()) {
@@ -118,16 +120,13 @@ data class ReservationProvider(
                             date.toString() + "T" + time?.plusHours(1).toString() + ":00+00:00"
                         )
                     )
+
                     event.attendees = listOf(EventAttendee().setResource(true).setEmail(resource.resourceEmail))
                     val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
-                    val reservation = Reservation()
-                    val r = ImplResource(session = null, resourceType, name = resource.resourceName)
-                    r.id = createdEvent?.id
                     reservation.id = createdEvent?.id
                     reservation.duration = 1
                     reservation.endDate = date
                     reservation.endTime = time
-                    reservation.getResourceInfo()
                     reservation.userId = userId
                     reservation.resourceId = resource.resourceId
                     reservation.startTime = time
@@ -159,13 +158,10 @@ data class ReservationProvider(
                 )
                 event.attendees = listOf(EventAttendee().setResource(true).setEmail(resource.resourceEmail))
                 val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
-                val r = ImplResource(session = null, resourceType, name = resource.resourceName)
-                r.id = createdEvent?.id
                 reservation.id = createdEvent?.id
                 reservation.duration = 1
                 reservation.endDate = date
                 reservation.endTime = time
-                reservation.getResourceInfo()
                 reservation.userId = userId
                 reservation.resourceId = resource.resourceId
                 reservation.startTime = time
@@ -229,19 +225,19 @@ data class ReservationProvider(
                 return validationResult
             }
         }
-        val first = availableDates(type,time, filter)
-        if (first.isNullOrEmpty()) {
-            val validationResult = ValidationResult(session = null)
+        val first = getAllEventsOn(date!!, "primary")
+        val noOfEvents=(closeHour-openHour)/range
+        if(first?.size!! <noOfEvents){
+            val validationResult = ValidationResult(session)
             validationResult.success = true
-            validationResult.message = "Resources available"
+            validationResult.message = "Resource available"
             return validationResult
-
-        } else {
-            val validationResult = ValidationResult(session = null)
+        }
+        else{
+            val validationResult = ValidationResult(session)
             validationResult.success = false
-            validationResult.message = "No resources available"
+            validationResult.message = "Resource not available"
             return validationResult
-
         }
 
     }
@@ -557,13 +553,7 @@ data class ReservationProvider(
     }
 
     override fun getResourceInfo(resourceId: String): Resource? {
-        val service = buildAdminService<Directory>()
-        val cal = service?.resources()?.calendars()?.get("my_customer", resourceId)?.execute()
-        val resource = ImplResource(session = null, type = null, name = null)
-        resource.id = cal?.resourceId
-        resource.name = cal?.resourceName
-        resource.type = ResourceType(cal?.resourceType.toString())
-        return resource
+       TODO("Not yet Implemented")
 
     }
 
@@ -600,20 +590,21 @@ data class ReservationProvider(
         val service = buildService<Calendar>()
         val TimeMin = localDateTimeToDateTime(date, open)
         val TimeMax = localDateTimeToDateTime(date, open)
-        val events = service?.events()?.list(calendarId)?.setTimeMax(TimeMax)?.setTimeMin(TimeMin)?.execute()?.items
+        val events = service?.events()?.list("primary")?.setTimeMax(TimeMax)?.setTimeMin(TimeMin)?.execute()?.items
         return events
     }
 
     fun getOneEvent(date: LocalDate, calendarId: String, start: LocalTime, end: LocalTime): MutableList<Event>? {
         val service = buildService<Calendar>()
         val TimeMin = localDateTimeToDateTime(date, start)
-        val TimeMax = localDateTimeToDateTime(date, start)
-        val events = service?.events()?.list(calendarId)?.setTimeMax(TimeMax)?.setTimeMin(TimeMin)?.execute()?.items
+        val TimeMax = localDateTimeToDateTime(date, start.plusHours(range.toLong()))
+        val events = service?.events()?.list("primary")?.setTimeMax(TimeMax)?.setTimeMin(TimeMin)?.execute()?.items
         return events
 
     }
 
     fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
+        println("Date time: ${DateTime(date.toString() + "T" + time.toString() + ":00+00:00")}")
         return DateTime(date.toString() + "T" + time.toString() + ":00+00:00")
     }
 
