@@ -218,7 +218,7 @@ data class ReservationProvider(
             }
         }
         if (date == null) {
-            val today = LocalDate.of(2023, 1, 14)
+            val today = LocalDate.now()
             val first = getAllEventsOn(today, calendarId)
             val noOfEvents = (closeHour - openHour) / range
 
