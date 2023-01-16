@@ -8,9 +8,36 @@ import com.fasterxml.jackson.`annotation`.JsonSubTypes
 import com.fasterxml.jackson.`annotation`.JsonTypeInfo
 import com.fasterxml.jackson.`annotation`.JsonValue
 import com.fasterxml.jackson.databind.node.ObjectNode
-import io.opencui.core.*
+import com.fasterxml.jackson.databind.node.TextNode
+import io.opencui.channel.IChannel
+import io.opencui.core.AEntityFiller
+import io.opencui.core.AlwaysAsk
 import io.opencui.core.Annotation
-import io.opencui.core.da.*
+import io.opencui.core.EntityFiller
+import io.opencui.core.FillBuilder
+import io.opencui.core.FrameFiller
+import io.opencui.core.IChatbot
+import io.opencui.core.IEntity
+import io.opencui.core.IFrame
+import io.opencui.core.IService
+import io.opencui.core.LazyAction
+import io.opencui.core.MaxValueCheck
+import io.opencui.core.MinMaxAnnotation
+import io.opencui.core.MultiValueFiller
+import io.opencui.core.NeverAsk
+import io.opencui.core.ParamPath
+import io.opencui.core.Prompts
+import io.opencui.core.RoutingInfo
+import io.opencui.core.SlotConditionalPromptAnnotation
+import io.opencui.core.SlotPromptAnnotation
+import io.opencui.core.UserSession
+import io.opencui.core.ValueCheckAnnotation
+import io.opencui.core.da.DialogActRewriter
+import io.opencui.core.da.SlotNotifyFailure
+import io.opencui.core.da.SlotOfferSepInformConfirm
+import io.opencui.core.da.SlotRequest
+import io.opencui.core.da.SlotRequestMore
+import io.opencui.core.templateOf
 import io.opencui.du.BertStateTracker
 import io.opencui.du.DUMeta
 import io.opencui.du.DUSlotMeta
@@ -18,10 +45,10 @@ import io.opencui.du.EntityType
 import io.opencui.du.LangPack
 import io.opencui.du.StateTracker
 import io.opencui.serialization.Json
+import io.opencui.support.ISupport
 import java.lang.Class
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.*
 import kotlin.Any
 import kotlin.Boolean
 import kotlin.Int
@@ -31,16 +58,16 @@ import kotlin.collections.Map
 import kotlin.collections.MutableList
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
-
+import kotlin.reflect.full.isSubclassOf
 
 public data class Agent(
     public val user: String?
 ) : IChatbot() {
     public override val duMeta: DUMeta
-        public get() = Companion.duMeta
+        public get() = Agent.duMeta
 
     public override val stateTracker: StateTracker
-        public get() = Companion.stateTracker
+        public get() = Agent.stateTracker
 
     public override val rewriteRules: MutableList<KClass<out DialogActRewriter>> = mutableListOf()
 
@@ -53,9 +80,8 @@ public data class Agent(
     public constructor() : this("")
 
     public companion object {
-        public val duMeta: DUMeta = loadDUMetaDsl(
-            struct, Agent::class.java.classLoader,
-            "services.opencui", "services/opencui/reservation", "struct", "769257801632452608", "271", "Asia/Shanghai")
+        public val duMeta: DUMeta = loadDUMetaDsl(struct, Agent::class.java.classLoader,
+            "services.opencui", "reservation", "struct", "769257801632452608", "271", "Asia/Shanghai")
 
         public val stateTracker: StateTracker = BertStateTracker(duMeta)
     }
@@ -193,8 +219,13 @@ public object struct : LangPack {
                     recognizer("ListRecognizer")
                 }
         ,
-        "services.opencui.reservation.Comparation" to
-                entityType("services.opencui.reservation.Comparation") {
+        "io.opencui.core.Comparation" to entityType("io.opencui.core.Comparation") {
+            children(listOf())
+            recognizer("ListRecognizer")
+        }
+        ,
+        "services.opencui.reservation.ComparationOperator" to
+                entityType("services.opencui.reservation.ComparationOperator") {
                     children(listOf())
                     recognizer("ListRecognizer")
                 }
@@ -549,14 +580,6 @@ public object struct : LangPack {
                 DUSlotMeta(label = "endTime", isMultiValue = false, type = "java.time.LocalTime", isHead =
                 false, triggers = listOf()),
             ),
-            "services.opencui.reservation.ResourceFeature" to listOf(
-                DUSlotMeta(label = "key", isMultiValue = false, type = "kotlin.String", isHead = false,
-                    triggers = listOf()),
-                DUSlotMeta(label = "value", isMultiValue = false, type = "kotlin.Any", isHead = false,
-                    triggers = listOf()),
-                DUSlotMeta(label = "operator", isMultiValue = false, type =
-                "services.opencui.reservation.Comparation", isHead = false, triggers = listOf()),
-            ),
             "services.opencui.reservation.Location" to listOf(
                 DUSlotMeta(label = "id", isMultiValue = false, type = "kotlin.String", isHead = false,
                     triggers = listOf()),
@@ -579,6 +602,38 @@ public object struct : LangPack {
                 DUSlotMeta(label = "endTime", isMultiValue = false, type = "java.time.LocalTime", isHead =
                 false, triggers = listOf()),
             ),
+            "io.opencui.core.companion.GreaterThan" to listOf(
+                DUSlotMeta(label = "slot", isMultiValue = false, type = "kotlin.Any", isHead = false, triggers
+                = listOf()),
+            ),
+            "io.opencui.core.companion.LessThan" to listOf(
+                DUSlotMeta(label = "slot", isMultiValue = false, type = "kotlin.Any", isHead = false, triggers
+                = listOf()),
+            ),
+            "io.opencui.core.companion.GreaterThanOrEqualTo" to listOf(
+                DUSlotMeta(label = "slot", isMultiValue = false, type = "kotlin.Any", isHead = false, triggers
+                = listOf()),
+            ),
+            "io.opencui.core.companion.LessThanOrEqualTo" to listOf(
+                DUSlotMeta(label = "slot", isMultiValue = false, type = "kotlin.Any", isHead = false, triggers
+                = listOf()),
+            ),
+            "io.opencui.core.Criterion" to listOf(
+                DUSlotMeta(label = "key", isMultiValue = false, type = "kotlin.String", isHead = false,
+                    triggers = listOf()),
+                DUSlotMeta(label = "value", isMultiValue = false, type = "kotlin.Any", isHead = false,
+                    triggers = listOf()),
+                DUSlotMeta(label = "operator", isMultiValue = false, type = "io.opencui.core.Comparation",
+                    isHead = false, triggers = listOf()),
+            ),
+            "services.opencui.reservation.Criterion" to listOf(
+                DUSlotMeta(label = "key", isMultiValue = false, type = "kotlin.String", isHead = false,
+                    triggers = listOf()),
+                DUSlotMeta(label = "value", isMultiValue = false, type = "kotlin.Any", isHead = false,
+                    triggers = listOf()),
+                DUSlotMeta(label = "operator", isMultiValue = false, type =
+                "services.opencui.reservation.ComparationOperator", isHead = false, triggers = listOf()),
+            ),
         )
 
     public override val typeAlias: Map<String, List<String>> = mapOf()
@@ -594,7 +649,7 @@ public data class ResourceType(
     public override fun toString(): String = value
 
     @JsonIgnore
-    public fun getChildren(): List<ResourceType> =  getAllInstances()
+    public fun getChildren(): List<ResourceType> =  ResourceType.getAllInstances()
 
     public companion object {
         @JsonIgnore
@@ -607,7 +662,7 @@ public data class ResourceType(
     }
 }
 
-public data class Comparation(
+public data class ComparationOperator(
     @get:JsonIgnore
     public override var value: String
 ) : IEntity {
@@ -617,16 +672,16 @@ public data class Comparation(
     public override fun toString(): String = value
 
     @JsonIgnore
-    public fun getChildren(): List<Comparation> =  getAllInstances()
+    public fun getChildren(): List<ComparationOperator> =  ComparationOperator.getAllInstances()
 
     public companion object {
         @JsonIgnore
         public val valueGood: ((String) -> Boolean)? = { true }
 
         @JsonIgnore
-        public fun getAllInstances(): List<Comparation> =
-            Agent.duMeta.getEntityInstances(Comparation::class.qualifiedName!!).map {
-                Comparation(it.key) }
+        public fun getAllInstances(): List<ComparationOperator> =
+            Agent.duMeta.getEntityInstances(ComparationOperator::class.qualifiedName!!).map {
+                ComparationOperator(it.key) }
     }
 }
 
@@ -728,56 +783,6 @@ public data class Reservation(
     }
 }
 
-public data class ResourceFeature(
-    @JsonInclude(NON_NULL)
-    public override var session: UserSession? = null
-) : IFrame {
-    @JsonProperty
-    public var key: String? = null
-
-    @JsonProperty
-    public var value: Any? = null
-
-    @JsonProperty
-    public var `operator`: Comparation? = null
-
-    public override fun annotations(path: String): List<Annotation> = when (path) {
-        "key" -> listOf(NeverAsk())
-        "value" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("value", "kotlin.Any",
-            listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
-        "operator" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("operator",
-            "services.opencui.reservation.Comparation", listOf(this), templateOf("restful" to
-                    Prompts()))}), AlwaysAsk())
-        else -> listOf()
-    }
-
-    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
-        FillBuilder {
-        public var frame: ResourceFeature? = this@ResourceFeature
-
-        public override fun invoke(path: ParamPath): FrameFiller<ResourceFeature> {
-            val filler = FrameFiller({(p as? KMutableProperty0<ResourceFeature?>) ?: ::frame}, path)
-            filler.addWithPath(EntityFiller({filler.target.get()!!::key}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::value}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Any")!!) as? kotlin.Any})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::`operator`}, {s: String? ->
-                operator?.origValue = s}) {s, t -> Json.decodeFromString(s, session!!.findKClass(t ?:
-            "services.opencui.reservation.Comparation")!!) as?
-                    Comparation
-            })
-            return filler
-        }
-    }
-
-    public companion object {
-        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
-                String>>()
-
-        public inline fun <reified S : IFrame> from(s: S): ResourceFeature = Json.mappingConvert(s)
-    }
-}
-
 public data class Location(
     @JsonInclude(NON_NULL)
     public override var session: UserSession? = null
@@ -811,8 +816,7 @@ public data class Location(
             filler.addWithPath(EntityFiller({filler.target.get()!!::type}, {s: String? ->
                 type?.origValue = s}) {s, t -> Json.decodeFromString(s, session!!.findKClass(t ?:
             "services.opencui.reservation.ResourceType")!!) as?
-                    ResourceType
-            })
+                    services.opencui.reservation.ResourceType})
             filler.addWithPath(EntityFiller({filler.target.get()!!::name}, null) {s, t ->
                 Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
             return filler
@@ -932,6 +936,55 @@ public data class TimeRange(
     }
 }
 
+public data class Criterion(
+    @JsonInclude(NON_NULL)
+    public override var session: UserSession? = null
+) : IFrame {
+    @JsonProperty
+    public var key: String? = null
+
+    @JsonProperty
+    public var value: Any? = null
+
+    @JsonProperty
+    public var `operator`: ComparationOperator? = null
+
+    public override fun annotations(path: String): List<Annotation> = when (path) {
+        "key" -> listOf(NeverAsk())
+        "value" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("value", "kotlin.Any",
+            listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
+        "operator" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("operator",
+            "services.opencui.reservation.ComparationOperator", listOf(this), templateOf("restful" to
+                    Prompts()))}), AlwaysAsk())
+        else -> listOf()
+    }
+
+    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+        FillBuilder {
+        public var frame: Criterion? = this@Criterion
+
+        public override fun invoke(path: ParamPath): FrameFiller<Criterion> {
+            val filler = FrameFiller({(p as? KMutableProperty0<Criterion?>) ?: ::frame}, path)
+            filler.addWithPath(EntityFiller({filler.target.get()!!::key}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::value}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Any")!!) as? kotlin.Any})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::`operator`}, {s: String? ->
+                operator?.origValue = s}) {s, t -> Json.decodeFromString(s, session!!.findKClass(t ?:
+            "services.opencui.reservation.ComparationOperator")!!) as?
+                    services.opencui.reservation.ComparationOperator})
+            return filler
+        }
+    }
+
+    public companion object {
+        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
+                String>>()
+
+        public inline fun <reified S : IFrame> from(s: S): Criterion = Json.mappingConvert(s)
+    }
+}
+
 public interface IReservation : IService {
     @JsonIgnore
     public fun makeReservation(
@@ -939,7 +992,7 @@ public interface IReservation : IService {
         resourceType: ResourceType,
         date: LocalDate?,
         time: LocalTime?,
-        filter: List<ResourceFeature>?
+        filter: List<Criterion>?
     ): Reservation?
 
     @JsonIgnore
@@ -953,7 +1006,7 @@ public interface IReservation : IService {
         type: ResourceType,
         date: LocalDate?,
         time: LocalTime?,
-        filter: List<ResourceFeature>?
+        filter: List<Criterion>?
     ): ValidationResult
 
     @JsonIgnore
@@ -961,7 +1014,7 @@ public interface IReservation : IService {
         reservationId: String,
         date: LocalDate,
         time: LocalTime,
-        features: List<ResourceFeature>?
+        features: List<Criterion>?
     ): ValidationResult
 
     @JsonIgnore
@@ -969,7 +1022,7 @@ public interface IReservation : IService {
         reservationId: String,
         date: LocalDate?,
         time: LocalTime?,
-        features: List<ResourceFeature>
+        features: List<Criterion>
     ): ValidationResult
 
     @JsonIgnore
@@ -985,20 +1038,16 @@ public interface IReservation : IService {
     public fun availableDates(
         resourceType: ResourceType,
         time: LocalTime?,
-        filter: List<ResourceFeature>?
+        filter: List<Criterion>?
     ): List<LocalDate>
 
     @JsonIgnore
     public fun availableTimeRanges(
         resourceType: ResourceType,
         date: LocalDate?,
-        filter: List<ResourceFeature>?
+        filter: List<Criterion>?
     ): List<TimeRange>
 
     @JsonIgnore
     public fun getResourceInfo(resourceId: String): Resource?
 }
-
-
-
-
