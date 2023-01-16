@@ -686,7 +686,6 @@ public data class ComparationOperator(
 }
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
-@JsonSubTypes(value = [JsonSubTypes.Type(value = Location::class)])
 public interface Resource : IFrame {
     public var id: String?
 
