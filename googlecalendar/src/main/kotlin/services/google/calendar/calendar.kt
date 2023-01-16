@@ -80,7 +80,6 @@ data class ReservationProvider(
 
         val listOfResources = mutableListOf<CalendarResource>()
 
-
         if (filter == null) {
             val resources = getResourcesWhenFilterIsNull(resourceType)
             if (resources.isNullOrEmpty()) {
@@ -218,36 +217,34 @@ data class ReservationProvider(
             }
         }
         if (date == null) {
-            val today = LocalDate.now()
-            val first = getAllEventsOn(today, calendarId)
-            val noOfEvents = (closeHour - openHour) / range
+            val today = LocalDate.now().plusDays(1)
+            val result = availableTimeRanges(type, today,filter )
 
-            if (first?.size!! < noOfEvents) {
-                val validationResult = ValidationResult(session)
-                validationResult.success = true
-                validationResult.message = "Resource available"
-                return validationResult
-            } else {
+
+            if (result.isEmpty()) {
                 val validationResult = ValidationResult(session)
                 validationResult.success = false
                 validationResult.message = "Resource not available"
+                return validationResult
+            } else {
+                val validationResult = ValidationResult(session)
+                validationResult.success = true
+                validationResult.message = "Resource is available"
                 return validationResult
             }
 
         } else {
-            val first = getAllEventsOn(date!!, calendarId)
+            val result = availableTimeRanges(type, today,filter )
 
-            val noOfEvents = ((closeHour - openHour)) / range
-
-            if (first?.size!! < noOfEvents) {
-                val validationResult = ValidationResult(session)
-                validationResult.success = true
-                validationResult.message = "Resource available"
-                return validationResult
-            } else {
+            if (result.isEmpty()) {
                 val validationResult = ValidationResult(session)
                 validationResult.success = false
                 validationResult.message = "Resource not available"
+                return validationResult
+            } else {
+                val validationResult = ValidationResult(session)
+                validationResult.success = true
+                validationResult.message = "Resource is available"
                 return validationResult
             }
         }
