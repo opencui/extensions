@@ -29,8 +29,6 @@ import java.time.LocalTime
 import java.time.ZoneId
 
 
-
-
 data class ReservationProvider(
     val config: Configuration,
     override var session: UserSession? = null,
@@ -475,51 +473,64 @@ data class ReservationProvider(
     private fun checkIfIsAfter(date: LocalDate, start: LocalTime): MutableList<TimeRange> {
         var TimeRanges = mutableListOf<TimeRange>()
         val events = getAllEventsOn(date, calendarId)
+        println(events?.size)
         var current = open
         if(events.isNullOrEmpty()){
             val nullTr = TimeRange()
             nullTr.startTime=open
             nullTr.endTime=close
             TimeRanges.add(nullTr)
-        }else {
+        }
+        else {
 
             for (i in 0 until events.size) {
                 val start = convertFromDateTime(events[i].start.dateTime)
-                if (start.isAfter(open)) {
+                println("current : $current")
+                println("start = $start")
+                if (start.isAfter(open)&& start !== current) {
                     val timeRange = TimeRange()
-                    timeRange.startTime=open
+                    timeRange.startTime=current
                     timeRange.endTime=start
+
                     TimeRanges.add(timeRange)
+
                 }
                 val end = convertFromDateTime(events[i].end.dateTime)
                 if (i < events.size - 1) {
                     val nextStart = convertFromDateTime(events[i + 1].start.dateTime)
                     if (nextStart.isAfter(open)) {
-                        if (end.isAfter(nextStart)) {
+                        if (end.isBefore(nextStart)) {
                             val timeRange = TimeRange()
-                            timeRange.startTime=open
-                            timeRange.endTime=start
+                            timeRange.startTime=end
+                            timeRange.endTime=nextStart
                             TimeRanges.add(timeRange)
-                            println("Next start = $nextStart, while current = $end")
                             current = nextStart
-                        } else {
+                        } else if (end.isAfter(nextStart)) {
+
+                            current = nextStart
+
+                        } else if(end ==nextStart) {
                             current = end
+
                         }
                     } else {
+
                         current = end
+
                     }
                 } else {
+
                     current = end
                 }
             }
+
             if (current.isBefore(close)) {
                 val timeRange = TimeRange()
                 timeRange.startTime=current
                 timeRange.endTime=close
-
+                TimeRanges.add(timeRange)
             }
         }
-
 
         return TimeRanges
     }
