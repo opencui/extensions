@@ -1,5 +1,6 @@
 package services.google.calendar
 
+
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
@@ -458,6 +459,7 @@ data class ReservationProvider(
     override fun availableTimeRanges(
         resourceType: ResourceType, date: LocalDate?, filter: List<Criterion>?
     ): List<TimeRange> {
+        logger.debug("entering available timeRanges")
         val timeRanges = mutableListOf<TimeRange>()
         if (date == null) {
             if (filter == null) {
@@ -563,9 +565,8 @@ data class ReservationProvider(
     override fun getResourceInfo(resourceId: String): Resource? {
         val service = buildAdminService<Directory>()
         val calendar = service?.resources()?.calendars()?.get("my_customer", resourceId)?.execute()
-        val resource = calendar?.let { Json.decodeFromString<Resource>(it.resourceDescription) }
+        val resource = calendar?.let { Json.decodeFromString<Resource>(it.resourceDescription, Resource::class.java.getClassLoader()) }
         return resource
-
     }
 
     fun getResourcesWhenFilterIsNull(resourceType: ResourceType): List<CalendarResource>? {
@@ -574,7 +575,6 @@ data class ReservationProvider(
             it.resourceType == resourceType.value
         }
         return resources
-
     }
 
     fun getResourcesWhenFilterIsNotNull(
@@ -618,7 +618,6 @@ data class ReservationProvider(
         val TimeMax = localDateTimeToDateTime(date, start.plusHours(range.toLong()))
         val events = service?.events()?.list(calendarId)?.setTimeMax(TimeMax)?.setTimeMin(TimeMin)?.execute()?.items
         return events
-
     }
 
     fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
@@ -635,7 +634,7 @@ data class ReservationProvider(
 
 
     companion object : ExtensionBuilder<IReservation> {
-
+        val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
         const val CALENDAR_ID = "calendar_id"
         const val DELEGATED_USER = "delegated_user"
