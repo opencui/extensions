@@ -17,6 +17,7 @@ import com.google.api.services.directory.DirectoryScopes
 import com.google.api.services.directory.model.CalendarResource
 import io.opencui.core.*
 import io.opencui.serialization.Json
+import org.slf4j.LoggerFactory
 import services.opencui.reservation.*
 import java.time.Instant
 import java.time.LocalDate
@@ -28,6 +29,7 @@ import kotlin.collections.Map
 import kotlin.collections.MutableList
 import java.time.LocalTime
 import java.time.ZoneId
+import java.util.logging.Logger
 
 
 data class ReservationProvider(
@@ -174,7 +176,7 @@ data class ReservationProvider(
                             .toLocalDate()
                     reservation.duration = range
                     reservation.endTime =
-                        Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.systemDefault())
+                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault())
                             .toLocalTime()
                     reservations.add(reservation)
                 }
@@ -490,9 +492,14 @@ data class ReservationProvider(
         else {
 
             for (i in 0 until events.size) {
+                val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
+
                 val start = convertFromDateTime(events[i].start.dateTime)
-                if (start.isAfter(open)&& start != current) {
+                logger.info("This is the current: $current and end: $start")
+
+                if (start.isAfter(open)) {
                     val timeRange = TimeRange()
+
                     timeRange.startTime=current
                     timeRange.endTime=start
 
@@ -503,7 +510,7 @@ data class ReservationProvider(
                 if (i < events.size - 1) {
                     val nextStart = convertFromDateTime(events[i + 1].start.dateTime)
                     if (nextStart.isAfter(open)) {
-                        if (end.isBefore(nextStart)) {
+                        if (end.isBefore(nextStart) && nextStart != end) {
 
                             val timeRange = TimeRange()
                             if(end !== nextStart){
