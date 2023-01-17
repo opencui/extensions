@@ -41,7 +41,7 @@ data class ReservationProvider(
 
     val openHour = config[OPEN_HOUR].toString().toInt()
 
-    val closeHour =config[CLOSE_HOUR].toString().toInt()
+    val closeHour = config[OPEN_HOUR].toString().toInt()
 
     val open = LocalTime.of(openHour, 0)
 
@@ -165,7 +165,7 @@ data class ReservationProvider(
         val events = service?.events()?.list(calendarId)?.execute()?.items
         if (events != null) {
             for (event in events) {
-                if (event?.summary?.contains(userId)==true) {
+                if (event?.summary?.contains(userId) == true) {
                     val reservation = Reservation()
                     reservation.id = event.id
                     reservation.userId = userId
@@ -213,15 +213,15 @@ data class ReservationProvider(
                 validationResult.success = false
                 validationResult.message = "Not in business hours"
                 return validationResult
-            }else{
-                val event = getOneEvent(date,calendarId,time, time.plusHours(range.toLong()))
-                if(event?.isNotEmpty()==true){
+            } else {
+                val event = getOneEvent(date, calendarId, time, time.plusHours(range.toLong()))
+                if (event?.isNotEmpty() == true) {
                     val validationResult = ValidationResult(session = null)
                     validationResult.success = false
                     validationResult.message = "Not available"
                     return validationResult
 
-                }else{
+                } else {
                     val validationResult = ValidationResult(session = null)
                     validationResult.success = true
                     validationResult.message = "Resource available"
@@ -231,7 +231,7 @@ data class ReservationProvider(
         }
         if (date == null) {
             val today = LocalDate.now().plusDays(1)
-            val result = availableTimeRanges(type, today,filter )
+            val result = availableTimeRanges(type, today, filter)
 
 
             if (result.isEmpty()) {
@@ -247,7 +247,7 @@ data class ReservationProvider(
             }
 
         } else {
-            val result = availableTimeRanges(type, today,filter )
+            val result = availableTimeRanges(type, date, filter)
 
             if (result.isEmpty()) {
                 val validationResult = ValidationResult(session)
@@ -412,15 +412,15 @@ data class ReservationProvider(
                 }
 
             } else {
-                    for (i in 0..dayRange) {
-                        val events = availableTimeRanges(resourceType, now.plusDays(i.toLong()), filter)
+                for (i in 0..dayRange) {
+                    val events = availableTimeRanges(resourceType, now.plusDays(i.toLong()), filter)
 
-                        if (events.isNotEmpty()) {
-                            if (availableDates.contains(now.plusDays(i.toLong()))) {
-                            } else {
-                                availableDates.add(now.plusDays(i.toLong()))
-                            }
+                    if (events.isNotEmpty()) {
+                        if (availableDates.contains(now.plusDays(i.toLong()))) {
+                        } else {
+                            availableDates.add(now.plusDays(i.toLong()))
                         }
+                    }
 
                 }
             }
@@ -454,6 +454,7 @@ data class ReservationProvider(
         }
         return availableDates
     }
+
     override fun availableTimeRanges(
         resourceType: ResourceType, date: LocalDate?, filter: List<Criterion>?
     ): List<TimeRange> {
@@ -482,49 +483,55 @@ data class ReservationProvider(
         }
 
         var current = open
-        if(events.isNullOrEmpty()){
+        if (events.isNullOrEmpty()) {
             val nullTr = TimeRange()
-            nullTr.startTime=open
-            nullTr.endTime=close
+            nullTr.startTime = open
+            nullTr.endTime = close
             TimeRanges.add(nullTr)
-        }
-        else {
+        } else {
 
             for (i in 0 until events.size) {
+
                 val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
 
                 val start = convertFromDateTime(events[i].start.dateTime)
-                logger.info("This is the current: $current and end: $start")
 
-                if (start.isAfter(open)) {
+                if (start.isAfter(open)&& start!=current) {
+
+
                     val timeRange = TimeRange()
 
-                    timeRange.startTime=current
-                    timeRange.endTime=start
+                    timeRange.startTime = current
+                    timeRange.endTime = start.minusHours(range.toLong())
 
                     TimeRanges.add(timeRange)
 
                 }
                 val end = convertFromDateTime(events[i].end.dateTime)
                 if (i < events.size - 1) {
+
                     val nextStart = convertFromDateTime(events[i + 1].start.dateTime)
-                    if (nextStart.isAfter(open)) {
-                        if (end.isBefore(nextStart) && nextStart != end) {
+                    if (nextStart.isAfter(open)&& start != current) {
+
+                        if (end.isBefore(nextStart) ) {
 
                             val timeRange = TimeRange()
-                            if(end !== nextStart){
-                                timeRange.startTime=end
-                                timeRange.endTime=nextStart
+                                timeRange.startTime = end
+                                timeRange.endTime = nextStart.minusHours(range.toLong())
                                 TimeRanges.add(timeRange)
-                            }
+
 
                             current = nextStart
+
+
+
                         } else if (end.isAfter(nextStart)) {
 
 
                             current = nextStart
 
-                        } else if(end ==nextStart) {
+                        } else if (end == nextStart) {
+
                             current = end
 
                         }
@@ -535,14 +542,17 @@ data class ReservationProvider(
                     }
                 } else {
 
+
                     current = end
                 }
             }
 
-            if (current.isBefore(close)) {
+
+            if (current.isBefore(close) && start !== current) {
+
                 val timeRange = TimeRange()
-                timeRange.startTime=current
-                timeRange.endTime=close
+                timeRange.startTime = current
+                timeRange.endTime = close.minusHours(range.toLong())
                 TimeRanges.add(timeRange)
             }
         }
@@ -566,6 +576,7 @@ data class ReservationProvider(
         return resources
 
     }
+
     fun getResourcesWhenFilterIsNotNull(
         resourceType: ResourceType, filter: List<Criterion>
     ): List<CalendarResource>? {
@@ -576,7 +587,7 @@ data class ReservationProvider(
             resources?.forEach {
                 val mapper = ObjectMapper()
                 val filterItems = mapper.readValue(it.resourceDescription, Map::class.java)
-                if (criterion.operator == ComparationOperator("==")) {
+                if (criterion.operator == ComparationOperator("=")) {
                     if (filterItems[criterion.key] == criterion.value) {
                         cals.add(it)
                     }
@@ -617,7 +628,7 @@ data class ReservationProvider(
     }
 
     fun convertFromDateTime(dateTime: DateTime): LocalTime {
-        val dT= dateTime.value
+        val dT = dateTime.value
         val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(dT), ZoneId.of(timezone))
         return localDateTime.toLocalTime()
     }
