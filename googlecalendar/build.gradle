@@ -44,6 +44,7 @@ repositories {
 jar.enabled = true
 
 dependencies {
+    implementation project(":reservation")
     implementation('io.opencui:core')
     implementation 'com.google.apis:google-api-services-admin-directory:directory_v1-rev20220919-2.0.0'
     implementation 'com.google.api-client:google-api-client:2.0.0'
@@ -63,7 +64,7 @@ dependencies {
     testImplementation "org.springframework.boot:spring-boot-starter-test:${boot_version}"
 }
 
-group "services.opencui.reservation"
+group "services.google.reservation"
 version '1.0-SNAPSHOT'
 
 
