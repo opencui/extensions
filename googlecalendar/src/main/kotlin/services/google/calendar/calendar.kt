@@ -173,7 +173,7 @@ data class ReservationProvider(
                             .toLocalDate()
                     reservation.duration = range
                     reservation.endTime =
-                        Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.systemDefault())
+                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault())
                             .toLocalTime()
                     reservations.add(reservation)
                 }
