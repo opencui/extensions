@@ -53,6 +53,11 @@ configuration Meta:
     "key": "delegated_user",
     "label": "delegated_user",
     "type": "String"
+  },
+  {
+    "key": "time_zone",
+    "label": "time_zone",
+    "type": "String"
   }
 ]
 ```
