@@ -60,6 +60,10 @@ data class ReservationProvider(
     val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
 
+    override fun cloneForSession(userSession: UserSession): IExtension {
+        return this.copy(session=userSession)
+    }
+
     inline fun <reified S> buildService(): Calendar? {
         val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
             .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
