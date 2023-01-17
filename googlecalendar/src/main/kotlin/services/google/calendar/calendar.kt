@@ -17,6 +17,7 @@ import com.google.api.services.directory.DirectoryScopes
 import com.google.api.services.directory.model.CalendarResource
 import io.opencui.core.*
 import io.opencui.serialization.Json
+import io.opencui.sessionmanager.ChatbotLoader
 import org.slf4j.LoggerFactory
 import services.opencui.reservation.*
 import java.time.Instant
@@ -569,7 +570,7 @@ data class ReservationProvider(
     override fun getResourceInfo(resourceId: String): Resource? {
         val service = buildAdminService<Directory>()
         val calendar = service?.resources()?.calendars()?.get("my_customer", resourceId)?.execute()
-        val resource = calendar?.let { Json.decodeFromString<Resource>(it.resourceDescription, Resource::class.java.getClassLoader()) }
+        val resource = calendar?.let { Json.decodeFromString<Resource>(it.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo)) }
         return resource
     }
 
