@@ -458,6 +458,7 @@ data class ReservationProvider(
     override fun availableTimeRanges(
         resourceType: ResourceType, date: LocalDate?, filter: List<Criterion>?
     ): List<TimeRange> {
+        logger.debug("entering available timeRanges")
         val timeRanges = mutableListOf<TimeRange>()
         if (date == null) {
             if (filter == null) {
@@ -492,8 +493,6 @@ data class ReservationProvider(
         else {
 
             for (i in 0 until events.size) {
-                val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
-
                 val start = convertFromDateTime(events[i].start.dateTime)
                 logger.info("This is the current: $current and end: $start")
 
@@ -623,7 +622,7 @@ data class ReservationProvider(
 
 
     companion object : ExtensionBuilder<IReservation> {
-
+        val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
         const val CALENDAR_ID = "calendar_id"
         const val DELEGATED_USER = "delegated_user"
