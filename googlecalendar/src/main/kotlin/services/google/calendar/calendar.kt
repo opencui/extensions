@@ -1,5 +1,6 @@
 package services.google.calendar
 
+
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
@@ -525,9 +526,8 @@ data class ReservationProvider(
     override fun getResourceInfo(resourceId: String): Resource? {
         val service = buildAdminService<Directory>()
         val calendar = service?.resources()?.calendars()?.get("my_customer", resourceId)?.execute()
-        val resource = calendar?.let { Json.decodeFromString<Resource>(it.resourceDescription) }
+        val resource = calendar?.let { Json.decodeFromString<Resource>(it.resourceDescription, Resource::class.java.getClassLoader()) }
         return resource
-
     }
 
     fun getResourcesWhenFilterIsNull(resourceType: ResourceType): List<CalendarResource>? {
@@ -536,8 +536,8 @@ data class ReservationProvider(
             it.resourceType == resourceType.value
         }
         return resources
-
     }
+
     fun getResourcesWhenFilterIsNotNull(
         resourceType: ResourceType, filter: List<Criterion>
     ): List<CalendarResource>? {
@@ -579,7 +579,6 @@ data class ReservationProvider(
         val TimeMax = localDateTimeToDateTime(date, start.plusHours(range.toLong()))
         val events = service?.events()?.list(calendarId)?.setTimeMax(TimeMax)?.setTimeMin(TimeMin)?.execute()?.items
         return events
-
     }
 
     fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
