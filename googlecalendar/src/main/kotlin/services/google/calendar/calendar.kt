@@ -214,9 +214,6 @@ data class ReservationProvider(
             return result
         }
         if (time != null) {
-            if(time.isAfter(LocalTime.now()) && date == LocalDate.now()){
-
-            }
             if (time > close || time < open) {
                 val validationResult = ValidationResult(session = null)
                 validationResult.success = false
