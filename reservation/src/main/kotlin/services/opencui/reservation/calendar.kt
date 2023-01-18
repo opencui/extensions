@@ -4,7 +4,6 @@ import com.fasterxml.jackson.`annotation`.JsonIgnore
 import com.fasterxml.jackson.`annotation`.JsonInclude
 import com.fasterxml.jackson.`annotation`.JsonInclude.Include.NON_NULL
 import com.fasterxml.jackson.`annotation`.JsonProperty
-import com.fasterxml.jackson.`annotation`.JsonSubTypes
 import com.fasterxml.jackson.`annotation`.JsonTypeInfo
 import com.fasterxml.jackson.`annotation`.JsonValue
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -722,9 +721,13 @@ public data class Reservation(
     @JsonProperty
     public var endTime: LocalTime? = null
 
+    @get:JsonIgnore
+    public val reservationService: IReservation
+        public get() = session!!.getExtension<IReservation>()!!
+
     @JsonIgnore
     public fun getResourceInfo(): Resource? {
-        TODO()
+        return reservationService!!.getResourceInfo(resourceId!!)
     }
 
     public override fun annotations(path: String): List<Annotation> = when (path) {
