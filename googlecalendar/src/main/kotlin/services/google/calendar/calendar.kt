@@ -636,9 +636,8 @@ data class ReservationProvider(
         val zoneId = ZoneId.of(timezone)
         val dateTime = ZonedDateTime.of(date, time, zoneId)
         val offset = zoneId.rules.getOffset(Instant.now()).totalSeconds
-        println("offset : ${offset / 60}")
-        println("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), offset / 60)}")
-        return DateTime(dateTime.toInstant().toEpochMilli(), offset / 60)
+        println("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
+        return DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())
     }
 
     fun convertFromDateTime(dateTime: DateTime): LocalTime {
