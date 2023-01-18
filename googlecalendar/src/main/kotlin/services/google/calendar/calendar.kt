@@ -105,9 +105,10 @@ data class ReservationProvider(
                     val startTime = localDateTimeToDateTime(date!!, time!!)
                     val endTime = localDateTimeToDateTime(date, time.plusHours(range.toLong()))
 
-                    event.start = EventDateTime().setDateTime(startTime).setTimeZone(timezone)
+                    event.start = EventDateTime().setDateTime(startTime)
 
-                    event.end = EventDateTime().setDateTime(endTime).setTimeZone(timezone)
+                    event.end = EventDateTime().setDateTime(endTime)
+                    println("The start $startTime, endTime $endTime")
 
                     event.attendees = listOf(EventAttendee().setResource(true).setEmail(resource.resourceEmail))
                     val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
@@ -213,6 +214,9 @@ data class ReservationProvider(
             return result
         }
         if (time != null) {
+            if(time.isAfter(LocalTime.now()) && date == LocalDate.now()){
+
+            }
             if (time > close || time < open) {
                 val validationResult = ValidationResult(session = null)
                 validationResult.success = false
@@ -334,12 +338,11 @@ data class ReservationProvider(
             } else {
                 val calendar = buildService<Calendar>()
                 val e = Event()
-                val resource = listResources[0]
                 e.summary = event?.summary
                 e.description = event?.description
                 e.start = event?.start
                 e.attendees = event?.attendees
-                val createdEvent = calendar?.events()?.insert(listResources[0].resourceEmail, event)?.execute()
+                calendar?.events()?.insert(listResources[0].resourceEmail, event)?.execute()
                 validationResult.success = true
                 validationResult.message = "updated resource"
 
