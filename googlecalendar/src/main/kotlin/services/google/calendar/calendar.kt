@@ -33,17 +33,19 @@ import java.time.ZoneId
 import java.util.logging.Logger
 
 
+
 data class ReservationProvider(
     val config: Configuration,
     override var session: UserSession? = null,
 ) : IReservation, IProvider {
+
     val delegatedUser = config[DELEGATED_USER] as String
 
-    val calendarId = config[CALENDAR_ID] as String
+    val calendarId  =  config[CALENDAR_ID] as String
 
-    val openHour = config[OPEN_HOUR].toString().toInt()
+    val openHour =  config[OPEN_HOUR].toString().toInt()
 
-    val closeHour = config[OPEN_HOUR].toString().toInt()
+    val closeHour =  config[CLOSE_HOUR].toString().toInt()
 
     val open = LocalTime.of(openHour, 0)
 
@@ -56,6 +58,9 @@ data class ReservationProvider(
     val timezone = config[TIMEZONE] as String
 
     val secrets_json = config[CLIENT_SECRET] as String
+
+
+
 
     val HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
     val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
@@ -180,6 +185,7 @@ data class ReservationProvider(
                         Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.systemDefault())
                             .toLocalDate()
                     reservation.duration = range
+                    reservation.startTime = convertFromDateTime(event.start.dateTime)
                     reservation.endTime =
                         Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault())
                             .toLocalTime()
