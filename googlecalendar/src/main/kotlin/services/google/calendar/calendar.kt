@@ -52,7 +52,7 @@ data class ReservationProvider(
 
     val dayRange = config[DAYRANGE].toString().toInt()
 
-    val timezone = config[TIMERANGE] as String
+    val timezone = config[TIMEZONE] as String
 
     val secrets_json = config[CLIENT_SECRET] as String
 
