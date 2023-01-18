@@ -36,25 +36,29 @@ data class ReservationProvider(
     val config: Configuration,
     override var session: UserSession? = null,
 ) : IReservation, IProvider {
-    val delegatedUser = config[DELEGATED_USER] as String
 
-    val calendarId = config[CALENDAR_ID] as String
+    val delegatedUser   =      config[DELEGATED_USER] as String
 
-    val openHour = config[OPEN_HOUR].toString().toInt()
+    val calendarId      =      config[CALENDAR_ID] as String
 
-    val closeHour = config[CLOSE_HOUR].toString().toInt()
+    val openHour        =      config[OPEN_HOUR].toString().toInt()
 
-    val open = LocalTime.of(openHour, 0)
+    val closeHour       =      config[CLOSE_HOUR].toString().toInt()
 
-    val close = LocalTime.of(closeHour, 0)
+    val open            =      LocalTime.of(openHour, 0)
 
-    val range = config[TIMERANGE].toString().toInt()
+    val close           =      LocalTime.of(closeHour, 0)
 
-    val dayRange = config[DAYRANGE].toString().toInt()
+    val range           =       config[TIMERANGE].toString().toInt()
 
-    val timezone = config[TIMEZONE] as String
+    val dayRange        =       config[DAYRANGE].toString().toInt()
 
-    val secrets_json = config[CLIENT_SECRET] as String
+    val timezone        =       config[TIMEZONE] as String
+
+    val secrets_json    =        config[CLIENT_SECRET] as String
+
+
+
 
     val HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
     val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
