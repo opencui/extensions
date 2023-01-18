@@ -31,7 +31,6 @@ import java.time.ZoneId
 import java.util.logging.Logger
 
 
-
 data class ReservationProvider(
     val config: Configuration,
     override var session: UserSession? = null,
@@ -39,11 +38,11 @@ data class ReservationProvider(
 
     val delegatedUser = config[DELEGATED_USER] as String
 
-    val calendarId  =  config[CALENDAR_ID] as String
+    val calendarId = config[CALENDAR_ID] as String
 
-    val openHour =  config[OPEN_HOUR].toString().toInt()
+    val openHour = config[OPEN_HOUR].toString().toInt()
 
-    val closeHour =  config[CLOSE_HOUR].toString().toInt()
+    val closeHour = config[CLOSE_HOUR].toString().toInt()
 
     val open = LocalTime.of(openHour, 0)
 
@@ -56,8 +55,6 @@ data class ReservationProvider(
     val timezone = config[TIMEZONE] as String
 
     val secrets_json = config[CLIENT_SECRET] as String
-
-
 
 
     val HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
@@ -167,7 +164,8 @@ data class ReservationProvider(
         val service = buildService<Calendar>()
         val now = DateTime(System.currentTimeMillis())
         val reservations = mutableListOf<Reservation>()
-        val events = service?.events()?.list(calendarId)?.execute()?.items
+
+        val events = service?.events()?.list(calendarId)?.setTimeMin(now)?.execute()?.items
         if (events != null) {
             for (event in events) {
                 if (event?.summary?.contains(userId) == true) {
@@ -179,10 +177,11 @@ data class ReservationProvider(
                         Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.systemDefault())
                             .toLocalDate()
                     reservation.duration = range
+                    reservation.endDate = Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault())
+                        .toLocalDate()
                     reservation.startTime = convertFromDateTime(event.start.dateTime)
                     reservation.endTime =
-                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault())
-                            .toLocalTime()
+                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault()).toLocalTime()
                     reservations.add(reservation)
                 }
 
@@ -502,7 +501,7 @@ data class ReservationProvider(
 
                 val start = convertFromDateTime(events[i].start.dateTime)
 
-                if (start.isAfter(open)&& start!=current) {
+                if (start.isAfter(open) && start != current) {
 
 
                     val timeRange = TimeRange()
@@ -517,18 +516,17 @@ data class ReservationProvider(
                 if (i < events.size - 1) {
 
                     val nextStart = convertFromDateTime(events[i + 1].start.dateTime)
-                    if (nextStart.isAfter(open)&& start != current) {
+                    if (nextStart.isAfter(open) && start != current) {
 
-                        if (end.isBefore(nextStart) ) {
+                        if (end.isBefore(nextStart)) {
 
                             val timeRange = TimeRange()
-                                timeRange.startTime = end
-                                timeRange.endTime = nextStart.minusHours(range.toLong())
-                                TimeRanges.add(timeRange)
+                            timeRange.startTime = end
+                            timeRange.endTime = nextStart.minusHours(range.toLong())
+                            TimeRanges.add(timeRange)
 
 
                             current = nextStart
-
 
 
                         } else if (end.isAfter(nextStart)) {
