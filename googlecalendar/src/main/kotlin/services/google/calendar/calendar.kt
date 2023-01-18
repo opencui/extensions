@@ -31,7 +31,6 @@ import kotlin.collections.MutableList
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.util.logging.Logger
 
 
 data class ReservationProvider(
@@ -228,7 +227,6 @@ data class ReservationProvider(
             return result
         }
         if (filter !== null) {
-
             val resources = getResourcesWhenFilterIsNotNull(type, filter)
             val events = mutableListOf<String>()
             resources?.forEach {
@@ -237,22 +235,18 @@ data class ReservationProvider(
                     events.add(it.resourceEmail)
                 }
             }
-            if (events.isEmpty()) {
+            return if (events.isEmpty()) {
                 val validation = ValidationResult(session)
                 validation.success = false
                 validation.message = "resource not available"
-                return  validation
-
+                validation
             } else {
                 val validation = ValidationResult(session)
                 validation.success = true
                 validation.message = "resource  available"
-                return  validation
-
+                validation
             }
-
         } else {
-
             val resources = getResourcesWhenFilterIsNull(type)
             val events = mutableListOf<String>()
             resources?.forEach {
@@ -261,22 +255,18 @@ data class ReservationProvider(
                     events.add(it.resourceEmail)
                 }
             }
-            if (events.isEmpty()) {
+            return if (events.isEmpty()) {
                 val validation = ValidationResult(session)
                 validation.success = false
                 validation.message = "resource not available"
-
-                return  validation
+                validation
             } else {
                 val validation = ValidationResult(session)
                 validation.success = true
                 validation.message = "resource  available"
-                return  validation
-
+                validation
             }
         }
-
-
     }
 
     override fun reservationUpdatable(
@@ -306,9 +296,7 @@ data class ReservationProvider(
             }
         } else {
             return validationResult
-
         }
-
     }
 
     override fun updateReservation(
@@ -350,11 +338,9 @@ data class ReservationProvider(
                 calendar?.events()?.insert(listResources[0].resourceEmail, event)?.execute()
                 validationResult.success = true
                 validationResult.message = "updated resource"
-
             }
         }
         return validationResult
-
     }
 
     override fun reservationCancelable(id: String): ValidationResult {
@@ -371,7 +357,6 @@ data class ReservationProvider(
             result.success = true
             result.message = "Reservation can be cancelled"
             return result
-
         }
     }
 
@@ -385,7 +370,6 @@ data class ReservationProvider(
                 location.id = resource.buildingId
                 location.name = resource.buildingName
                 location.type = ResourceType(resource.description)
-
                 locations.add(location)
             }
         }
@@ -421,9 +405,7 @@ data class ReservationProvider(
                             availableDates.add(now.plusDays(i.toLong()))
                         }
                     }
-
                 }
-
             } else {
                 for (i in 0..dayRange) {
                     val events = availableTimeRanges(resourceType, now.plusDays(i.toLong()), filter)
@@ -434,7 +416,6 @@ data class ReservationProvider(
                             availableDates.add(now.plusDays(i.toLong()))
                         }
                     }
-
                 }
             }
         } else {
@@ -447,9 +428,7 @@ data class ReservationProvider(
                             availableDates.add(now.plusDays(i.toLong()))
                         }
                     }
-
                 }
-
             } else {
                 val resource = getResourcesWhenFilterIsNotNull(resourceType, filter)
                 resource?.forEach {
@@ -459,11 +438,8 @@ data class ReservationProvider(
                             availableDates.add(now.plusDays(i.toLong()))
                         }
                     }
-
                 }
-
             }
-
         }
         return availableDates
     }
@@ -479,13 +455,11 @@ data class ReservationProvider(
                 return checkIfIsAfter(today, open)
             }
         } else {
-            if (filter == null) {
-
-                return checkIfIsAfter(date, open)
+            return if (filter == null) {
+                checkIfIsAfter(date, open)
             } else {
-                return checkIfIsAfter(date, open)
+                checkIfIsAfter(date, open)
             }
-
         }
         return timeRanges
     }
@@ -503,66 +477,41 @@ data class ReservationProvider(
             nullTr.endTime = close
             TimeRanges.add(nullTr)
         } else {
-
-            for (i in 0 until events.size) {
-
-                val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
-
+            for (i in events.indices) {
                 val start = convertFromDateTime(events[i].start.dateTime)
 
                 if (start.isAfter(open) && start != current) {
-
-
                     val timeRange = TimeRange(session)
 
                     timeRange.startTime = current
                     timeRange.endTime = start.minusHours(range.toLong())
 
                     TimeRanges.add(timeRange)
-
                 }
                 val end = convertFromDateTime(events[i].end.dateTime)
                 if (i < events.size - 1) {
-
                     val nextStart = convertFromDateTime(events[i + 1].start.dateTime)
                     if (nextStart.isAfter(open) && start != current) {
-
                         if (end.isBefore(nextStart)) {
-
                             val timeRange = TimeRange(session)
                             timeRange.startTime = end
                             timeRange.endTime = nextStart.minusHours(range.toLong())
                             TimeRanges.add(timeRange)
-
-
                             current = nextStart
-
-
                         } else if (end.isAfter(nextStart)) {
-
-
                             current = nextStart
-
                         } else if (end == nextStart) {
-
                             current = end
-
                         }
                     } else {
-
                         current = end
-
                     }
                 } else {
-
-
                     current = end
                 }
             }
 
-
             if (current.isBefore(close) && start !== current) {
-
                 val timeRange = TimeRange(session)
                 timeRange.startTime = current
                 timeRange.endTime = close.minusHours(range.toLong())
@@ -606,17 +555,13 @@ data class ReservationProvider(
                 } else if (criterion.operator == ComparationOperator("!=")) {
                     if (filterItems[criterion.key] != criterion.value) {
                     }
-
                 }
-
             }
         }
-
         return cals
     }
 
     fun getAllEventsOn(date: LocalDate, calendarId: String): MutableList<Event>? {
-
         val service = buildService<Calendar>()
         val TimeMin = localDateTimeToDateTime(date, open)
         val TimeMax = localDateTimeToDateTime(date, close)
@@ -645,10 +590,8 @@ data class ReservationProvider(
         val zoneId = ZoneId.of(timezone)
         println(zoneId)
         val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(dT), zoneId)
-
         return localDateTime.toLocalTime()
     }
-
 
     companion object : ExtensionBuilder<IReservation> {
         val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
