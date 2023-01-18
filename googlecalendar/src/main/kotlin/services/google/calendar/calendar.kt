@@ -37,25 +37,25 @@ data class ReservationProvider(
     override var session: UserSession? = null,
 ) : IReservation, IProvider {
 
-    val delegatedUser   =      config[DELEGATED_USER] as String
+    val delegatedUser = config[DELEGATED_USER] as String
 
-    val calendarId      =      config[CALENDAR_ID] as String
+    val calendarId  =  config[CALENDAR_ID] as String
 
-    val openHour        =      config[OPEN_HOUR].toString().toInt()
+    val openHour =  config[OPEN_HOUR].toString().toInt()
 
-    val closeHour       =      config[CLOSE_HOUR].toString().toInt()
+    val closeHour =  config[CLOSE_HOUR].toString().toInt()
 
-    val open            =      LocalTime.of(openHour, 0)
+    val open = LocalTime.of(openHour, 0)
 
-    val close           =      LocalTime.of(closeHour, 0)
+    val close = LocalTime.of(closeHour, 0)
 
-    val range           =       config[TIMERANGE].toString().toInt()
+    val range = config[TIMERANGE].toString().toInt()
 
-    val dayRange        =       config[DAYRANGE].toString().toInt()
+    val dayRange = config[DAYRANGE].toString().toInt()
 
-    val timezone        =       config[TIMEZONE] as String
+    val timezone = config[TIMEZONE] as String
 
-    val secrets_json    =        config[CLIENT_SECRET] as String
+    val secrets_json = config[CLIENT_SECRET] as String
 
 
 
@@ -179,7 +179,7 @@ data class ReservationProvider(
                         Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.systemDefault())
                             .toLocalDate()
                     reservation.duration = range
-                    reservation.startTime=convertFromDateTime(event.start.dateTime)
+                    reservation.startTime = convertFromDateTime(event.start.dateTime)
                     reservation.endTime =
                         Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault())
                             .toLocalTime()
