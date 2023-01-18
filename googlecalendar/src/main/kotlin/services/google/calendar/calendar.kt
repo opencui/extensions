@@ -87,14 +87,11 @@ data class ReservationProvider(
         userId: String, resourceType: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<Criterion>?
     ): Reservation? {
         val reservation = Reservation(session)
-
         val listOfResources = mutableListOf<CalendarResource>()
-
         if (filter == null) {
             val resources = getResourcesWhenFilterIsNull(resourceType)
             if (resources.isNullOrEmpty()) {
                 return Reservation(session)
-
             } else {
                 resources.forEach {
                     val event = getOneEvent(date!!, calendarId, time!!, time.plusHours(range.toLong()))
@@ -116,8 +113,7 @@ data class ReservationProvider(
                     println("The start $startTime, endTime $endTime")
 
                     event.attendees = listOf(
-                        EventAttendee().setResource(true).setEmail(resource.resourceEmail)
-                            .setDisplayName(resource.resourceId)
+                        EventAttendee().setResource(true).setEmail(resource.resourceEmail).setDisplayName(resource.resourceId)
                     )
                     val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
                     reservation.id = createdEvent?.id
@@ -128,9 +124,7 @@ data class ReservationProvider(
                     reservation.resourceId = resource.resourceId
                     reservation.startTime = time
                     return reservation
-
                 }
-
             }
         } else {
             val resources = getResourcesWhenFilterIsNotNull(resourceType, filter)
@@ -167,7 +161,6 @@ data class ReservationProvider(
                 reservation.startTime = time
                 return reservation
             }
-
         }
         return reservation
     }
@@ -197,11 +190,9 @@ data class ReservationProvider(
                         Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault()).toLocalTime()
                     reservations.add(reservation)
                 }
-
             }
         }
         return reservations
-
     }
 
     override fun cancelReservation(id: String): ValidationResult {
@@ -221,10 +212,7 @@ data class ReservationProvider(
         val now = LocalDateTime.now()
         val dateTime = date?.atTime(time)
         if (dateTime?.isBefore(now) == true) {
-            val result = ValidationResult()
-            result.success = false
-            result.message = "Not available"
-            return result
+            return ValidationResult().apply { success = false; message = NotAvaiable }
         }
         if (filter !== null) {
             val resources = getResourcesWhenFilterIsNotNull(type, filter)
@@ -518,7 +506,6 @@ data class ReservationProvider(
                 TimeRanges.add(timeRange)
             }
         }
-
         return TimeRanges
     }
 
@@ -581,14 +568,13 @@ data class ReservationProvider(
         val zoneId = ZoneId.of(timezone)
         val dateTime = ZonedDateTime.of(date, time, zoneId)
         val offset = zoneId.rules.getOffset(Instant.now()).totalSeconds
-        println("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
+        logger.debug("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
         return DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())
     }
 
     fun convertFromDateTime(dateTime: DateTime): LocalTime {
         val dT = dateTime.value
         val zoneId = ZoneId.of(timezone)
-        println(zoneId)
         val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(dT), zoneId)
         return localDateTime.toLocalTime()
     }
@@ -603,6 +589,7 @@ data class ReservationProvider(
         const val TIMERANGE = "time_range"
         const val DAYRANGE = "day_range"
         const val TIMEZONE = "time_zone"
+        const val NotAvaiable = "Not available"
         override fun invoke(config: Configuration): IReservation {
             return ReservationProvider(config)
         }
