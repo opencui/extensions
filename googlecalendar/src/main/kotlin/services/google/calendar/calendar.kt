@@ -82,10 +82,10 @@ data class ReservationProvider(
                 return Reservation(session)
             } else {
                 resources.forEach {
-                    val event = checkSlotAvailability(date!!,time!!, it.resourceEmail)
-                   if(event){
-                       listOfResources.add(it)
-                   }
+                    val event = checkSlotAvailability(date!!, time!!, it.resourceEmail)
+                    if (event) {
+                        listOfResources.add(it)
+                    }
                 }
                 if (listOfResources.isNotEmpty()) {
                     val calendar = client
@@ -118,7 +118,7 @@ data class ReservationProvider(
         } else {
             val resources = getResourcesWhenFilterIsNotNull(resourceType, filter)
             resources?.forEach {
-                val event = checkSlotAvailability(date!!,time!!,it.resourceEmail)
+                val event = checkSlotAvailability(date!!, time!!, it.resourceEmail)
                 if (event) {
                     listOfResources.add(it)
                 }
@@ -200,35 +200,80 @@ data class ReservationProvider(
         if (dateTime?.isBefore(now) == true) {
             return ValidationResult().apply { success = false; message = NotAvailable }
         }
-        if (filter != null) {
-            val resources = getResourcesWhenFilterIsNotNull(type, filter)
-            val events = mutableListOf<String>()
-            resources?.forEach {
-                val event = checkSlotAvailability(date!!, time!!, it.resourceEmail)
-                if (event) {
-                    events.add(it.resourceEmail)
+        if (filter == null) {
+            val resources = getResourcesWhenFilterIsNull(type)
+            if (resources.isNullOrEmpty()) {
+                return ValidationResult().apply {
+                    message = NotAvailable
+                    success = false
                 }
             }
-            return if (events.isEmpty()) {
-                ValidationResult(session).apply { success = false; message = NotAvailable }
+            if (time == null) {
+                val now = LocalTime.now()
+                if (date == null) {
+                    val today = LocalDate.now()
+                    return FindSlotInResources(resources, today, now)
+                } else {
+                    return FindSlotInResources(resources, date, now)
+                }
             } else {
-                ValidationResult(session).apply { success = true; message = Available }
+                if (date == null) {
+                    val today = LocalDate.now()
+                    return FindSlotInResources(resources, today, time)
+                } else {
+                    return FindSlotInResources(resources, date, time)
+                }
             }
         } else {
-            val resources = getResourcesWhenFilterIsNull(type)
-            val events = mutableListOf<String>()
-            resources?.forEach {
-                val event = checkSlotAvailability(date!!, time!!, it.resourceEmail)
-                if (event) {
-                    events.add(it.resourceEmail)
+            val resources = getResourcesWhenFilterIsNotNull(type, filter)
+            if (resources.isNullOrEmpty()) {
+                return ValidationResult().apply {
+                    message = NotAvailable
+                    success = false
                 }
             }
-            return if (events.isEmpty()) {
-                ValidationResult(session).apply { success = false; message = NotAvailable }
+            if (time == null) {
+                val time = LocalTime.now()
+
+                if (date == null) {
+                    val date = LocalDate.now()
+                    return FindSlotInResources(resources, date, time)
+                } else {
+                    return FindSlotInResources(resources, date, time)
+                }
             } else {
-                ValidationResult(session).apply { success = true; message = Available }
+                if (date == null) {
+                    val date = LocalDate.now()
+                    return FindSlotInResources(resources, date, time)
+                } else {
+                    return FindSlotInResources(resources, date, time)
+
+                }
             }
         }
+    }
+
+    fun FindSlotInResources(resources: List<CalendarResource>, date: LocalDate, time: LocalTime): ValidationResult {
+        val events = mutableListOf<String>()
+        resources.forEach {
+            val event = checkSlotAvailability(date, time, it.resourceEmail)
+            if (event) {
+                events.add(it.resourceEmail)
+            }
+        }
+        if (events.isNullOrEmpty()) {
+            return ValidationResult().apply {
+                message = NotAvailable
+                success = false
+            }
+        } else {
+            return ValidationResult().apply {
+                message = NotAvailable
+                success = false
+            }
+        }
+
+
     }
 
     override fun reservationUpdatable(
@@ -238,7 +283,7 @@ data class ReservationProvider(
         validationResult.success = false
         validationResult.message = "Reservation not updatable"
         val event = client?.events()?.get(calendarId, reservationId)?.execute()
-        val onDay = checkSlotAvailability(date!!,time!!,calendarId)
+        val onDay = checkSlotAvailability(date!!, time!!, calendarId)
         if (features == null) {
             if (event.isNullOrEmpty()) {
                 validationResult.success = false
@@ -378,7 +423,7 @@ data class ReservationProvider(
                 val resource = getResourcesWhenFilterIsNull(resourceType)
                 resource?.forEach {
                     for (i in 0..5) {
-                        val event = checkSlotAvailability(now,time, calendarId)
+                        val event = checkSlotAvailability(now, time, calendarId)
                         if (event) {
                             availableDates.add(now.plusDays(i.toLong()))
                         }
@@ -388,7 +433,7 @@ data class ReservationProvider(
                 val resource = getResourcesWhenFilterIsNotNull(resourceType, filter)
                 resource?.forEach {
                     for (i in 0..5) {
-                        val event = checkSlotAvailability(now,time,calendarId)
+                        val event = checkSlotAvailability(now, time, calendarId)
                         if (event) {
                             availableDates.add(now.plusDays(i.toLong()))
                         }
@@ -402,10 +447,10 @@ data class ReservationProvider(
     override fun availableTimes(
         resourceType: ResourceType, date: LocalDate?, filter: List<SlotValue>?
     ): List<LocalTime> {
-        if(date == null){
-            return makeFreeBusyRequest(LocalDate.now(),calendarId)
-        }else{
-            return makeFreeBusyRequest(date,calendarId)
+        if (date == null) {
+            return makeFreeBusyRequest(LocalDate.now(), calendarId)
+        } else {
+            return makeFreeBusyRequest(date, calendarId)
         }
 
     }
@@ -479,8 +524,6 @@ data class ReservationProvider(
         }
         return cals
     }
-
-
 
 
     fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
