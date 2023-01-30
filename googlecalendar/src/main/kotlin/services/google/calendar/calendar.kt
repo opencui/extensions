@@ -8,10 +8,8 @@ import com.google.api.client.json.JsonFactory
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.CalendarScopes
-import com.google.api.services.calendar.model.Event
-import com.google.api.services.calendar.model.EventAttendee
-import com.google.api.services.calendar.model.EventDateTime
 import com.google.api.services.calendar.Calendar
+import com.google.api.services.calendar.model.*
 import com.google.api.services.directory.Directory
 import com.google.api.services.directory.DirectoryScopes
 import com.google.api.services.directory.model.CalendarResource
@@ -42,20 +40,6 @@ data class ReservationProvider(
 
     val calendarId = config[CALENDAR_ID] as String
 
-    // @John, Remove openHour/closeHour range, dayrange, timezone.
-    val openHour = config[OPEN_HOUR].toString().toInt()
-    val closeHour = config[CLOSE_HOUR].toString().toInt()
-
-    val open = LocalTime.of(openHour, 0)
-
-    val close = LocalTime.of(closeHour, 0)
-
-    val range = config[TIMERANGE].toString().toInt()
-
-    val dayRange = config[DAYRANGE].toString().toInt()
-
-    val timezone = config[TIMEZONE] as String
-
     val secrets_json = config[CLIENT_SECRET] as String
 
     val customerName = config[CUSTOMERNAME] as String? ?: "my_customer"
@@ -68,7 +52,7 @@ data class ReservationProvider(
     val admin = buildAdmin()
 
     override fun cloneForSession(userSession: UserSession): IExtension {
-        return this.copy(session=userSession)
+        return this.copy(session = userSession)
     }
 
     fun buildClient(): Calendar? {
@@ -98,10 +82,10 @@ data class ReservationProvider(
                 return Reservation(session)
             } else {
                 resources.forEach {
-                    val event = getOneEvent(date!!, calendarId, time!!, time.plusHours(range.toLong()))
-                    if (event.isNullOrEmpty()) {
-                        listOfResources.add(it)
-                    }
+                    val event = checkSlotAvailability(date!!,time!!, it.resourceEmail)
+                   if(event){
+                       listOfResources.add(it)
+                   }
                 }
                 if (listOfResources.isNotEmpty()) {
                     val calendar = client
@@ -110,7 +94,7 @@ data class ReservationProvider(
                     event.summary = "Reservation for $userId"
                     event.description = "Reservation booked for ${resource.resourceName}"
                     val startTime = localDateTimeToDateTime(date!!, time!!)
-                    val endTime = localDateTimeToDateTime(date, time.plusHours(range.toLong()))
+                    val endTime = localDateTimeToDateTime(date, time.plusHours(1))
                     event.start = EventDateTime().setDateTime(startTime)
 
                     event.end = EventDateTime().setDateTime(endTime)
@@ -134,8 +118,8 @@ data class ReservationProvider(
         } else {
             val resources = getResourcesWhenFilterIsNotNull(resourceType, filter)
             resources?.forEach {
-                val event = getOneEvent(date!!, calendarId, time!!, time.plusHours(range.toLong()))
-                if (event.isNullOrEmpty()) {
+                val event = checkSlotAvailability(date!!,time!!,it.resourceEmail)
+                if (event) {
                     listOfResources.add(it)
                 }
             }
@@ -146,7 +130,7 @@ data class ReservationProvider(
                 event.summary = "Reservation for $userId"
                 event.description = "Reservation booked for ${resource.resourceName}"
                 val startTime = localDateTimeToDateTime(date!!, time!!)
-                val endTime = localDateTimeToDateTime(date, time.plusHours(range.toLong()))
+                val endTime = localDateTimeToDateTime(date, time.plusHours(1))
                 event.start =
                     EventDateTime().setDateTime(startTime)
                 event.end = EventDateTime().setDateTime(
@@ -178,15 +162,18 @@ data class ReservationProvider(
         if (events != null) {
             for (event in events) {
                 if (event?.summary?.contains(userId) == true) {
-                    val reservation = Reservation(session).apply{
+                    val reservation = Reservation(session).apply {
                         id = event.id
                         this.userId = userId
                         resourceId = event.attendees?.get(0)?.displayName
-                        startDate = Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.systemDefault()).toLocalDate()
-                        duration = range
-                        endDate = Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault()).toLocalDate()
+                        startDate = Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.systemDefault())
+                            .toLocalDate()
+                        duration = 1
+                        endDate = Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault())
+                            .toLocalDate()
                         startTime = convertFromDateTime(event.start.dateTime)
-                        endTime = Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault()).toLocalTime()
+                        endTime = Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.systemDefault())
+                            .toLocalTime()
                     }
                     reservations.add(reservation)
                 }
@@ -217,13 +204,13 @@ data class ReservationProvider(
             val resources = getResourcesWhenFilterIsNotNull(type, filter)
             val events = mutableListOf<String>()
             resources?.forEach {
-                val event = getOneEvent(date!!, it.resourceEmail, time!!, time.plusHours(range.toLong()))
-                if (event?.isEmpty() != true) {
+                val event = checkSlotAvailability(date!!, time!!, it.resourceEmail)
+                if (event) {
                     events.add(it.resourceEmail)
                 }
             }
             return if (events.isEmpty()) {
-                ValidationResult(session).apply { success = false; message = NotAvailable}
+                ValidationResult(session).apply { success = false; message = NotAvailable }
             } else {
                 ValidationResult(session).apply { success = true; message = Available }
             }
@@ -231,15 +218,15 @@ data class ReservationProvider(
             val resources = getResourcesWhenFilterIsNull(type)
             val events = mutableListOf<String>()
             resources?.forEach {
-                val event = getOneEvent(date!!, it.resourceEmail, time!!, time.plusHours(range.toLong()))
-                if (event?.isEmpty() == true) {
+                val event = checkSlotAvailability(date!!, time!!, it.resourceEmail)
+                if (event) {
                     events.add(it.resourceEmail)
                 }
             }
             return if (events.isEmpty()) {
                 ValidationResult(session).apply { success = false; message = NotAvailable }
             } else {
-                ValidationResult(session).apply { success = true; message = Available}
+                ValidationResult(session).apply { success = true; message = Available }
             }
         }
     }
@@ -251,14 +238,14 @@ data class ReservationProvider(
         validationResult.success = false
         validationResult.message = "Reservation not updatable"
         val event = client?.events()?.get(calendarId, reservationId)?.execute()
-        val onDay = getOneEvent(date, calendarId, time, time.plusHours(range.toLong()))
+        val onDay = checkSlotAvailability(date!!,time!!,calendarId)
         if (features == null) {
             if (event.isNullOrEmpty()) {
                 validationResult.success = false
                 validationResult.message = "Reservation not found"
                 return validationResult
             } else {
-                if (onDay.isNullOrEmpty()) {
+                if (onDay) {
                     validationResult.success = true
                     validationResult.message = "Reservation can be updated"
                     return validationResult
@@ -360,11 +347,11 @@ data class ReservationProvider(
     ): List<LocalDate> {
         val availableDates = mutableListOf<LocalDate>()
         val now = LocalDate.now()
-
-        val range = dayRange
+//I hard coded this for now but will be moved once a parameter is provided
+        val range = 5
         if (time == null) {
             if (filter == null) {
-                for (i in 0..dayRange) {
+                for (i in 0..5) {
 
                     val events = availableTimes(resourceType, now.plusDays(i.toLong()), null)
                     if (events.isNotEmpty()) {
@@ -375,7 +362,7 @@ data class ReservationProvider(
                     }
                 }
             } else {
-                for (i in 0..dayRange) {
+                for (i in 0..5) {
                     val events = availableTimes(resourceType, now.plusDays(i.toLong()), filter)
 
                     if (events.isNotEmpty()) {
@@ -390,9 +377,9 @@ data class ReservationProvider(
             if (filter == null) {
                 val resource = getResourcesWhenFilterIsNull(resourceType)
                 resource?.forEach {
-                    for (i in 0..dayRange) {
-                        val events = getOneEvent(now, calendarId, time, time.plusHours(range.toLong()))
-                        if (events?.isEmpty() == true) {
+                    for (i in 0..5) {
+                        val event = checkSlotAvailability(now,time, calendarId)
+                        if (event) {
                             availableDates.add(now.plusDays(i.toLong()))
                         }
                     }
@@ -400,9 +387,9 @@ data class ReservationProvider(
             } else {
                 val resource = getResourcesWhenFilterIsNotNull(resourceType, filter)
                 resource?.forEach {
-                    for (i in 0..dayRange) {
-                        val events = getOneEvent(now, calendarId, time, time.plusHours(range.toLong()))
-                        if (events?.isEmpty() == true) {
+                    for (i in 0..5) {
+                        val event = checkSlotAvailability(now,time,calendarId)
+                        if (event) {
                             availableDates.add(now.plusDays(i.toLong()))
                         }
                     }
@@ -415,79 +402,46 @@ data class ReservationProvider(
     override fun availableTimes(
         resourceType: ResourceType, date: LocalDate?, filter: List<SlotValue>?
     ): List<LocalTime> {
-        logger.debug("entering available timeRanges")
-        val timeRanges = mutableListOf<LocalTime>()
-        if (date == null) {
-            if (filter == null) {
-                val today = LocalDate.now().plusDays(1)
-                return checkIfIsAfter(today, open)
-            }
-        } else {
-            return if (filter == null) {
-                checkIfIsAfter(date, open)
-            } else {
-                checkIfIsAfter(date, open)
-            }
+        if(date == null){
+            return makeFreeBusyRequest(LocalDate.now(),calendarId)
+        }else{
+            return makeFreeBusyRequest(date,calendarId)
         }
-        return timeRanges
+
     }
 
-    private fun checkIfIsAfter(date: LocalDate, start: LocalTime): MutableList<LocalTime> {
-        var TimeRanges = mutableListOf<LocalTime>()
-        val events = getAllEventsOn(date, calendarId)?.sortedBy {
-            it.start.dateTime.value
+    fun makeFreeBusyRequest(date: LocalDate, calendarId: String): MutableList<LocalTime> {
+        var timeMinimum = localDateTimeToDateTime(date, LocalTime.of(0, 0))
+        val timeMaximum = localDateTimeToDateTime(date, LocalTime.of(23, 59))
+        val now = localDateTimeToDateTime(LocalDate.now(), LocalTime.now())
+        if (convertFromDateTime(timeMinimum).isBefore(convertFromDateTime(now))) {
+            timeMinimum = now
         }
+        val freeBusyRequest = FreeBusyRequest().apply {
+            timeMin = timeMinimum
+            timeMax = timeMaximum
+            items = listOf(FreeBusyRequestItem().apply {
+                id = calendarId
+            })
+        }
+        val service = buildClient()
 
-        var current = open
-        /*
-        if (events.isNullOrEmpty()) {
-            val nullTr = TimeRange()
-            nullTr.startTime = open
-            nullTr.endTime = close
-            TimeRanges.add(nullTr)
-        } else {
-            for (i in events.indices) {
-                val start = convertFromDateTime(events[i].start.dateTime)
-
-                if (start.isAfter(open) && start != current) {
-                    val timeRange = TimeRange(session)
-
-                    timeRange.startTime = current
-                    timeRange.endTime = start.minusHours(range.toLong())
-
-                    TimeRanges.add(timeRange)
-                }
-                val end = convertFromDateTime(events[i].end.dateTime)
-                if (i < events.size - 1) {
-                    val nextStart = convertFromDateTime(events[i + 1].start.dateTime)
-                    if (nextStart.isAfter(open) && start != current) {
-                        if (end.isBefore(nextStart)) {
-                            val timeRange = TimeRange(session)
-                            timeRange.startTime = end
-                            timeRange.endTime = nextStart.minusHours(range.toLong())
-                            TimeRanges.add(timeRange)
-                            current = nextStart
-                        } else if (end.isAfter(nextStart)) {
-                            current = nextStart
-                        } else if (end == nextStart) {
-                            current = end
-                        }
-                    } else {
-                        current = end
-                    }
-                } else {
-                    current = end
-                }
+        val response = service?.freebusy()?.query(freeBusyRequest)?.execute()
+        val freeRanges = mutableListOf<LocalTime>()
+        var currentStart = timeMinimum
+        val busyIntervals = response?.calendars?.get(calendarId)!!.busy
+        busyIntervals.forEach {
+            if (convertFromDateTime(it.start) > convertFromDateTime(currentStart)) {
+                freeRanges.add((convertFromDateTime(currentStart)))
             }
+            currentStart = it.end
 
-            if (current.isBefore(close) && start !== current) {
-                val timeRange = TimeRange(session)
-                timeRange.startTime = current
-                timeRange.endTime = close.minusHours(range.toLong())
-                TimeRanges.add(timeRange)
-            }
-        } */
-        return TimeRanges
+        }
+        if (convertFromDateTime(currentStart) < convertFromDateTime(timeMaximum)) {
+            freeRanges.add(convertFromDateTime(currentStart))
+        }
+        return freeRanges
+
     }
 
     override fun getResourceInfo(resourceId: String): Resource? {
@@ -526,22 +480,11 @@ data class ReservationProvider(
         return cals
     }
 
-    fun getAllEventsOn(date: LocalDate, calendarId: String): MutableList<Event>? {
-        val TimeMin = localDateTimeToDateTime(date, open)
-        val TimeMax = localDateTimeToDateTime(date, close)
-        val events = client?.events()?.list(calendarId)?.setTimeMin(TimeMin)?.setTimeMax(TimeMax)?.execute()
-        return events?.items
-    }
 
-    fun getOneEvent(date: LocalDate, calendarId: String, start: LocalTime, end: LocalTime): MutableList<Event>? {
-        val TimeMin = localDateTimeToDateTime(date, start)
-        val TimeMax = localDateTimeToDateTime(date, start.plusHours(range.toLong()))
-        val events = client?.events()?.list(calendarId)?.setTimeMax(TimeMax)?.setTimeMin(TimeMin)?.execute()?.items
-        return events
-    }
+
 
     fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
-        val zoneId = ZoneId.of(timezone)
+        val zoneId = ZoneId.systemDefault()
         val dateTime = ZonedDateTime.of(date, time, zoneId)
         val offset = zoneId.rules.getOffset(Instant.now()).totalSeconds
         logger.debug("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
@@ -550,9 +493,18 @@ data class ReservationProvider(
 
     fun convertFromDateTime(dateTime: DateTime): LocalTime {
         val dT = dateTime.value
-        val zoneId = ZoneId.of(timezone)
+        val zoneId = ZoneId.systemDefault()
         val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(dT), zoneId)
         return localDateTime.toLocalTime()
+    }
+
+    fun checkSlotAvailability(date: LocalDate, time: LocalTime, calendarId: String): Boolean {
+        val client = buildClient()
+        val timeMin = localDateTimeToDateTime(date!!, time!!)
+        val timeMax = localDateTimeToDateTime(date!!, time.plusHours(1)!!)
+        val Events = client?.events()?.list(calendarId)?.setTimeMin(timeMin)?.setTimeMax(timeMax)?.execute()?.items
+        return Events.isNullOrEmpty()
+
     }
 
     companion object : ExtensionBuilder<IReservation> {
