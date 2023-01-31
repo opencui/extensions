@@ -398,7 +398,6 @@ data class ReservationProvider(
         resourceType: ResourceType, time: LocalTime?, filter: List<SlotValue>?
     ): List<LocalDate> {
         val availableDates = mutableListOf<LocalDate>()
-        var time = time
         val now = LocalDate.now()
 
 //I hard coded this for now but will be moved once a parameter is provided
