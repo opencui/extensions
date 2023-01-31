@@ -463,7 +463,7 @@ data class ReservationProvider(
                     availableTimesList.addAll(makeFreeBusyRequest(LocalDate.now(), it.resourceEmail))
 
                 }
-                return availableTimesList
+                return availableTimesList.distinct()
             } else {
                 val resources = getResourcesWhenFilterIsNotNull(resourceType, filter)
                 if (resources.isNullOrEmpty()) {
@@ -473,7 +473,7 @@ data class ReservationProvider(
                     availableTimesList.addAll(makeFreeBusyRequest(LocalDate.now(), it.resourceEmail))
 
                 }
-                return availableTimesList
+                return availableTimesList.distinct()
             }
         } else {
             if (filter == null) {
@@ -481,12 +481,11 @@ data class ReservationProvider(
                 if (resources.isNullOrEmpty()) {
                     return mutableListOf()
                 }
-
                 resources.forEach {
                     availableTimesList.addAll(makeFreeBusyRequest(date, it.resourceEmail))
 
                 }
-                return availableTimesList
+                return availableTimesList.distinct()
             } else {
                 val resources = getResourcesWhenFilterIsNotNull(resourceType, filter)
                 if (resources.isNullOrEmpty()) {
@@ -496,7 +495,7 @@ data class ReservationProvider(
                     availableTimesList.addAll(makeFreeBusyRequest(date, it.resourceEmail))
 
                 }
-                return availableTimesList
+                return availableTimesList.distinct()
             }
         }
 
@@ -528,20 +527,30 @@ data class ReservationProvider(
             })
         }
         val service = buildClient()
+        var localTimesPair = mutableListOf<Pair<LocalTime, LocalTime>>()
 
         val response = service?.freebusy()?.query(freeBusyRequest)?.execute()
         var currentStart = timeMinimum
         val busyIntervals = response?.calendars?.get(calendarId)!!.busy
         busyIntervals.forEach {
             if (convertFromDateTime(it.start) > convertFromDateTime(currentStart)) {
-                freeRanges.add((convertFromDateTime(currentStart)))
+                localTimesPair.add(Pair(convertFromDateTime(currentStart), convertFromDateTime(it.start)))
             }
             currentStart = it.end
 
         }
         if (convertFromDateTime(currentStart) < convertFromDateTime(timeMaximum)) {
-            freeRanges.add(convertFromDateTime(currentStart))
+            localTimesPair.add(Pair(convertFromDateTime(currentStart), convertFromDateTime(timeMaximum)))
         }
+
+        localTimesPair.forEach{
+            var startPoint = it.first
+            while (startPoint<it.second){
+                freeRanges.add(startPoint)
+                startPoint = startPoint.plusHours(1)
+            }
+        }
+
         return freeRanges
 
     }
