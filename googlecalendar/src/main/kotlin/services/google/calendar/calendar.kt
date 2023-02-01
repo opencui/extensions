@@ -204,59 +204,18 @@ data class ReservationProvider(
         if (dateTime?.isBefore(now) == true) {
             return ValidationResult().apply { success = false; message = NotAvailable }
         }
-        if (filter == null) {
-            val resources = getResourcesWhenFilterIsNull(type)
-            logger.debug("The resources are $resources")
-            if (resources.isNullOrEmpty()) {
-                return ValidationResult().apply {
-                    message = NotAvailable
-                    success = false
-                }
-            }
-            if (time == null) {
-                val now = LocalTime.now()
-                if (date == null) {
-                    val today = LocalDate.now()
-                    return findSlotInResources(resources, today, now)
-                } else {
-                    return findSlotInResources(resources, date, now)
-                }
-            } else {
-                if (date == null) {
-                    val today = LocalDate.now()
-                    return findSlotInResources(resources, today, time)
-                } else {
-                    logger.debug("The date given is $date and time is $time")
-                    return findSlotInResources(resources, date, time)
-                }
-            }
-        } else {
-            val resources = getResourcesWhenFilterIsNotNull(type, filter)
-            if (resources.isNullOrEmpty()) {
-                return ValidationResult().apply {
-                    message = NotAvailable
-                    success = false
-                }
-            }
-            if (time == null) {
-                val now = LocalTime.now()
 
-                return if (date == null) {
-                    val date = LocalDate.now()
-                    findSlotInResources(resources, date, now)
-                } else {
-                    findSlotInResources(resources, date, now)
-                }
-            } else {
-                return if (date == null) {
-                    val today = LocalDate.now()
-                    findSlotInResources(resources, today, time)
-                } else {
-                    findSlotInResources(resources, date, time)
-
-                }
+        val resources = getResources(type, filter)
+        logger.debug("The resources are $resources")
+        if (resources.isNullOrEmpty()) {
+            return ValidationResult().apply {
+                message = NotAvailable
+                success = false
             }
         }
+        val ltime =  time ?: LocalTime.now()
+        val ldate = date ?: LocalDate.now()
+        return findSlotInResources(resources, ldate, ltime)
     }
 
     private fun findSlotInResources(
@@ -282,8 +241,6 @@ data class ReservationProvider(
                 success = true
             }
         }
-
-
     }
 
     override fun reservationUpdatable(
@@ -597,7 +554,11 @@ data class ReservationProvider(
         }
         return cals
     }
-
+    fun getResources(
+        resourceType: ResourceType, filter: List<SlotValue>?
+    ): List<CalendarResource>?  {
+        return if (filter == null) getResourcesWhenFilterIsNull(resourceType) else getResourcesWhenFilterIsNotNull(resourceType, filter)
+    }
 
     fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
         val zoneId = ZoneId.of(timeZone)
