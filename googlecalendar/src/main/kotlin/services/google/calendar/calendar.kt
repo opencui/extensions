@@ -205,6 +205,7 @@ data class ReservationProvider(
         }
         if (filter == null) {
             val resources = getResourcesWhenFilterIsNull(type)
+            logger.debug("The resources are $resources")
             if (resources.isNullOrEmpty()) {
                 return ValidationResult().apply {
                     message = NotAvailable
@@ -224,6 +225,7 @@ data class ReservationProvider(
                     val today = LocalDate.now()
                     return findSlotInResources(resources, today, time)
                 } else {
+                    logger.debug("The date given is $date and time is $time")
                     return findSlotInResources(resources, date, time)
                 }
             }
@@ -275,8 +277,8 @@ data class ReservationProvider(
             }
         } else {
             return ValidationResult().apply {
-                message = NotAvailable
-                success = false
+                message = Available
+                success = true
             }
         }
 
@@ -468,7 +470,7 @@ data class ReservationProvider(
                     availableTimesList.addAll(makeFreeBusyRequest(LocalDate.now(), it.resourceEmail))
 
                 }
-                return availableTimesList.distinct()
+                return availableTimesList.distinct().sorted()
             } else {
                 val resources = getResourcesWhenFilterIsNotNull(resourceType, filter)
                 if (resources.isNullOrEmpty()) {
@@ -478,7 +480,7 @@ data class ReservationProvider(
                     availableTimesList.addAll(makeFreeBusyRequest(LocalDate.now(), it.resourceEmail))
 
                 }
-                return availableTimesList.distinct()
+                return availableTimesList.distinct().sorted()
             }
         } else {
             if (filter == null) {
@@ -490,7 +492,7 @@ data class ReservationProvider(
                     availableTimesList.addAll(makeFreeBusyRequest(date, it.resourceEmail))
 
                 }
-                return availableTimesList.distinct()
+                return availableTimesList.distinct().sorted()
             } else {
                 val resources = getResourcesWhenFilterIsNotNull(resourceType, filter)
                 if (resources.isNullOrEmpty()) {
@@ -500,7 +502,7 @@ data class ReservationProvider(
                     availableTimesList.addAll(makeFreeBusyRequest(date, it.resourceEmail))
 
                 }
-                return availableTimesList.distinct()
+                return availableTimesList.distinct().sorted()
             }
         }
 
@@ -515,11 +517,9 @@ data class ReservationProvider(
         val today = LocalDate.now().atTime(LocalTime.now())
         if (date == LocalDate.now()) {
             if (LocalTime.now().isAfter(LocalTime.of(0, 0))) {
+                logger.debug("Local time is obtained here on current time ${LocalTime.now()}")
                 timeMinimum = localDateTimeToDateTime(date, LocalTime.now())
             }
-        }
-        if (date.atTime(convertFromDateTime(timeMinimum)).isBefore(today)) {
-            return freeRanges
         }
         if (date.atTime(convertFromDateTime(timeMaximum)).isBefore(today)) {
             return freeRanges
@@ -555,6 +555,7 @@ data class ReservationProvider(
                 startPoint = startPoint.plusHours(1)
             }
         }
+        logger.debug("Free ranges on $date is $freeRanges")
 
         return freeRanges
 
