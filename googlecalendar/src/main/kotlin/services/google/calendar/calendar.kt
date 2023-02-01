@@ -199,7 +199,7 @@ data class ReservationProvider(
         type: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<SlotValue>?
     ): ValidationResult {
         val now = LocalDateTime.now()
-        val dateTime = date?.atTime(time)
+        val dateTime = if (time != null) date?.atTime(time) else null
         if (dateTime?.isBefore(now) == true) {
             return ValidationResult().apply { success = false; message = NotAvailable }
         }
