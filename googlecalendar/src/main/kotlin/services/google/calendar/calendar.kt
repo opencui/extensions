@@ -50,6 +50,7 @@ data class ReservationProvider(
 
     val client = buildClient()
     val admin = buildAdmin()
+    val timeZone = getCalendarSettings()
 
     override fun cloneForSession(userSession: UserSession): IExtension {
         return this.copy(session = userSession)
@@ -167,15 +168,15 @@ data class ReservationProvider(
                         this.userId = userId
                         resourceId = event.attendees?.get(0)?.displayName
                         startDate = Instant.ofEpochMilli(event.start?.dateTime?.value!!)
-                            .atZone(ZoneId.of(getCalendarSettings()))
+                            .atZone(ZoneId.of(timeZone))
                             .toLocalDate()
                         duration = 1
                         endDate =
-                            Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(getCalendarSettings()))
+                            Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone))
                                 .toLocalDate()
                         startTime = convertFromDateTime(event.start.dateTime)
                         endTime =
-                            Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(getCalendarSettings()))
+                            Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone))
                                 .toLocalTime()
                     }
                     reservations.add(reservation)
@@ -531,7 +532,7 @@ data class ReservationProvider(
                 id = calendarId
             })
         }
-        val service = buildClient()
+        val service = client
         var localTimesPair = mutableListOf<Pair<LocalTime, LocalTime>>()
 
         val response = service?.freebusy()?.query(freeBusyRequest)?.execute()
@@ -599,7 +600,7 @@ data class ReservationProvider(
 
 
     fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
-        val zoneId = ZoneId.of(getCalendarSettings())
+        val zoneId = ZoneId.of(timeZone)
         val dateTime = ZonedDateTime.of(date, time, zoneId)
         val offset = zoneId.rules.getOffset(Instant.now()).totalSeconds
         logger.debug("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
@@ -608,7 +609,7 @@ data class ReservationProvider(
 
     fun convertFromDateTime(dateTime: DateTime): LocalTime {
         val dT = dateTime.value
-        val zoneId = ZoneId.of(getCalendarSettings())
+        val zoneId = ZoneId.of(timeZone)
         val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(dT), zoneId)
         return localDateTime.toLocalTime()
     }
@@ -623,7 +624,7 @@ data class ReservationProvider(
     }
 
     fun getCalendarSettings(): String? {
-        val calendar = buildClient()
+        val calendar = client
         val settings = calendar?.calendars()?.get(calendarId)?.execute()
         return settings?.timeZone
     }
@@ -633,11 +634,6 @@ data class ReservationProvider(
         const val CLIENT_SECRET = "client_secret"
         const val CALENDAR_ID = "calendar_id"
         const val DELEGATED_USER = "delegated_user"
-        const val OPEN_HOUR = "open_hour"
-        const val CLOSE_HOUR = "close_hour"
-        const val TIMERANGE = "time_range"
-        const val DAYRANGE = "day_range"
-        const val TIMEZONE = "time_zone"
         const val CUSTOMERNAME = "customer_name"
         const val NotAvailable = "Resource Not Available"
         const val Available = "Resource Available"
