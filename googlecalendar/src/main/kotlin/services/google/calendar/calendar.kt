@@ -199,9 +199,11 @@ data class ReservationProvider(
     override fun resourceAvailable(
         type: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<SlotValue>?
     ): ValidationResult {
+        logger.debug("Function is invoked")
         val now = LocalDateTime.now()
         val dateTime = date?.atTime(time)
         if (dateTime?.isBefore(now) == true) {
+            logger.debug("This is applied")
             return ValidationResult().apply { success = false; message = NotAvailable }
         }
         if (filter == null) {
