@@ -205,6 +205,7 @@ data class ReservationProvider(
         }
         if (filter == null) {
             val resources = getResourcesWhenFilterIsNull(type)
+            logger.debug("The resources are $resources")
             if (resources.isNullOrEmpty()) {
                 return ValidationResult().apply {
                     message = NotAvailable
@@ -224,6 +225,7 @@ data class ReservationProvider(
                     val today = LocalDate.now()
                     return findSlotInResources(resources, today, time)
                 } else {
+                    logger.debug("The date given is $date and time is $time")
                     return findSlotInResources(resources, date, time)
                 }
             }
@@ -275,8 +277,8 @@ data class ReservationProvider(
             }
         } else {
             return ValidationResult().apply {
-                message = NotAvailable
-                success = false
+                message = Available
+                success = true
             }
         }
 
