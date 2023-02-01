@@ -256,7 +256,11 @@ data class ReservationProvider(
         }
     }
 
-    private fun findSlotInResources(resources: List<CalendarResource>, date: LocalDate, time: LocalTime): ValidationResult {
+    private fun findSlotInResources(
+        resources: List<CalendarResource>,
+        date: LocalDate,
+        time: LocalTime
+    ): ValidationResult {
         val events = mutableListOf<String>()
         resources.forEach {
             val event = checkSlotAvailability(date, time, it.resourceEmail)
@@ -395,6 +399,7 @@ data class ReservationProvider(
     ): List<LocalDate> {
         val availableDates = mutableListOf<LocalDate>()
         val now = LocalDate.now()
+
 //I hard coded this for now but will be moved once a parameter is provided
 
         if (time == null) {
@@ -403,7 +408,7 @@ data class ReservationProvider(
 
                     val events = availableTimes(resourceType, now.plusDays(i.toLong()), null)
                     if (events.isNotEmpty()) {
-                        if (!availableDates.contains(now.plusDays(i.toLong()))) {
+                        if (availableDates.contains(now.plusDays(i.toLong()))) {
                         } else {
                             availableDates.add(now.plusDays(i.toLong()))
                         }
@@ -543,9 +548,9 @@ data class ReservationProvider(
             localTimesPair.add(Pair(convertFromDateTime(currentStart), convertFromDateTime(timeMaximum)))
         }
 
-        localTimesPair.forEach{
+        localTimesPair.forEach {
             var startPoint = it.first
-            while (startPoint<it.second){
+            while (startPoint < it.second) {
                 freeRanges.add(startPoint)
                 startPoint = startPoint.plusHours(1)
             }
