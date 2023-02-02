@@ -571,19 +571,23 @@ data class ReservationProvider(
         filter: List<SlotValue>?
     ): List<Resource> {
         var calendarResources = if (filter == null) getResourcesWhenFilterIsNull(type) else getResourcesWhenFilterIsNotNull(type, filter)
+
         val resources = mutableListOf<Resource>()
+        if (calendarResources.isNullOrEmpty()){
+            return  resources
+        }
         if(date  != null){
-           calendarResources = calendarResources?.filter {
+           calendarResources = calendarResources.filter {
                !makeFreeBusyRequest(date, it.resourceEmail).isNullOrEmpty()
            }
         }
         if(time != null){
-            calendarResources = calendarResources?.filter {
+            calendarResources = calendarResources.filter {
                 checkSlotAvailability(date!!, time, it.resourceEmail)
             }
 
         }
-        calendarResources?.forEach {
+        calendarResources.forEach {
             val resource = Json.decodeFromString<Resource>(
                 it.resourceDescription,
                 ChatbotLoader.findClassLoader(session!!.botInfo)
