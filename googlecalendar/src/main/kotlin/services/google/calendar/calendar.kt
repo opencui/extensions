@@ -200,9 +200,11 @@ data class ReservationProvider(
     override fun resourceAvailable(
         type: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<SlotValue>?
     ): ValidationResult {
+        logger.debug("Function is invoked")
         val now = LocalDateTime.now()
         val dateTime = if (time != null) date?.atTime(time) else null
         if (dateTime?.isBefore(now) == true) {
+            logger.debug("This is applied")
             return ValidationResult().apply { success = false; message = NotAvailable }
         }
 
@@ -452,6 +454,41 @@ data class ReservationProvider(
         logger.debug("Free ranges on $date is $freeRanges")
 
         return freeRanges
+
+    }
+
+    override fun listResource(
+        type: ResourceType,
+        date: LocalDate?,
+        time: LocalTime?,
+        filter: List<SlotValue>?
+    ): List<Resource> {
+        var calendarResources = if (filter == null) getResourcesWhenFilterIsNull(type) else getResourcesWhenFilterIsNotNull(type, filter)
+
+        val resources = mutableListOf<Resource>()
+        if (calendarResources.isNullOrEmpty()){
+            return  resources
+        }
+        if(date  != null){
+           calendarResources = calendarResources.filter {
+               !makeFreeBusyRequest(date, it.resourceEmail).isNullOrEmpty()
+           }
+        }
+        if(time != null){
+            calendarResources = calendarResources.filter {
+                checkSlotAvailability(date!!, time, it.resourceEmail)
+            }
+
+        }
+        calendarResources.forEach {
+            val resource = Json.decodeFromString<Resource>(
+                it.resourceDescription,
+                ChatbotLoader.findClassLoader(session!!.botInfo)
+            )
+            resources.add(resource)
+        }
+        return resources
+
 
     }
 
