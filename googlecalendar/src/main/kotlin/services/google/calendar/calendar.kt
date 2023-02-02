@@ -564,6 +564,37 @@ data class ReservationProvider(
 
     }
 
+    override fun listResource(
+        type: ResourceType,
+        date: LocalDate?,
+        time: LocalTime?,
+        filter: List<SlotValue>?
+    ): List<Resource> {
+        var calendarResources = if (filter == null) getResourcesWhenFilterIsNull(type) else getResourcesWhenFilterIsNotNull(type, filter)
+        val resources = mutableListOf<Resource>()
+        if(date  != null){
+           calendarResources = calendarResources?.filter {
+               !makeFreeBusyRequest(date, it.resourceEmail).isNullOrEmpty()
+           }
+        }
+        if(time != null){
+            calendarResources = calendarResources?.filter {
+                checkSlotAvailability(date!!, time, it.resourceEmail)
+            }
+
+        }
+        calendarResources?.forEach {
+            val resource = Json.decodeFromString<Resource>(
+                it.resourceDescription,
+                ChatbotLoader.findClassLoader(session!!.botInfo)
+            )
+            resources.add(resource)
+        }
+        return resources
+
+
+    }
+
     override fun getResourceInfo(resourceId: String): Resource? {
         val calendar = admin?.resources()?.calendars()?.get(customerName, resourceId)?.execute()
         val resource = calendar?.let {

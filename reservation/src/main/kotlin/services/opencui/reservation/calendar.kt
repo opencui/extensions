@@ -334,4 +334,11 @@ public interface IReservation : IService {
 
   @JsonIgnore
   public fun getResourceInfo(resourceId: String): Resource?
+  @JsonIgnore
+  public fun listResource(
+    type: ResourceType,
+    date: LocalDate?,
+    time: LocalTime?,
+    filter: List<SlotValue>?
+  ): List<Resource>
 }
