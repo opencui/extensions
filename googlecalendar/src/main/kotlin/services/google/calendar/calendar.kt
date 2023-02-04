@@ -16,6 +16,7 @@ import com.google.api.services.directory.model.CalendarResource
 import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
+import org.jetbrains.kotlin.psi.psiUtil.replaceFileAnnotationList
 import org.slf4j.LoggerFactory
 import services.opencui.reservation.*
 import java.time.Instant
@@ -199,19 +200,24 @@ data class ReservationProvider(
         type: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<SlotValue>?
     ): ValidationResult {
         val now = LocalDateTime.now()
-        val dateTime = date?.atTime(time)
+        val dateTime = if (time != null) date?.atTime(time) else null
         if (dateTime?.isBefore(now) == true) {
             return ValidationResult(session).apply { success = false; message = NotAvailable }
         }
-        val resources =
-            if (filter == null) getResourcesWhenFilterIsNull(type) else getResourcesWhenFilterIsNotNull(type, filter)
-        if (resources.isNullOrEmpty()) {
-            return ValidationResult(session).apply { success = false;message = NotAvailable }
-        }
 
-        val useNow = time ?: LocalTime.now()
-        val useDate = date ?: LocalDate.now()
-        return findSlotInResources(resources, useDate, useNow)
+
+        val resources = getResources(type, filter)
+        logger.debug("The resources are $resources")
+        if (resources.isNullOrEmpty()) {
+            return ValidationResult().apply {
+                message = NotAvailable
+                success = false
+            }
+        }
+        val ltime =  time ?: LocalTime.now()
+        val ldate = date ?: LocalDate.now()
+        return findSlotInResources(resources, ldate, ltime)
+
     }
 
 
@@ -358,6 +364,7 @@ data class ReservationProvider(
                 range.forEach { i ->
                     val event = checkSlotAvailability(now, time, calendarId)
                     if (event) availableDates.add(now.plusDays(i.toLong()))
+
                 }
             }
         }
@@ -371,6 +378,7 @@ data class ReservationProvider(
         date: LocalDate?,
         filter: List<SlotValue>?
     ): List<LocalTime> {
+
         val resources = when {
             filter == null -> getResourcesWhenFilterIsNull(resourceType)
             else -> getResourcesWhenFilterIsNotNull(resourceType, filter)
@@ -382,6 +390,7 @@ data class ReservationProvider(
             .flatMap { makeFreeBusyRequest(date ?: LocalDate.now(), it.resourceEmail) }
             .distinct()
             .sorted()
+
     }
 
 
@@ -509,7 +518,11 @@ data class ReservationProvider(
         }
         return cals
     }
-
+    fun getResources(
+        resourceType: ResourceType, filter: List<SlotValue>?
+    ): List<CalendarResource>?  {
+        return if (filter == null) getResourcesWhenFilterIsNull(resourceType) else getResourcesWhenFilterIsNotNull(resourceType, filter)
+    }
 
     fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
         val zoneId = ZoneId.of(timeZone)
