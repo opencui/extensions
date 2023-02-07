@@ -111,7 +111,7 @@ data class ReservationProvider(
                     )
                     val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
                     reservation.id = createdEvent?.id
-                    reservation.duration =  (duration.toString().toDouble()/3600).toInt()
+                    reservation.duration =  duration.toString().toInt()
                     reservation.endDate = date
                     reservation.endTime = time
                     reservation.userId = userId
@@ -150,7 +150,7 @@ data class ReservationProvider(
                 )
                 val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
                 reservation.id = createdEvent?.id
-                reservation.duration = (duration.toString().toDouble()/3600).toInt()
+                reservation.duration = duration.toString().toInt()
                 reservation.endDate = date
                 reservation.endTime = time
                 reservation.userId = userId
