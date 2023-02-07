@@ -49,7 +49,7 @@ data class ReservationProvider(
 
     val client = buildClient()
     val admin = buildAdmin()
-    val timeZone = getCalendarSettings()
+    var timeZone = getCalendarSettings()
 
 
     override fun cloneForSession(userSession: UserSession): IExtension {
@@ -83,6 +83,7 @@ data class ReservationProvider(
                 return Reservation(session)
             } else {
                 resources.forEach {
+
                     val event = checkSlotAvailability(date!!, time!!, it.resourceEmail)
                     if (event) {
                         listOfResources.add(it)
@@ -92,6 +93,7 @@ data class ReservationProvider(
                     val calendar = client
                     val event = Event()
                     val resource = listOfResources[0]
+                    timeZone = getTimeZone(listOfResources[0].buildingId)
                     event.summary = "Reservation for $userId"
                     event.description = "Reservation booked for ${resource.resourceName}"
                     val startTime = localDateTimeToDateTime(date!!, time!!)
@@ -128,6 +130,7 @@ data class ReservationProvider(
                 val calendar = client
                 val event = Event()
                 val resource = listOfResources[0]
+                timeZone = getTimeZone(listOfResources[0].buildingId)
                 event.summary = "Reservation for $userId"
                 event.description = "Reservation booked for ${resource.resourceName}"
                 val startTime = localDateTimeToDateTime(date!!, time!!)
@@ -160,6 +163,7 @@ data class ReservationProvider(
         val reservations = mutableListOf<Reservation>()
 
         val events = client?.events()?.list(calendarId)?.setTimeMin(now)?.execute()?.items
+        timeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
         if (events != null) {
             for (event in events) {
                 if (event?.summary?.contains(userId) == true) {
@@ -352,7 +356,8 @@ data class ReservationProvider(
             )
         val range = 0..5
 
-        resources?.forEach { _ ->
+        resources?.forEach {
+            timeZone = getTimeZone(it.buildingId)
             if (time == null) {
                 range.forEach { i ->
                     val events = availableTimes(resourceType, now.plusDays(i.toLong()), filter)
@@ -392,6 +397,9 @@ data class ReservationProvider(
 
 
     private fun makeFreeBusyRequest(date: LocalDate, calendarId: String): MutableList<LocalTime> {
+        val calendar = client
+        val rtimeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
+        timeZone = rtimeZone
         val freeRanges = mutableListOf<LocalTime>()
 
         var timeMinimum = localDateTimeToDateTime(date, LocalTime.of(0, 0))
@@ -519,6 +527,7 @@ data class ReservationProvider(
 
     private fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
         val zoneId = ZoneId.of(timeZone)
+        logger.debug("Timezone is $timeZone")
         val dateTime = ZonedDateTime.of(date, time, zoneId)
         val offset = zoneId.rules.getOffset(Instant.now()).totalSeconds
         logger.debug("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
@@ -534,6 +543,7 @@ data class ReservationProvider(
 
     private fun checkSlotAvailability(date: LocalDate, time: LocalTime, calendarId: String): Boolean {
         val client = buildClient()
+        timeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
         val timeMin = localDateTimeToDateTime(date, time)
         val timeMax = localDateTimeToDateTime(date, time.plusHours(1)!!)
         val events = client?.events()?.list(calendarId)?.setTimeMin(timeMin)?.setTimeMax(timeMax)?.execute()?.items
@@ -545,6 +555,13 @@ data class ReservationProvider(
         val calendar = client
         val settings = calendar?.calendars()?.get(calendarId)?.execute()
         return settings?.timeZone
+    }
+    private  fun  getTimeZone(buildingId:String): String {
+        val admin = admin
+        val tz = admin?.Resources()?.buildings()?.get(customerName, buildingId)?.execute()
+        val mapper =ObjectMapper()
+        val tzMap = mapper.readValue(tz?.description, Map::class.java)
+        return tzMap["timezone"] as String
     }
 
     companion object : ExtensionBuilder<IReservation> {
