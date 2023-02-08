@@ -116,7 +116,7 @@ class WechatPublicAccountResource {
 
             // For now, we assume the language of user session are decided at beginning and
             // not changed after that.
-            Dispatcher.process(userInfo, BotInfo(org, agentId, lang), textMessage(msgText, msgId))
+            Dispatcher.process(userInfo, botInfo(org, agentId, lang, "master"), textMessage(msgText, msgId))
         }
     }
 
@@ -408,7 +408,7 @@ data class WechatPublicAccountChannel(override val info: Configuration) : IMessa
 
             val org = botConfig["org"]?: ""
             val bot = botConfig["agent"]?: ""
-            val botInfo = BotInfo(org as String, bot as String, "*", "master")
+            val botInfo = botInfo(org as String, bot as String, "*", "master")
 
             // We create the repeated refreshing of access token for this bot/label.
             Dispatcher.timer.scheduleAtFixedRate(

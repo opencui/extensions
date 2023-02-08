@@ -71,7 +71,7 @@ class WhatsappResources() {
             @RequestParam("hub.verify_token") token: String,
             @RequestParam("hub.challenge") challenge: String): ResponseEntity<String> {
         logger.info("getting $token and $challenge for $mode")
-		val botInfo = BotInfo("", "", lang)
+		val botInfo = master(lang)
 		val info = Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)
 				?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
         logger.info("info = $info for ::$channelId:$token:$challenge")
@@ -105,7 +105,7 @@ class WhatsappResources() {
 			@PathVariable("channelId") channelId: String,
 		    @RequestBody body: WhatsappMessage
     ): ResponseEntity<String> {
-        val botInfo = BotInfo("", "", lang)
+        val botInfo = master(lang)
 		Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)?: return ResponseEntity("NotFound", HttpStatus.NOT_FOUND)
         logger.info(body.toString())
 
@@ -131,7 +131,7 @@ class WhatsappResources() {
                         val msgId = message.id
 
                         val userInfo = UserInfo(whatsapp, from, channelId)
-                        Dispatcher.process(userInfo, BotInfo("", "", lang), textMessage(txt, msgId))
+                        Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
                     }
                 }
             }

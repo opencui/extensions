@@ -230,7 +230,7 @@ class MessengerResources() {
             @RequestParam("hub.verify_token") token: String,
             @RequestParam("hub.challenge") challenge: String): ResponseEntity<String> {
         logger.info("RECEIVED get request ::$channelId:$token:$challenge")
-		val botInfo = BotInfo("", "", lang)
+		val botInfo = master(lang)
 		val info = Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)
 				?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Did not find ::$channelId")
         logger.info("info = $info for ::$channelId:$token:$challenge")
@@ -260,7 +260,7 @@ class MessengerResources() {
 			@PathVariable channelId: String,
 			@RequestBody body: MessengerReceiveRequest): ResponseEntity<String> {
         logger.info("RECEIVED post request from messenger body: ${body.toString()}")
-		val botInfo = BotInfo("", "", lang)
+		val botInfo = master(lang)
 		Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)
 				?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
 		if (body.subscription == "page") {
@@ -278,7 +278,7 @@ class MessengerResources() {
                     if (message.containsKey(TEXT)) {
                         val txt = message.getPrimitive(TEXT).content()
                         val userInfo = UserInfo(MESSENGER, psid, channelId)
-                        Dispatcher.process(userInfo, BotInfo("", "", lang), textMessage(txt, msgId))
+                        Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
                     }
                 }
 			}
