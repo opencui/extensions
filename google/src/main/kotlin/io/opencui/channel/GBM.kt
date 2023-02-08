@@ -55,7 +55,7 @@ class GBMResource {
         @PathVariable label: String,
         @RequestBody bodyStr: String): ResponseEntity<JsonElement> {
         val body = Json.parseToJsonElement(URLDecoder.decode(bodyStr, Charsets.UTF_8)) as ObjectNode
-        val botInfo = BotInfo("", "", lang)
+        val botInfo = master(lang)
         logger.info("got body: $body")
         val info = Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(label)
         if (info == null) {
