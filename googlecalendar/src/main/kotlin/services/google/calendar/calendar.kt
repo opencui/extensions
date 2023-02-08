@@ -80,7 +80,7 @@ data class ReservationProvider(
         if (filter == null) {
             val resources = getResourcesWhenFilterIsNull(resourceType)
             if (resources.isNullOrEmpty()) {
-                return Reservation(session)
+                return null
             } else {
                 resources.forEach {
 
@@ -118,6 +118,8 @@ data class ReservationProvider(
                     reservation.resourceId = resource.resourceId
                     reservation.startTime = time
                     return reservation
+                }else{
+                    return null
                 }
             }
         } else {
@@ -157,9 +159,10 @@ data class ReservationProvider(
                 reservation.resourceId = resource.resourceId
                 reservation.startTime = time
                 return reservation
+            }else{
+                return null
             }
         }
-        return reservation
     }
 
     override fun listReservation(userId: String, resourceType: ResourceType): List<Reservation> {
