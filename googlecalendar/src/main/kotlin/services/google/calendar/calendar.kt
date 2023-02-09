@@ -169,7 +169,7 @@ data class ReservationProvider(
         val now = localDateTimeToDateTime(LocalDate.now(), LocalTime.now())
         val reservations = mutableListOf<Reservation>()
 
-        val events = client?.events()?.list(calendarId)?.setTimeMin(now)?.execute()?.items
+        val events = client?.events()?.list(calendarId)?.setTimeMin(now)?.setQ(userId)?.execute()?.items
         timeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
         if (events != null) {
             for (event in events) {
