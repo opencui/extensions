@@ -18,6 +18,7 @@ import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
 import org.slf4j.LoggerFactory
 import services.opencui.reservation.*
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -29,6 +30,19 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
+
+class CachedMethod<in A, in B, out R>(val f: (A, B) -> List<R>) : (A, B) -> List<R> {
+    private val values = mutableMapOf<Pair<A, B>, Pair<List<R>, LocalDateTime>>()
+    private val seconds = 60
+    override fun invoke(a: A, b: B): List<R> {
+        val input = Pair(a, b)
+        val cache = values.get(input)
+        if (cache == null || Duration.between(cache.second, LocalDateTime.now()).seconds < seconds ) {
+            values.put(input, Pair(f(a, b), LocalDateTime.now()))
+        }
+        return values[input]!!.first
+    }
+}
 
 data class ReservationProvider(
     val config: Configuration,
@@ -165,7 +179,15 @@ data class ReservationProvider(
         }
     }
 
+    // For assume the caching is the provider's responsibility. This will simplify
+    // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, resourceType: ResourceType): List<Reservation> {
+        return cachedListReservation(userId, resourceType)
+    }
+
+    val cachedListReservation = CachedMethod<String, ResourceType, Reservation>(this::listReservationImpl)
+
+    fun listReservationImpl(userId: String, resourceType: ResourceType): List<Reservation> {
         val start = System.currentTimeMillis()
         logger.debug("Entering list Reservation")
         val now = localDateTimeToDateTime(LocalDate.now(), LocalTime.now())
