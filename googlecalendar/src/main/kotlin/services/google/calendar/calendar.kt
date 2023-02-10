@@ -166,6 +166,8 @@ data class ReservationProvider(
     }
 
     override fun listReservation(userId: String, resourceType: ResourceType): List<Reservation> {
+        val start = System.currentTimeMillis()
+        logger.debug("Entering list Reservation")
         val now = localDateTimeToDateTime(LocalDate.now(), LocalTime.now())
         val reservations = mutableListOf<Reservation>()
 
@@ -194,6 +196,7 @@ data class ReservationProvider(
                 }
             }
         }
+        logger.debug("Existing listReservation with ${System.currentTimeMillis() - start}")
         return reservations
     }
 
