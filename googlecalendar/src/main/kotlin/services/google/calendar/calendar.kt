@@ -31,8 +31,9 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 
-class CachedMethod<in A, in B, out R>(val f: (A, B) -> List<R>) : (A, B) -> List<R> {
-    private val values = mutableMapOf<Pair<A, B>, Pair<List<R>, LocalDateTime>>()
+class CachedMethod<A, B, out R>(
+    val f: (A, B) -> List<R>,
+    val values: MutableMap<Pair<A, B>, Pair<List<@UnsafeVariance R>, LocalDateTime>>) : (A, B) -> List<R> {
     private val seconds = 60
     override fun invoke(a: A, b: B): List<R> {
         val input = Pair(a, b)
@@ -185,7 +186,7 @@ data class ReservationProvider(
         return cachedListReservation(userId, resourceType)
     }
 
-    val cachedListReservation = CachedMethod<String, ResourceType, Reservation>(this::listReservationImpl)
+    val cachedListReservation = CachedMethod<String, ResourceType, Reservation>(this::listReservationImpl, values)
 
     fun listReservationImpl(userId: String, resourceType: ResourceType): List<Reservation> {
         val start = System.currentTimeMillis()
@@ -608,6 +609,7 @@ data class ReservationProvider(
         override fun invoke(config: Configuration): IReservation {
             return ReservationProvider(config)
         }
+        private val values = mutableMapOf<Pair<String, ResourceType>, Pair<List<Reservation>, LocalDateTime>>()
     }
 }
 
