@@ -39,7 +39,7 @@ class CachedMethod<A, B, out R>(
         val input = Pair(a, b)
         val cache = values[input]
         Dispatcher.logger.debug("Enter cached function... for $a and $b")
-        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds < seconds ) {
+        if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > seconds ) {
             Dispatcher.logger.debug("for some reason we need to refresh: ${cache} and ${LocalDateTime.now()}")
             values.put(input, Pair(f(a, b), LocalDateTime.now()))
         }
