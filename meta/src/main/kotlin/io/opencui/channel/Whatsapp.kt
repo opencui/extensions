@@ -70,20 +70,17 @@ class WhatsappResources() {
             @RequestParam("hub.mode") mode: String,
             @RequestParam("hub.verify_token") token: String,
             @RequestParam("hub.challenge") challenge: String): ResponseEntity<String> {
-        logger.info("getting $token and $challenge for $mode")
 		val botInfo = master(lang)
 		val info = Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)
 				?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
-        logger.info("info = $info for ::$channelId:$token:$challenge")
-		if (mode =="subscribe") {
-            if (token != info[VERIFYTOKEN]) {
-                logger.info("token mismatch...")
-            } else {
-                return ResponseEntity.ok(challenge)
-            }
-		}
-
-		return ResponseEntity("Wrong Verify Token", HttpStatus.FORBIDDEN)
+        // TODO(sean): remove this to prevent leak.
+        logger.info("info = $info for ::$channelId:$token:$challenge:$mode")
+        return if (mode =="subscribe" && token != info[VERIFYTOKEN]) {
+            logger.info("token mismatch...")
+            ResponseEntity("Wrong Verify Token", HttpStatus.BAD_REQUEST)
+        } else {
+            ResponseEntity.ok(challenge)
+        }
 	}
 
 	/*
@@ -91,7 +88,6 @@ class WhatsappResources() {
      * url:  URL of the file to upload. Max file size is 25MB (after encoding).
      * A Timeout is set to 75 sec for videos and 10 secs for every other file type.
      */
-
     @PostMapping(
         value = [
             "/IChannel/WhatsappChannel/v1/{channelId}/{lang}",
@@ -107,38 +103,33 @@ class WhatsappResources() {
     ): ResponseEntity<String> {
         val botInfo = master(lang)
 		Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)?: return ResponseEntity("NotFound", HttpStatus.NOT_FOUND)
-        logger.info(body.toString())
+        logger.info(Json.encodeToJsonElement(body).toPrettyString())
 
         // There are a list of change in the message.
-        if (body.entry.size != 0) {
-			body.entry.forEach {
-                logger.info(it.toString())
-                // We only process the first message.
-                for (change in it.changes) {
-                    if (change.value?.messages == null) continue
-                    for (message in change.value!!.messages!!) {
+        body.entry.forEach {
+            // We only process the first message.
+            for (change in it.changes) {
+                if (change.value?.messages == null) continue
+                for (message in change.value!!.messages!!) {
 
-                        // For now, we only handle the text input message. Down the road
-                        // we can use other api to handle other types.
-                        if (message.type != "text") continue
-                        val txt = message.text!!.body ?: continue
-                        val from = message.from
+                    // For now, we only handle the text input message. Down the road
+                    // we can use other api to handle other types.
+                    if (message.type != "text") continue
+                    val txt = message.text!!.body ?: continue
+                    val from = message.from
 
-                        // We make sure we mark this when we are done, so that we do not
-                        // process twice.
-                        // We can also try to mark the message to be seen.
-                        // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages
-                        val msgId = message.id
+                    // We make sure we mark this when we are done, so that we do not
+                    // process twice.
+                    // We can also try to mark the message to be seen.
+                    // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages
+                    val msgId = message.id
 
-                        val userInfo = UserInfo(whatsapp, from, channelId)
-                        Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
-                    }
+                    val userInfo = UserInfo(whatsapp, from, channelId)
+                    Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
                 }
             }
-			return ResponseEntity.ok("EVENT_RECEIVED")
-		} else {
-			return ResponseEntity("not a page", HttpStatus.NOT_FOUND)
-		}
+        }
+        return ResponseEntity.ok("ok")
 	}
 
 
