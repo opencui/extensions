@@ -432,24 +432,22 @@ data class ReservationProvider(
 
 
     private fun makeFreeBusyRequest(date: LocalDate, calendarId: String): MutableList<LocalTime> {
-        val calendar = client
-        val rtimeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
-        timeZone = rtimeZone
+        timeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
         val freeRanges = mutableListOf<LocalTime>()
 
         var timeMinimum = localDateTimeToDateTime(date, LocalTime.of(0, 0))
-
         var timeMaximum = localDateTimeToDateTime(date, LocalTime.of(23, 59))
+
         val today = LocalDate.now().atTime(LocalTime.now())
         if (date == LocalDate.now()) {
-            if (LocalTime.now().isAfter(LocalTime.of(0, 0))) {
-                logger.debug("Local time is obtained here on current time ${LocalTime.now()}")
-                timeMinimum = localDateTimeToDateTime(date, LocalTime.now())
-            }
+            // For today, we always start from now.
+            timeMinimum = localDateTimeToDateTime(date, LocalTime.now())
         }
+
         if (date.atTime(convertFromDateTime(timeMaximum)).isBefore(today)) {
             return freeRanges
         }
+
         val freeBusyRequest = FreeBusyRequest().apply {
             timeMin = timeMinimum
             timeMax = timeMaximum
@@ -457,34 +455,31 @@ data class ReservationProvider(
                 id = calendarId
             })
         }
-        val service = client
+
         var localTimesPair = mutableListOf<Pair<LocalTime, LocalTime>>()
 
-        val response = service?.freebusy()?.query(freeBusyRequest)?.execute()
+        val response = client?.freebusy()?.query(freeBusyRequest)?.execute()
         var currentStart = timeMinimum
         val busyIntervals = response?.calendars?.get(calendarId)!!.busy
         busyIntervals.forEach {
-            if (convertFromDateTime(it.start) > convertFromDateTime(currentStart)) {
+            if (convertFromDateTime(it.start).isAfter(convertFromDateTime(currentStart))) {
                 localTimesPair.add(Pair(convertFromDateTime(currentStart), convertFromDateTime(it.start)))
             }
             currentStart = it.end
-
         }
-        if (convertFromDateTime(currentStart) < convertFromDateTime(timeMaximum)) {
+        if (convertFromDateTime(currentStart).isBefore(convertFromDateTime(timeMaximum))) {
             localTimesPair.add(Pair(convertFromDateTime(currentStart), convertFromDateTime(timeMaximum)))
         }
 
         localTimesPair.forEach {
             var startPoint = it.first
-            while (startPoint < it.second) {
+            while (startPoint.isBefore(it.second) && startPoint.isBefore(convertFromDateTime(timeMaximum))) {
                 freeRanges.add(startPoint)
                 startPoint = startPoint.plusHours(1)
             }
         }
         logger.debug("Free ranges on $date is $freeRanges")
-
         return freeRanges
-
     }
 
     override fun listResource(
