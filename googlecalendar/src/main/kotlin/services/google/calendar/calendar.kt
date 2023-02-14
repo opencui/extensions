@@ -475,6 +475,7 @@ data class ReservationProvider(
             var startPoint = it.first
             while (startPoint.isBefore(it.second) && startPoint.isBefore(convertFromDateTime(timeMaximum))) {
                 freeRanges.add(startPoint)
+                // TODO: we should never hardcode anything. 
                 startPoint = startPoint.plusHours(1)
             }
         }
