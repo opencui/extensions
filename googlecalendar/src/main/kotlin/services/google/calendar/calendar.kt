@@ -474,17 +474,9 @@ data class ReservationProvider(
         if (convertFromDateTime(currentStart).isBefore(convertFromDateTime(timeMaximum))) {
             localTimesPair.add(Pair(convertFromDateTime(currentStart), convertFromDateTime(timeMaximum)))
         }
-
-        localTimesPair.forEach {
-            var startPoint = it.first
-            while (startPoint.isBefore(it.second) && startPoint.isBefore(convertFromDateTime(timeMaximum))) {
-                logger.debug("The start point is: $startPoint")
-                freeRanges.add(startPoint)
-                // TODO: we should never hardcode anything. 
-                startPoint = startPoint.plusHours(1)
-            }
+        localTimesPair.forEach{
+            freeRanges.add(it.first)
         }
-        logger.debug("Free ranges on $date is $freeRanges")
         return freeRanges
     }
 
