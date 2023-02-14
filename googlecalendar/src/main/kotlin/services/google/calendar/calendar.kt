@@ -254,11 +254,14 @@ data class ReservationProvider(
             }
 
         }
+        logger.debug("Resource after filter of date is $resources")
         if (time != null) {
             resources = resources.filter {
                 checkSlotAvailability(date!!, time, it.resourceEmail)
             }
         }
+        logger.debug("Resource after filter of date and time is $resources")
+
         return if (!resources.isNullOrEmpty()) {
             ValidationResult(session).apply {
                 success = true
@@ -455,6 +458,7 @@ data class ReservationProvider(
                 id = calendarId
             })
         }
+        logger.debug("Free busy request for $calendarId is $freeBusyRequest")
 
         var localTimesPair = mutableListOf<Pair<LocalTime, LocalTime>>()
 
@@ -474,6 +478,7 @@ data class ReservationProvider(
         localTimesPair.forEach {
             var startPoint = it.first
             while (startPoint.isBefore(it.second) && startPoint.isBefore(convertFromDateTime(timeMaximum))) {
+                logger.debug("The start point is: $startPoint")
                 freeRanges.add(startPoint)
                 // TODO: we should never hardcode anything. 
                 startPoint = startPoint.plusHours(1)
