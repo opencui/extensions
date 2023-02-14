@@ -254,11 +254,14 @@ data class ReservationProvider(
             }
 
         }
+        logger.debug("The resource after filter by date is $resources")
         if (time != null) {
             resources = resources.filter {
                 checkSlotAvailability(date!!, time, it.resourceEmail)
             }
         }
+        logger.debug("The resource after filter by time is $resources")
+
         return if (!resources.isNullOrEmpty()) {
             ValidationResult(session).apply {
                 success = true
@@ -432,7 +435,6 @@ data class ReservationProvider(
 
 
     private fun makeFreeBusyRequest(date: LocalDate, calendarId: String): MutableList<LocalTime> {
-        val calendar = client
         val rtimeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
         timeZone = rtimeZone
         val freeRanges = mutableListOf<LocalTime>()
@@ -477,11 +479,11 @@ data class ReservationProvider(
         localTimesPair.forEach {
             var startPoint = it.first
             while (startPoint < it.second) {
+                logger.debug("The startPoint here is $startPoint.")
                 freeRanges.add(startPoint)
                 startPoint = startPoint.plusHours(1)
             }
         }
-        logger.debug("Free ranges on $date is $freeRanges")
 
         return freeRanges
 
