@@ -75,12 +75,12 @@ class WhatsappResources() {
 				?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
         // TODO(sean): remove this to prevent leak.
         logger.info("info = $info for ::$channelId:$token:$challenge:$mode")
-        return if (mode =="subscribe" && token != info[VERIFYTOKEN]) {
-            logger.info("token mismatch...")
-            ResponseEntity("Wrong Verify Token", HttpStatus.BAD_REQUEST)
-        } else {
-            ResponseEntity.ok(challenge)
-        }
+        return if (mode != "subscribe" || token != info[VERIFYTOKEN]) {
+	    logger.info("token mismatch...")
+	    ResponseEntity("Wrong Verify Token", HttpStatus.BAD_REQUEST)
+	} else {
+	    ResponseEntity.ok(challenge)
+	}
 	}
 
 	/*
