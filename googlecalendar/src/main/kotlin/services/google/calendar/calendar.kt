@@ -31,6 +31,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 
 
+
 class CachedMethod<A, B, out R>(
     val f: (A, B) -> List<R>,
     val values: MutableMap<Pair<A, B>, Pair<List<@UnsafeVariance R>, LocalDateTime>>) : (A, B) -> List<R> {
@@ -370,7 +371,7 @@ data class ReservationProvider(
             for (resource in resources) {
                 val location = Location(session)
                 location.id = resource.buildingId
-                location.name =ResourceName(resource.buildingName)
+                location.name = ResourceName(resource.buildingName).toString()
                 location.type = ResourceType(resource.description)
                 locations.add(location)
             }

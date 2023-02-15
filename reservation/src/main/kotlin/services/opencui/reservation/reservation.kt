@@ -205,6 +205,20 @@ public data class Location(
     public inline fun <reified S : IFrame> from(s: S): Location = Json.mappingConvert(s)
   }
 }
+public data class ResourceName(
+  @get:JsonIgnore
+  public override var value: String
+) : IEntity {
+  public override var origValue: String? = null
+
+  @JsonValue
+  public override fun toString(): String = value
+  public companion object {
+    @JsonIgnore
+    public val valueGood: ((String) -> Boolean)? = { true }
+
+  }
+}
 
 public data class ValidationResult(
   @JsonInclude(NON_NULL)
