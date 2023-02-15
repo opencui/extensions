@@ -371,7 +371,7 @@ data class ReservationProvider(
             for (resource in resources) {
                 val location = Location(session)
                 location.id = resource.buildingId
-                location.name = ResourceName(resource.buildingName).toString()
+                location.name = ResourceName(resource.buildingName)
                 location.type = ResourceType(resource.description)
                 locations.add(location)
             }

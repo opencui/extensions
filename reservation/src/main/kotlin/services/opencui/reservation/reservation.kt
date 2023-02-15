@@ -6,12 +6,16 @@ import com.fasterxml.jackson.`annotation`.JsonInclude.Include.NON_NULL
 import com.fasterxml.jackson.`annotation`.JsonProperty
 import com.fasterxml.jackson.`annotation`.JsonTypeInfo
 import com.fasterxml.jackson.`annotation`.JsonValue
+import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.databind.node.TextNode
+import io.opencui.channel.IChannel
 import io.opencui.core.AEntityFiller
 import io.opencui.core.AlwaysAsk
 import io.opencui.core.Annotation
 import io.opencui.core.EntityFiller
 import io.opencui.core.FillBuilder
 import io.opencui.core.FrameFiller
+import io.opencui.core.IChatbot
 import io.opencui.core.IEntity
 import io.opencui.core.IFrame
 import io.opencui.core.IService
@@ -51,9 +55,27 @@ public data class ResourceType(
 
   @JsonValue
   public override fun toString(): String = value
+
   public companion object {
     @JsonIgnore
     public val valueGood: ((String) -> Boolean)? = { true }
+
+  }
+}
+
+public data class ResourceName(
+  @get:JsonIgnore
+  public override var value: String
+) : IEntity {
+  public override var origValue: String? = null
+
+  @JsonValue
+  public override fun toString(): String = value
+
+  public companion object {
+    @JsonIgnore
+    public val valueGood: ((String) -> Boolean)? = { true }
+
   }
 }
 
@@ -63,7 +85,7 @@ public interface Resource : IFrame {
 
   public var type: ResourceType?
 
-  public var name: String?
+  public var name: ResourceName?
 }
 
 public data class Reservation(
@@ -169,14 +191,16 @@ public data class Location(
   public override var type: ResourceType? = null
 
   @JsonProperty
-  public override var name: String? = null
+  public override var name: ResourceName? = null
 
   public override fun annotations(path: String): List<Annotation> = when (path) {
     "id" -> listOf(NeverAsk())
     "type" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("type",
       "services.opencui.reservation.ResourceType", listOf(this), templateOf("restful" to
               Prompts()))}), AlwaysAsk())
-    "name" -> listOf(NeverAsk())
+    "name" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("name",
+      "services.opencui.reservation.ResourceName", listOf(this), templateOf("restful" to
+              Prompts()))}), AlwaysAsk())
     else -> listOf()
   }
 
@@ -192,8 +216,10 @@ public data class Location(
         type?.origValue = s}) {s, t -> Json.decodeFromString(s, session!!.findKClass(t ?:
       "services.opencui.reservation.ResourceType")!!) as?
               services.opencui.reservation.ResourceType})
-      filler.addWithPath(EntityFiller({filler.target.get()!!::name}, null) {s, t ->
-        Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::name}, {s: String? ->
+        name?.origValue = s}) {s, t -> Json.decodeFromString(s, session!!.findKClass(t ?:
+      "services.opencui.reservation.ResourceName")!!) as?
+              services.opencui.reservation.ResourceName})
       return filler
     }
   }
@@ -203,20 +229,6 @@ public data class Location(
             String>>()
 
     public inline fun <reified S : IFrame> from(s: S): Location = Json.mappingConvert(s)
-  }
-}
-public data class ResourceName(
-  @get:JsonIgnore
-  public override var value: String
-) : IEntity {
-  public override var origValue: String? = null
-
-  @JsonValue
-  public override fun toString(): String = value
-  public companion object {
-    @JsonIgnore
-    public val valueGood: ((String) -> Boolean)? = { true }
-
   }
 }
 
