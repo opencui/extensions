@@ -64,9 +64,9 @@ data class ReservationProvider(
     val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
 
-    val client = buildClient()
-    val admin = buildAdmin()
-    var timeZone = getCalendarSettings()
+    private val client = buildClient()
+    private val admin = buildAdmin()
+    private var timeZone = ""
 
 
     override fun cloneForSession(userSession: UserSession): IExtension {
@@ -88,20 +88,26 @@ data class ReservationProvider(
         return Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Calendar API").build()
     }
 
-
     override fun makeReservation(
-        userId: String, resourceType: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<SlotValue>?
+        userId: String,
+        location: Location,
+        resourceType: ResourceType,
+        date: LocalDate?,
+        time: LocalTime?,
+        filter: List<SlotValue>?
     ): Reservation? {
+        timeZone = getTimeZone(location)
+
         val reservation = Reservation(session)
         val listOfResources = mutableListOf<CalendarResource>()
         if (filter == null) {
-            val resources = getResourcesWhenFilterIsNull(resourceType)
+            val resources = getResourcesWhenFilterIsNull(location,resourceType)
             if (resources.isNullOrEmpty()) {
                 return null
             } else {
                 resources.forEach {
 
-                    val event = checkSlotAvailability(date!!, time!!, it.resourceEmail)
+                    val event = checkSlotAvailability(location,date!!, time!!, it.resourceEmail)
                     if (event) {
                         listOfResources.add(it)
                     }
@@ -110,25 +116,17 @@ data class ReservationProvider(
                     val calendar = client
                     val event = Event()
                     val resource = listOfResources[0]
-                    val settings = getTimeZone(listOfResources[0].buildingId)
-                    timeZone = settings?.get("timezone") as String
-                    val duration = settings["defaultDuration"].toString().toLong()
                     event.summary = "Reservation for $userId"
                     event.description = "Reservation booked for ${resource.resourceName}"
                     val startTime = localDateTimeToDateTime(date!!, time!!)
-                    val endTime = localDateTimeToDateTime(date, time.plusSeconds(duration))
+                    val endTime = localDateTimeToDateTime(date, time.plusSeconds(getDuration(location)))
                     event.start = EventDateTime().setDateTime(startTime)
-
                     event.end = EventDateTime().setDateTime(endTime)
                     println("The start $startTime, endTime $endTime")
-
-                    event.attendees = listOf(
-                        EventAttendee().setResource(true).setEmail(resource.resourceEmail)
-                            .setDisplayName(resource.resourceId)
-                    )
+                    event.attendees = listOf(EventAttendee().setResource(true).setEmail(resource.resourceEmail).setDisplayName(resource.resourceId))
                     val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
                     reservation.id = createdEvent?.id
-                    reservation.duration =  duration.toString().toInt()
+                    reservation.duration =  getDuration(location).toInt()
                     reservation.endDate = date
                     reservation.endTime = time
                     reservation.userId = userId
@@ -140,9 +138,9 @@ data class ReservationProvider(
                 }
             }
         } else {
-            val resources = getResourcesWhenFilterIsNotNull(resourceType, filter)
+            val resources = getResourcesWhenFilterIsNotNull(location, resourceType, filter)
             resources?.forEach {
-                val event = checkSlotAvailability(date!!, time!!, it.resourceEmail)
+                val event = checkSlotAvailability(location,date!!, time!!, it.resourceEmail)
                 if (event) {
                     listOfResources.add(it)
                 }
@@ -151,25 +149,17 @@ data class ReservationProvider(
                 val calendar = client
                 val event = Event()
                 val resource = listOfResources[0]
-                val settings = getTimeZone(listOfResources[0].buildingId)
-                timeZone = settings?.get("timezone") as String
-                val duration = settings["defaultDuration"].toString().toLong()
+
                 event.summary = "Reservation for $userId"
                 event.description = "Reservation booked for ${resource.resourceName}"
                 val startTime = localDateTimeToDateTime(date!!, time!!)
-                val endTime = localDateTimeToDateTime(date, time.plusSeconds(duration))
-                event.start =
-                    EventDateTime().setDateTime(startTime)
-                event.end = EventDateTime().setDateTime(
-                    endTime
-                )
-                event.attendees = listOf(
-                    EventAttendee().setResource(true).setEmail(resource.resourceEmail)
-                        .setDisplayName(resource.resourceId)
-                )
+                val endTime = localDateTimeToDateTime(date, time.plusSeconds(getDuration(location)))
+                event.start = EventDateTime().setDateTime(startTime)
+                event.end = EventDateTime().setDateTime(endTime)
+                event.attendees = listOf(EventAttendee().setResource(true).setEmail(resource.resourceEmail).setDisplayName(resource.resourceId))
                 val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
                 reservation.id = createdEvent?.id
-                reservation.duration = duration.toString().toInt()
+                reservation.duration = getDuration(location).toInt()
                 reservation.endDate = date
                 reservation.endTime = time
                 reservation.userId = userId
@@ -184,7 +174,8 @@ data class ReservationProvider(
 
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
-    override fun listReservation(userId: String, resourceType: ResourceType): List<Reservation> {
+    override fun listReservation(userId: String, location: Location, resourceType: ResourceType): List<Reservation> {
+        timeZone = getTimeZone(location)
         return cachedListReservation(userId, resourceType)
     }
 
@@ -197,7 +188,6 @@ data class ReservationProvider(
         val reservations = mutableListOf<Reservation>()
 
         val events = client?.events()?.list(calendarId)?.setTimeMin(now)?.setQ(userId)?.execute()?.items
-        timeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
         if (events != null) {
             for (event in events) {
                 if (event?.summary?.contains(userId) == true) {
@@ -225,7 +215,8 @@ data class ReservationProvider(
         return reservations
     }
 
-    override fun cancelReservation(id: String): ValidationResult {
+    override fun cancelReservation(location: Location, id: String): ValidationResult {
+        timeZone = getTimeZone(location)
         client?.events()?.delete(
             calendarId, id
         )?.execute()
@@ -236,28 +227,33 @@ data class ReservationProvider(
     }
 
     override fun resourceAvailable(
-        type: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<SlotValue>?
+        location: Location,
+        type: ResourceType,
+        date: LocalDate?,
+        time: LocalTime?,
+        filter: List<SlotValue>?
     ): ValidationResult {
+        timeZone = getTimeZone(location)
         val now = LocalDateTime.now()
         val dateTime = if (time != null) date?.atTime(time) else null
         if (dateTime?.isBefore(now) == true) {
             return ValidationResult(session).apply { success = false; message = NotAvailable }
         }
         var resources =
-            if (filter == null) getResourcesWhenFilterIsNull(type) else getResourcesWhenFilterIsNotNull(type, filter)
+            if (filter == null) getResourcesWhenFilterIsNull(location,type) else getResourcesWhenFilterIsNotNull(location,type, filter)
         if (resources.isNullOrEmpty()) {
             return ValidationResult(session).apply { success = false;message = NotAvailable }
         }
         if (date != null) {
             resources = resources.filter {
-                !makeFreeBusyRequest(date, it.resourceEmail).isNullOrEmpty()
+                !makeFreeBusyRequest(location,date, it.resourceEmail).isNullOrEmpty()
             }
 
         }
         logger.debug("Resource after filter of date is $resources")
         if (time != null) {
             resources = resources.filter {
-                checkSlotAvailability(date!!, time, it.resourceEmail)
+                checkSlotAvailability(location,date!!, time, it.resourceEmail)
             }
         }
         logger.debug("Resource after filter of date and time is $resources")
@@ -277,8 +273,13 @@ data class ReservationProvider(
     }
 
     override fun reservationUpdatable(
-        reservationId: String, date: LocalDate, time: LocalTime, features: List<SlotValue>?
+        location: Location,
+        reservationId: String,
+        date: LocalDate,
+        time: LocalTime,
+        features: List<SlotValue>?
     ): ValidationResult {
+        timeZone = getTimeZone(location)
         val validationResult = ValidationResult()
         val event = client?.events()?.get(calendarId, reservationId)?.execute()
 
@@ -291,7 +292,7 @@ data class ReservationProvider(
             validationResult.apply { success = false; message = "Reservation not updatable" }
         } else {
             validationResult.apply {
-                success = checkSlotAvailability(date, time, calendarId)
+                success = checkSlotAvailability(location,date, time, calendarId)
                 message = if (success as Boolean) "Reservation can be updated" else "Reservation cannot be updated"
             }
         }
@@ -299,8 +300,13 @@ data class ReservationProvider(
 
 
     override fun updateReservation(
-        reservationId: String, date: LocalDate?, time: LocalTime?, features: List<SlotValue>
+        location: Location,
+        reservationId: String,
+        date: LocalDate?,
+        time: LocalTime?,
+        features: List<SlotValue>
     ): ValidationResult {
+        timeZone = getTimeZone(location)
         val validationResult = ValidationResult()
 
         val listResources = mutableListOf<CalendarResource>()
@@ -340,7 +346,8 @@ data class ReservationProvider(
         return validationResult
     }
 
-    override fun reservationCancelable(id: String): ValidationResult {
+    override fun reservationCancelable(location: Location, id: String): ValidationResult {
+        timeZone =getTimeZone(location)
         val now = Instant.now()
         val event = client?.Events()?.get(calendarId, id)?.execute()
         if (now.isAfter(Instant.parse(event?.start?.dateTime.toString()))) {
@@ -363,7 +370,7 @@ data class ReservationProvider(
             for (resource in resources) {
                 val location = Location(session)
                 location.id = resource.buildingId
-                location.name = resource.buildingName
+                location.name =ResourceName(resource.buildingName)
                 location.type = ResourceType(resource.description)
                 locations.add(location)
             }
@@ -371,41 +378,35 @@ data class ReservationProvider(
         return locations
     }
 
-    override fun pickLocation(location: Location): Boolean {
-        val resource = admin?.resources()?.buildings()?.get(customerName, location.toString())?.execute()
-        val location = Location(session)
-        location.id = resource?.buildingId
-        location.name = resource?.buildingName
-        location.type = resource?.description?.let { ResourceType(it) }
-        return true
-    }
-
     override fun availableDates(
+        location: Location,
         resourceType: ResourceType,
         time: LocalTime?,
         filter: List<SlotValue>?
     ): List<LocalDate> {
+        timeZone=getTimeZone(location)
         val availableDates = mutableListOf<LocalDate>()
         val now = LocalDate.now()
         val resources =
-            if (filter == null) getResourcesWhenFilterIsNull(resourceType) else getResourcesWhenFilterIsNotNull(
+            if (filter == null) getResourcesWhenFilterIsNull(location,resourceType) else getResourcesWhenFilterIsNotNull(
+               location,
                 resourceType,
                 filter
             )
         val range = 0..5
 
         resources?.forEach {
-            timeZone = getTimeZone(it.buildingId)?.get("timezone") as String
+
             if (time == null) {
                 range.forEach { i ->
-                    val events = availableTimes(resourceType, now.plusDays(i.toLong()), filter)
+                    val events = availableTimes(location,resourceType, now.plusDays(i.toLong()), filter)
                     if (events.isNotEmpty() && !availableDates.contains(now.plusDays(i.toLong()))) {
                         availableDates.add(now.plusDays(i.toLong()))
                     }
                 }
             } else {
                 range.forEach { i ->
-                    val event = checkSlotAvailability(now, time, calendarId)
+                    val event = checkSlotAvailability(location,now, time, calendarId)
                     if (event) availableDates.add(now.plusDays(i.toLong()))
                 }
             }
@@ -416,26 +417,28 @@ data class ReservationProvider(
 
 
     override fun availableTimes(
+        location: Location,
         resourceType: ResourceType,
         date: LocalDate?,
         filter: List<SlotValue>?
     ): List<LocalTime> {
+        timeZone = getTimeZone(location)
         val resources = when {
-            filter == null -> getResourcesWhenFilterIsNull(resourceType)
-            else -> getResourcesWhenFilterIsNotNull(resourceType, filter)
+            filter == null -> getResourcesWhenFilterIsNull(location,resourceType)
+            else -> getResourcesWhenFilterIsNotNull(location,resourceType, filter)
         }
 
         if (resources.isNullOrEmpty()) return emptyList()
 
         return resources
-            .flatMap { makeFreeBusyRequest(date ?: LocalDate.now(), it.resourceEmail) }
+            .flatMap { makeFreeBusyRequest(location,date ?: LocalDate.now(), it.resourceEmail) }
             .distinct()
             .sorted()
     }
 
 
-    private fun makeFreeBusyRequest(date: LocalDate, calendarId: String): MutableList<LocalTime> {
-        timeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
+    private fun makeFreeBusyRequest(location:Location,date: LocalDate, calendarId: String): MutableList<LocalTime> {
+        timeZone = getTimeZone(location)
         val freeRanges = mutableListOf<LocalTime>()
 
         var timeMinimum = localDateTimeToDateTime(date, LocalTime.of(0, 0))
@@ -481,13 +484,15 @@ data class ReservationProvider(
     }
 
     override fun listResource(
+        location: Location,
         type: ResourceType,
         date: LocalDate?,
         time: LocalTime?,
         filter: List<SlotValue>?
     ): List<Resource> {
+        timeZone = getTimeZone(location)
         var calendarResources =
-            if (filter == null) getResourcesWhenFilterIsNull(type) else getResourcesWhenFilterIsNotNull(type, filter)
+            if (filter == null) getResourcesWhenFilterIsNull(location,type) else getResourcesWhenFilterIsNotNull(location, type, filter)
 
         val resources = mutableListOf<Resource>()
         if (calendarResources.isNullOrEmpty()) {
@@ -495,12 +500,12 @@ data class ReservationProvider(
         }
         if (date != null) {
             calendarResources = calendarResources.filter {
-                !makeFreeBusyRequest(date, it.resourceEmail).isNullOrEmpty()
+                !makeFreeBusyRequest(location,date, it.resourceEmail).isNullOrEmpty()
             }
         }
         if (time != null) {
             calendarResources = calendarResources.filter {
-                checkSlotAvailability(date!!, time, it.resourceEmail)
+                checkSlotAvailability(location,date!!, time, it.resourceEmail)
             }
 
         }
@@ -527,7 +532,7 @@ data class ReservationProvider(
         return resource
     }
 
-    private fun getResourcesWhenFilterIsNull(resourceType: ResourceType): List<CalendarResource>? {
+    private fun getResourcesWhenFilterIsNull(location: Location, resourceType: ResourceType): List<CalendarResource>? {
         val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items?.filter {
             it.resourceType == resourceType.value
         }
@@ -535,10 +540,10 @@ data class ReservationProvider(
     }
 
     private fun getResourcesWhenFilterIsNotNull(
-        resourceType: ResourceType, filter: List<SlotValue>
+       location: Location, resourceType: ResourceType, filter: List<SlotValue>
     ): List<CalendarResource>? {
         val cals = mutableListOf<CalendarResource>()
-        val resources = getResourcesWhenFilterIsNull(resourceType)
+        val resources = getResourcesWhenFilterIsNull(location,resourceType)
 
         filter.map { criterion ->
             resources?.forEach {
@@ -555,7 +560,6 @@ data class ReservationProvider(
 
     private fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
         val zoneId = ZoneId.of(timeZone)
-        logger.debug("Timezone is $timeZone")
         val dateTime = ZonedDateTime.of(date, time, zoneId)
         val offset = zoneId.rules.getOffset(Instant.now()).totalSeconds
         logger.debug("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
@@ -569,28 +573,21 @@ data class ReservationProvider(
         return localDateTime.toLocalTime()
     }
 
-    private fun checkSlotAvailability(date: LocalDate, time: LocalTime, calendarId: String): Boolean {
+    private fun checkSlotAvailability(location:Location, date: LocalDate, time: LocalTime, calendarId: String): Boolean {
         val client = buildClient()
-        timeZone = client?.calendars()?.get(calendarId)?.execute()?.timeZone
         val timeMin = localDateTimeToDateTime(date, time)
-        val timeMax = localDateTimeToDateTime(date, time.plusHours(1)!!)
+        val timeMax = localDateTimeToDateTime(date, time.plusSeconds(getDuration(location))!!)
         val events = client?.events()?.list(calendarId)?.setTimeMin(timeMin)?.setTimeMax(timeMax)?.execute()?.items
         return events.isNullOrEmpty()
 
     }
 
-    private fun getCalendarSettings(): String? {
-        val calendar = client
-        val settings = calendar?.calendars()?.get(calendarId)?.execute()
-        return settings?.timeZone
+    private fun getTimeZone(location: Location): String {
+        return ObjectMapper().readValue(location.type?.value, Map::class.java)["timezone"] as String
     }
-
-    private fun getTimeZone(buildingId: String): Map<*, *>? {
-        val admin = admin
-        val tz = admin?.Resources()?.buildings()?.get(customerName, buildingId)?.execute()
-        val mapper = ObjectMapper()
-        val tzMap = mapper.readValue(tz?.description, Map::class.java)
-        return tzMap
+    private fun getDuration(location: Location): Long {
+        val map = ObjectMapper().readValue(location.type?.value, Map::class.java)["defaultDuration"] as Map<*, *>
+        return map["table"].toString().toLong()
     }
 
     companion object : ExtensionBuilder<IReservation> {
