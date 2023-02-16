@@ -204,7 +204,6 @@ data class ReservationProvider(
 
         }
 
-//        val events =  client?.events()?.list(calendarId)?.setTimeMin(now)?.setQ(userId)?.execute()?.items
         for (event in events) {
             if (event?.summary?.contains(userId) == true) {
                 val reservation = Reservation(session).apply {
