@@ -587,7 +587,7 @@ data class ReservationProvider(
         val map = ObjectMapper().readValue(
             location.defaultDurations.toString(),
             Map::class.java
-        )["defaultDuration"] as Map<*, *>
+        )["defaultDurations"] as Map<*, *>
         return map[type.value].toString().toLong()
     }
 
