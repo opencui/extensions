@@ -381,7 +381,7 @@ data class ReservationProvider(
                 location.type = ResourceType(resource.description)
                 location.timezone =
                     ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
-                location.defaultDurations = resource.description
+                location.defaultDurations = ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"]
                 locations.add(location)
             }
         }
@@ -584,10 +584,7 @@ data class ReservationProvider(
 
 
     private fun getDuration(location: Location, type: ResourceType): Long {
-        val map = ObjectMapper().readValue(
-            location.defaultDurations.toString(),
-            Map::class.java
-        )["defaultDurations"] as Map<*, *>
+        val map = location.defaultDurations as Map<*, *>
         return map[type.value].toString().toLong()
     }
 
