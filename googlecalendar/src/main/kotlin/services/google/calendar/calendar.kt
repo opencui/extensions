@@ -41,7 +41,7 @@ class CachedMethod<A, B, out R>(
         val cache = values[input]
         Dispatcher.logger.debug("Enter cached function... for $a and $b")
         if (cache == null || Duration.between(cache!!.second, LocalDateTime.now()).seconds > seconds) {
-            Dispatcher.logger.debug("for some reason we need to refresh: ${cache} and ${LocalDateTime.now()}")
+            Dispatcher.logger.debug("for some reason we need to refresh: $cache and ${LocalDateTime.now()}")
             values.put(input, Pair(f(a, b), LocalDateTime.now()))
         }
         return values[input]!!.first
@@ -129,7 +129,7 @@ data class ReservationProvider(
                         EventAttendee().setResource(true).setEmail(resource.resourceEmail)
                             .setDisplayName(resource.resourceId)
                     )
-                    val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
+                    val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute()
                     reservation.id = createdEvent?.id
                     reservation.duration = getDuration(location, resourceType).toInt()
                     reservation.endDate = date
@@ -165,7 +165,7 @@ data class ReservationProvider(
                     EventAttendee().setResource(true).setEmail(resource.resourceEmail)
                         .setDisplayName(resource.resourceId)
                 )
-                val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
+                val createdEvent = calendar?.events()?.insert(listOfResources[0].resourceEmail, event)?.execute()
                 reservation.id = createdEvent?.id
                 reservation.duration = getDuration(location, resourceType).toInt()
                 reservation.endDate = date
@@ -195,8 +195,8 @@ data class ReservationProvider(
         logger.debug("Entering list Reservation")
         val now = localDateTimeToDateTime(LocalDate.now(), LocalTime.now())
         val reservations = mutableListOf<Reservation>()
-
-        val events = client?.events()?.list(calendarId)?.setTimeMin(now)?.setQ(userId)?.execute()?.items
+        val admin = admin
+        val events =  client?.events()?.list(calendarId)?.setTimeMin(now)?.setQ(userId)?.execute()?.items
         if (events != null) {
             for (event in events) {
                 if (event?.summary?.contains(userId) == true) {
@@ -223,7 +223,7 @@ data class ReservationProvider(
 
     override fun cancelReservation(location: Location, reservation: Reservation): ValidationResult {
         timeZone = location.timezone!!.id
-        client?.events()?.delete(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
+        client?.events()?.delete(calendarId, reservation.id)?.execute()
         return ValidationResult().apply { success = true;message = "reservation canceled" }
     }
 
@@ -283,11 +283,12 @@ data class ReservationProvider(
         time: LocalTime,
         features: List<SlotValue>?
     ): ValidationResult {
-
+        val resourceEmail = getResource(reservation)!!.resourceEmail
+        val type = ResourceType(getResource(reservation)!!.resourceType)
         timeZone = location.timezone!!.id
         val validationResult = ValidationResult()
 
-        val event = client?.events()?.get(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
+        val event = client?.events()?.get(calendarId, reservation.id)?.execute()
 
         return if (event.isNullOrEmpty()) {
             validationResult.apply {
@@ -298,11 +299,7 @@ data class ReservationProvider(
             validationResult.apply { success = false; message = "Reservation not updatable" }
         } else {
             validationResult.apply {
-                success = getResource(reservation)?.resourceType?.let { ResourceType(it) }?.let {
-                    checkSlotAvailability(location, date, time, calendarId,
-                        it
-                    )
-                }
+                success = checkSlotAvailability(location,date,time,resourceEmail,type)
                 message = if (success as Boolean) "Reservation can be updated" else "Reservation cannot be updated"
             }
         }
@@ -322,7 +319,7 @@ data class ReservationProvider(
         val listResources = mutableListOf<CalendarResource>()
 
         val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items
-        val event = client?.Events()?.get(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
+        val event = client?.Events()?.get(calendarId, reservation.id)?.execute()
         if (event.isNullOrEmpty()) {
             validationResult.message = "cannot update"
             validationResult.success = false
@@ -332,7 +329,7 @@ data class ReservationProvider(
             validationResult.success = false
         } else {
             resources.forEach {
-                val events = client?.events()?.list(calendarId)?.setTimeMax(event?.start?.dateTime)
+                val events = client?.events()?.list(it.resourceEmail)?.setTimeMax(event?.start?.dateTime)
                     ?.setTimeMin(event?.end?.dateTime)?.execute()?.items
                 if (events.isNullOrEmpty()) {
                     listResources.add(it)
@@ -359,7 +356,7 @@ data class ReservationProvider(
     override fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult {
         timeZone = location.timezone!!.id
         val now = Instant.now()
-        val event = client?.Events()?.get(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
+        val event = client?.Events()?.get(calendarId, reservation.id)?.execute()
         return if (now.isAfter(Instant.parse(event?.start?.dateTime.toString()))) {
             val result = ValidationResult()
             result.success = false
@@ -415,7 +412,7 @@ data class ReservationProvider(
                 }
             } else {
                 range.forEach { i ->
-                    val event = checkSlotAvailability(location, now, time, calendarId, resourceType)
+                    val event = checkSlotAvailability(location, now, time, it.resourceEmail, resourceType)
                     if (event) availableDates.add(now.plusDays(i.toLong()))
                 }
             }
