@@ -129,7 +129,7 @@ data class ReservationProvider(
                         EventAttendee().setResource(true).setEmail(resource.resourceEmail)
                             .setDisplayName(resource.resourceId)
                     )
-                    val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute()
+                    val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
                     reservation.id = createdEvent?.id
                     reservation.duration = getDuration(location, resourceType).toInt()
                     reservation.endDate = date
@@ -165,7 +165,7 @@ data class ReservationProvider(
                     EventAttendee().setResource(true).setEmail(resource.resourceEmail)
                         .setDisplayName(resource.resourceId)
                 )
-                val createdEvent = calendar?.events()?.insert(listOfResources[0].resourceEmail, event)?.execute()
+                val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
                 reservation.id = createdEvent?.id
                 reservation.duration = getDuration(location, resourceType).toInt()
                 reservation.endDate = date
