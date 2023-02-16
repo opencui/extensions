@@ -55,8 +55,6 @@ data class ReservationProvider(
 
     private val delegatedUser = config[DELEGATED_USER] as String
 
-    private val calendarId = config[CALENDAR_ID] as String
-
     private val secrets_json = config[CLIENT_SECRET] as String
 
     private val customerName = config[CUSTOMERNAME] as String? ?: "my_customer"
@@ -129,7 +127,7 @@ data class ReservationProvider(
                         EventAttendee().setResource(true).setEmail(resource.resourceEmail)
                             .setDisplayName(resource.resourceId)
                     )
-                    val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
+                    val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute()
                     reservation.id = createdEvent?.id
                     reservation.duration = getDuration(location, resourceType).toInt()
                     reservation.endDate = date
@@ -165,7 +163,7 @@ data class ReservationProvider(
                     EventAttendee().setResource(true).setEmail(resource.resourceEmail)
                         .setDisplayName(resource.resourceId)
                 )
-                val createdEvent = calendar?.events()?.insert(calendarId, event)?.execute()
+                val createdEvent = calendar?.events()?.insert(listOfResources[0].resourceEmail, event)?.execute()
                 reservation.id = createdEvent?.id
                 reservation.duration = getDuration(location, resourceType).toInt()
                 reservation.endDate = date
@@ -195,26 +193,34 @@ data class ReservationProvider(
         logger.debug("Entering list Reservation")
         val now = localDateTimeToDateTime(LocalDate.now(), LocalTime.now())
         val reservations = mutableListOf<Reservation>()
+        val events = mutableListOf<Event>()
         val admin = admin
-        val events =  client?.events()?.list(calendarId)?.setTimeMin(now)?.setQ(userId)?.execute()?.items
-        if (events != null) {
-            for (event in events) {
-                if (event?.summary?.contains(userId) == true) {
-                    val reservation = Reservation(session).apply {
-                        id = event.id
-                        this.userId = userId
-                        resourceId = event.attendees?.get(0)?.displayName
-                        startDate = Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.of(timeZone))
-                            .toLocalDate()
-                        duration = defaultDuration.toInt()
-                        endDate =
-                            Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalDate()
-                        startTime = convertFromDateTime(event.start.dateTime)
-                        endTime =
-                            Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalTime()
-                    }
-                    reservations.add(reservation)
+        val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items
+        resources?.forEach {
+            val e = client?.events()?.list(it.resourceEmail)?.setTimeMin(now)?.setQ(userId)?.execute()?.items
+            if (e != null) {
+                events.addAll(e)
+            }
+
+        }
+
+//        val events =  client?.events()?.list(calendarId)?.setTimeMin(now)?.setQ(userId)?.execute()?.items
+        for (event in events) {
+            if (event?.summary?.contains(userId) == true) {
+                val reservation = Reservation(session).apply {
+                    id = event.id
+                    this.userId = userId
+                    resourceId = event.attendees?.get(0)?.displayName
+                    startDate = Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.of(timeZone))
+                        .toLocalDate()
+                    duration = defaultDuration.toInt()
+                    endDate =
+                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalDate()
+                    startTime = convertFromDateTime(event.start.dateTime)
+                    endTime =
+                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalTime()
                 }
+                reservations.add(reservation)
             }
         }
         logger.debug("Existing listReservation with ${System.currentTimeMillis() - start}")
@@ -223,7 +229,7 @@ data class ReservationProvider(
 
     override fun cancelReservation(location: Location, reservation: Reservation): ValidationResult {
         timeZone = location.timezone!!.id
-        client?.events()?.delete(calendarId, reservation.id)?.execute()
+        client?.events()?.delete(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
         return ValidationResult().apply { success = true;message = "reservation canceled" }
     }
 
@@ -288,7 +294,7 @@ data class ReservationProvider(
         timeZone = location.timezone!!.id
         val validationResult = ValidationResult()
 
-        val event = client?.events()?.get(calendarId, reservation.id)?.execute()
+        val event = client?.events()?.get(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
 
         return if (event.isNullOrEmpty()) {
             validationResult.apply {
@@ -299,7 +305,7 @@ data class ReservationProvider(
             validationResult.apply { success = false; message = "Reservation not updatable" }
         } else {
             validationResult.apply {
-                success = checkSlotAvailability(location,date,time,resourceEmail,type)
+                success = checkSlotAvailability(location, date, time, resourceEmail, type)
                 message = if (success as Boolean) "Reservation can be updated" else "Reservation cannot be updated"
             }
         }
@@ -319,7 +325,7 @@ data class ReservationProvider(
         val listResources = mutableListOf<CalendarResource>()
 
         val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items
-        val event = client?.Events()?.get(calendarId, reservation.id)?.execute()
+        val event = client?.Events()?.get(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
         if (event.isNullOrEmpty()) {
             validationResult.message = "cannot update"
             validationResult.success = false
@@ -356,7 +362,7 @@ data class ReservationProvider(
     override fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult {
         timeZone = location.timezone!!.id
         val now = Instant.now()
-        val event = client?.Events()?.get(calendarId, reservation.id)?.execute()
+        val event = client?.Events()?.get(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
         return if (now.isAfter(Instant.parse(event?.start?.dateTime.toString()))) {
             val result = ValidationResult()
             result.success = false
@@ -381,7 +387,8 @@ data class ReservationProvider(
                 location.type = ResourceType(resource.description)
                 location.timezone =
                     ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
-                location.defaultDurations = ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"]
+                location.defaultDurations =
+                    ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"]
                 locations.add(location)
             }
         }
