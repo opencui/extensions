@@ -26,6 +26,7 @@ import io.opencui.core.MultiValueFiller
 import io.opencui.core.NeverAsk
 import io.opencui.core.ParamPath
 import io.opencui.core.Prompts
+import io.opencui.core.RoutingInfo
 import io.opencui.core.SlotConditionalPromptAnnotation
 import io.opencui.core.SlotPromptAnnotation
 import io.opencui.core.SlotValue
@@ -38,6 +39,8 @@ import io.opencui.core.templateOf
 import io.opencui.serialization.Json
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
+import kotlin.Any
 import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
@@ -48,7 +51,8 @@ import kotlin.reflect.KMutableProperty0
 
 
 public data class ResourceType(
-    @get:JsonIgnore public override var value: String
+    @get:JsonIgnore
+    public override var value: String
 ) : IEntity {
     public override var origValue: String? = null
 
@@ -63,7 +67,8 @@ public data class ResourceType(
 }
 
 public data class ResourceName(
-    @get:JsonIgnore public override var value: String
+    @get:JsonIgnore
+    public override var value: String
 ) : IEntity {
     public override var origValue: String? = null
 
@@ -87,7 +92,8 @@ public interface Resource : IFrame {
 }
 
 public data class Reservation(
-    @JsonInclude(NON_NULL) public override var session: UserSession? = null
+    @JsonInclude(NON_NULL)
+    public override var session: UserSession? = null
 ) : IFrame {
     @JsonProperty
     public var id: String? = null
@@ -128,38 +134,44 @@ public data class Reservation(
         "userId" -> listOf(NeverAsk())
         "startDate" -> listOf(SlotPromptAnnotation(LazyAction {
             SlotRequest(
-                "startDate", "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts())
+                "startDate",
+                "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts())
             )
         }), AlwaysAsk())
 
         "startTime" -> listOf(SlotPromptAnnotation(LazyAction {
             SlotRequest(
-                "startTime", "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts())
+                "startTime",
+                "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts())
             )
         }), AlwaysAsk())
 
         "duration" -> listOf(SlotPromptAnnotation(LazyAction {
             SlotRequest(
-                "duration", "kotlin.Int", listOf(this), templateOf("restful" to Prompts())
+                "duration", "kotlin.Int",
+                listOf(this), templateOf("restful" to Prompts())
             )
         }), AlwaysAsk())
 
         "endDate" -> listOf(SlotPromptAnnotation(LazyAction {
             SlotRequest(
-                "endDate", "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts())
+                "endDate",
+                "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts())
             )
         }), AlwaysAsk())
 
         "endTime" -> listOf(SlotPromptAnnotation(LazyAction {
             SlotRequest(
-                "endTime", "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts())
+                "endTime",
+                "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts())
             )
         }), AlwaysAsk())
 
         else -> listOf()
     }
 
-    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
+    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+        FillBuilder {
         public var frame: Reservation? = this@Reservation
 
         public override fun invoke(path: ParamPath): FrameFiller<Reservation> {
@@ -174,33 +186,39 @@ public data class Reservation(
                 Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String
             })
             filler.addWithPath(EntityFiller({ filler.target.get()!!::startDate }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as? java.time.LocalDate
+                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as?
+                        java.time.LocalDate
             })
             filler.addWithPath(EntityFiller({ filler.target.get()!!::startTime }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalTime")!!) as? java.time.LocalTime
+                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalTime")!!) as?
+                        java.time.LocalTime
             })
             filler.addWithPath(EntityFiller({ filler.target.get()!!::duration }, null) { s, t ->
                 Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Int")!!) as? kotlin.Int
             })
             filler.addWithPath(EntityFiller({ filler.target.get()!!::endDate }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as? java.time.LocalDate
+                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as?
+                        java.time.LocalDate
             })
             filler.addWithPath(EntityFiller({ filler.target.get()!!::endTime }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalTime")!!) as? java.time.LocalTime
+                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalTime")!!) as?
+                        java.time.LocalTime
             })
             return filler
         }
     }
 
     public companion object {
-        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String, String>>()
+        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
+                String>>()
 
         public inline fun <reified S : IFrame> from(s: S): Reservation = Json.mappingConvert(s)
     }
 }
 
 public data class Location(
-    @JsonInclude(NON_NULL) public override var session: UserSession? = null
+    @JsonInclude(NON_NULL)
+    public override var session: UserSession? = null
 ) : Resource, IFrame {
     @JsonProperty
     public override var id: String? = null
@@ -211,28 +229,41 @@ public data class Location(
     @JsonProperty
     public override var name: ResourceName? = null
 
+    @JsonProperty
+    public var timezone: ZoneId? = null
+
+    @JsonProperty
+    public var defaultDurations: Any? = null
+
     public override fun annotations(path: String): List<Annotation> = when (path) {
         "id" -> listOf(NeverAsk())
         "type" -> listOf(SlotPromptAnnotation(LazyAction {
             SlotRequest(
-                "type", "services.opencui.reservation.ResourceType", listOf(this), templateOf(
-                    "restful" to Prompts()
+                "type",
+                "services.opencui.reservation.ResourceType", listOf(this), templateOf(
+                    "restful" to
+                            Prompts()
                 )
             )
         }), AlwaysAsk())
 
         "name" -> listOf(SlotPromptAnnotation(LazyAction {
             SlotRequest(
-                "name", "services.opencui.reservation.ResourceName", listOf(this), templateOf(
-                    "restful" to Prompts()
+                "name",
+                "services.opencui.reservation.ResourceName", listOf(this), templateOf(
+                    "restful" to
+                            Prompts()
                 )
             )
         }), AlwaysAsk())
 
+        "timezone" -> listOf(NeverAsk())
+        "defaultDurations" -> listOf(NeverAsk())
         else -> listOf()
     }
 
-    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
+    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+        FillBuilder {
         public var frame: Location? = this@Location
 
         public override fun invoke(path: ParamPath): FrameFiller<Location> {
@@ -247,7 +278,8 @@ public data class Location(
                     s, session!!.findKClass(
                         t ?: "services.opencui.reservation.ResourceType"
                     )!!
-                ) as? services.opencui.reservation.ResourceType
+                ) as?
+                        services.opencui.reservation.ResourceType
             })
             filler.addWithPath(EntityFiller({ filler.target.get()!!::name }, { s: String? ->
                 name?.origValue = s
@@ -256,21 +288,31 @@ public data class Location(
                     s, session!!.findKClass(
                         t ?: "services.opencui.reservation.ResourceName"
                     )!!
-                ) as? services.opencui.reservation.ResourceName
+                ) as?
+                        services.opencui.reservation.ResourceName
+            })
+            filler.addWithPath(EntityFiller({ filler.target.get()!!::timezone }, null) { s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.ZoneId")!!) as?
+                        java.time.ZoneId
+            })
+            filler.addWithPath(EntityFiller({ filler.target.get()!!::defaultDurations }, null) { s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Any")!!) as? kotlin.Any
             })
             return filler
         }
     }
 
     public companion object {
-        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String, String>>()
+        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
+                String>>()
 
         public inline fun <reified S : IFrame> from(s: S): Location = Json.mappingConvert(s)
     }
 }
 
 public data class ValidationResult(
-    @JsonInclude(NON_NULL) public override var session: UserSession? = null
+    @JsonInclude(NON_NULL)
+    public override var session: UserSession? = null
 ) : IFrame {
     @JsonProperty
     public var success: Boolean? = null
@@ -282,81 +324,79 @@ public data class ValidationResult(
     public var message: String? = null
 
     public override fun annotations(path: String): List<Annotation> = when (path) {
-        "success" -> listOf(SlotPromptAnnotation(LazyAction {
-            SlotRequest(
-                "success", "kotlin.Boolean", listOf(this), templateOf("restful" to Prompts())
+        "success" -> listOf(NeverAsk())
+        "invalidFeatureKeys" ->
+            listOf(SlotConditionalPromptAnnotation(listOf(LazyAction({
+                if (invalidFeatureKeys.isNullOrEmpty())
+                    LazyAction({
+                        SlotRequestMore(
+                            "invalidFeatureKeys", "kotlin.String", listOf(this),
+                            templateOf("restful" to Prompts())
+                        )
+                    }) else LazyAction({
+                    SlotRequestMore(
+                        "invalidFeatureKeys",
+                        "kotlin.String", listOf(this), templateOf("restful" to Prompts())
+                    )
+                })
+            }))),
+                MinMaxAnnotation(1, {
+                    SlotNotifyFailure(
+                        invalidFeatureKeys, "invalidFeatureKeys",
+                        "kotlin.String", io.opencui.core.da.FailType.MIN, listOf(this), templateOf(
+                            "restful" to
+                                    Prompts()
+                        )
+                    )
+                }, 99, {
+                    SlotNotifyFailure(
+                        invalidFeatureKeys, "invalidFeatureKeys",
+                        "kotlin.String", io.opencui.core.da.FailType.MAX, listOf(this), templateOf(
+                            "restful" to
+                                    Prompts()
+                        )
+                    )
+                }), ValueCheckAnnotation({
+                    MaxValueCheck(session, { invalidFeatureKeys }, 99,
+                        {
+                            SlotNotifyFailure(
+                                invalidFeatureKeys, "invalidFeatureKeys", "kotlin.String",
+                                io.opencui.core.da.FailType.MAX, listOf(this), templateOf("restful" to Prompts())
+                            )
+                        })
+                },
+                    switch = { invalidFeatureKeys != null && invalidFeatureKeys!!.size > 99 }), NeverAsk()
             )
-        }), AlwaysAsk())
 
-        "invalidFeatureKeys" -> listOf(SlotConditionalPromptAnnotation(listOf(LazyAction({
-            if (invalidFeatureKeys.isNullOrEmpty()) LazyAction({
+        "invalidFeatureKeys._item" ->
+            listOf(SlotPromptAnnotation(LazyAction {
                 SlotRequestMore(
-                    "invalidFeatureKeys", "kotlin.String", listOf(this), templateOf("restful" to Prompts())
-                )
-            }) else LazyAction({
-                SlotRequestMore(
-                    "invalidFeatureKeys", "kotlin.String", listOf(this), templateOf("restful" to Prompts())
-                )
-            })
-        }))), MinMaxAnnotation(1, {
-            SlotNotifyFailure(
-                invalidFeatureKeys,
-                "invalidFeatureKeys",
-                "kotlin.String",
-                io.opencui.core.da.FailType.MIN,
-                listOf(this),
-                templateOf(
-                    "restful" to Prompts()
-                )
-            )
-        }, 99, {
-            SlotNotifyFailure(
-                invalidFeatureKeys,
-                "invalidFeatureKeys",
-                "kotlin.String",
-                io.opencui.core.da.FailType.MAX,
-                listOf(this),
-                templateOf(
-                    "restful" to Prompts()
-                )
-            )
-        }), ValueCheckAnnotation({
-            MaxValueCheck(session, { invalidFeatureKeys }, 99, {
-                SlotNotifyFailure(
-                    invalidFeatureKeys,
                     "invalidFeatureKeys",
-                    "kotlin.String",
-                    io.opencui.core.da.FailType.MAX,
-                    listOf(this),
-                    templateOf("restful" to Prompts())
+                    "kotlin.String", listOf(this), templateOf("restful" to Prompts())
                 )
-            })
-        }, switch = { invalidFeatureKeys != null && invalidFeatureKeys!!.size > 99 }), NeverAsk()
-        )
-
-        "invalidFeatureKeys._item" -> listOf(SlotPromptAnnotation(LazyAction {
-            SlotRequestMore(
-                "invalidFeatureKeys", "kotlin.String", listOf(this), templateOf("restful" to Prompts())
-            )
-        }))
+            }))
 
         "message" -> listOf(NeverAsk())
         else -> listOf()
     }
 
-    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object : FillBuilder {
+    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+        FillBuilder {
         public var frame: ValidationResult? = this@ValidationResult
 
         public override fun invoke(path: ParamPath): FrameFiller<ValidationResult> {
             val filler = FrameFiller({ (p as? KMutableProperty0<ValidationResult?>) ?: ::frame }, path)
             filler.addWithPath(EntityFiller({ filler.target.get()!!::success }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Boolean")!!) as? kotlin.Boolean
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Boolean")!!) as?
+                        kotlin.Boolean
             })
             filler.addWithPath(MultiValueFiller({ filler.target.get()!!::invalidFeatureKeys }, fun(
-                p: KMutableProperty0<String?>
+                p:
+                KMutableProperty0<String?>
             ): AEntityFiller {
                 return EntityFiller({ p }, null) { s, t ->
-                    Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String
+                    Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as?
+                            kotlin.String
                 }
             }))
             filler.addWithPath(EntityFiller({ filler.target.get()!!::message }, null) { s, t ->
@@ -367,7 +407,8 @@ public data class ValidationResult(
     }
 
     public companion object {
-        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String, String>>()
+        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
+                String>>()
 
         public inline fun <reified S : IFrame> from(s: S): ValidationResult = Json.mappingConvert(s)
     }
@@ -386,41 +427,61 @@ public interface IReservation : IService {
 
     @JsonIgnore
     public fun listReservation(
-        userId: String, location: Location, resourceType: ResourceType
+        userId: String,
+        location: Location,
+        resourceType: ResourceType
     ): List<Reservation>
 
     @JsonIgnore
-    public fun cancelReservation(location: Location, id: String): ValidationResult
+    public fun cancelReservation(location: Location, reservation: Reservation): ValidationResult
 
     @JsonIgnore
     public fun resourceAvailable(
-        location: Location, type: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<SlotValue>?
+        location: Location,
+        type: ResourceType,
+        date: LocalDate?,
+        time: LocalTime?,
+        filter: List<SlotValue>?
     ): ValidationResult
 
     @JsonIgnore
     public fun reservationUpdatable(
-        location: Location, reservationId: String, date: LocalDate, time: LocalTime, features: List<SlotValue>?
+        location: Location,
+        reservation: Reservation,
+        date: LocalDate,
+        time: LocalTime,
+        features: List<SlotValue>?
     ): ValidationResult
 
     @JsonIgnore
     public fun updateReservation(
-        location: Location, reservationId: String, date: LocalDate?, time: LocalTime?, features: List<SlotValue>
+        location: Location,
+        reservation: Reservation,
+        date: LocalDate?,
+        time: LocalTime?,
+        features: List<SlotValue>
     ): ValidationResult
 
     @JsonIgnore
-    public fun reservationCancelable(location: Location, id: String): ValidationResult
+    public fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult
 
     @JsonIgnore
     public fun listLocation(): List<Location>
 
     @JsonIgnore
     public fun availableDates(
-        location: Location, resourceType: ResourceType, time: LocalTime?, filter: List<SlotValue>?
+        location: Location,
+        resourceType: ResourceType,
+        time: LocalTime?,
+        filter: List<SlotValue>?
     ): List<LocalDate>
 
     @JsonIgnore
     public fun availableTimes(
-        location: Location, resourceType: ResourceType, date: LocalDate?, filter: List<SlotValue>?
+        location: Location,
+        resourceType: ResourceType,
+        date: LocalDate?,
+        filter: List<SlotValue>?
     ): List<LocalTime>
 
     @JsonIgnore
@@ -428,6 +489,10 @@ public interface IReservation : IService {
 
     @JsonIgnore
     public fun listResource(
-        location: Location, type: ResourceType, date: LocalDate?, time: LocalTime?, filter: List<SlotValue>?
+        location: Location,
+        type: ResourceType,
+        date: LocalDate?,
+        time: LocalTime?,
+        filter: List<SlotValue>?
     ): List<Resource>
 }
