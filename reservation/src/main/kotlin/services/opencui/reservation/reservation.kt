@@ -32,11 +32,19 @@ import io.opencui.core.SlotPromptAnnotation
 import io.opencui.core.SlotValue
 import io.opencui.core.UserSession
 import io.opencui.core.ValueCheckAnnotation
+import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.da.SlotNotifyFailure
 import io.opencui.core.da.SlotRequest
 import io.opencui.core.da.SlotRequestMore
 import io.opencui.core.templateOf
+import io.opencui.du.BertStateTracker
+import io.opencui.du.DUMeta
+import io.opencui.du.DUSlotMeta
+import io.opencui.du.EntityType
+import io.opencui.du.LangPack
+import io.opencui.du.StateTracker
 import io.opencui.serialization.Json
+import java.lang.Class
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -47,6 +55,7 @@ import kotlin.String
 import kotlin.collections.List
 import kotlin.collections.Map
 import kotlin.collections.MutableList
+import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
 
 
@@ -58,6 +67,7 @@ public data class ResourceType(
 
     @JsonValue
     public override fun toString(): String = value
+
 
     public companion object {
         @JsonIgnore
@@ -75,9 +85,27 @@ public data class ResourceName(
     @JsonValue
     public override fun toString(): String = value
 
+
     public companion object {
         @JsonIgnore
         public val valueGood: ((String) -> Boolean)? = { true }
+
+    }
+}
+
+public data class LocationName(
+    @get:JsonIgnore
+    public override var value: String
+) : IEntity {
+    public override var origValue: String? = null
+
+    @JsonValue
+    public override fun toString(): String = value
+
+    public companion object {
+        @JsonIgnore
+        public val valueGood: ((String) -> Boolean)? = { true }
+
 
     }
 }
@@ -132,41 +160,16 @@ public data class Reservation(
         "id" -> listOf(NeverAsk())
         "resourceId" -> listOf(NeverAsk())
         "userId" -> listOf(NeverAsk())
-        "startDate" -> listOf(SlotPromptAnnotation(LazyAction {
-            SlotRequest(
-                "startDate",
-                "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts())
-            )
-        }), AlwaysAsk())
-
-        "startTime" -> listOf(SlotPromptAnnotation(LazyAction {
-            SlotRequest(
-                "startTime",
-                "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts())
-            )
-        }), AlwaysAsk())
-
-        "duration" -> listOf(SlotPromptAnnotation(LazyAction {
-            SlotRequest(
-                "duration", "kotlin.Int",
-                listOf(this), templateOf("restful" to Prompts())
-            )
-        }), AlwaysAsk())
-
-        "endDate" -> listOf(SlotPromptAnnotation(LazyAction {
-            SlotRequest(
-                "endDate",
-                "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts())
-            )
-        }), AlwaysAsk())
-
-        "endTime" -> listOf(SlotPromptAnnotation(LazyAction {
-            SlotRequest(
-                "endTime",
-                "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts())
-            )
-        }), AlwaysAsk())
-
+        "startDate" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("startDate",
+            "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
+        "startTime" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("startTime",
+            "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
+        "duration" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("duration", "kotlin.Int",
+            listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
+        "endDate" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("endDate",
+            "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
+        "endTime" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("endTime",
+            "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
         else -> listOf()
     }
 
@@ -175,35 +178,27 @@ public data class Reservation(
         public var frame: Reservation? = this@Reservation
 
         public override fun invoke(path: ParamPath): FrameFiller<Reservation> {
-            val filler = FrameFiller({ (p as? KMutableProperty0<Reservation?>) ?: ::frame }, path)
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::id }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::resourceId }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::userId }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::startDate }, null) { s, t ->
+            val filler = FrameFiller({(p as? KMutableProperty0<Reservation?>) ?: ::frame}, path)
+            filler.addWithPath(EntityFiller({filler.target.get()!!::id}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::resourceId}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::userId}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::startDate}, null) {s, t ->
                 Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as?
-                        java.time.LocalDate
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::startTime }, null) { s, t ->
+                        java.time.LocalDate})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::startTime}, null) {s, t ->
                 Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalTime")!!) as?
-                        java.time.LocalTime
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::duration }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Int")!!) as? kotlin.Int
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::endDate }, null) { s, t ->
+                        java.time.LocalTime})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::duration}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Int")!!) as? kotlin.Int})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::endDate}, null) {s, t ->
                 Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as?
-                        java.time.LocalDate
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::endTime }, null) { s, t ->
+                        java.time.LocalDate})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::endTime}, null) {s, t ->
                 Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalTime")!!) as?
-                        java.time.LocalTime
-            })
+                        java.time.LocalTime})
             return filler
         }
     }
@@ -219,15 +214,12 @@ public data class Reservation(
 public data class Location(
     @JsonInclude(NON_NULL)
     public override var session: UserSession? = null
-) : Resource, IFrame {
+) : IFrame {
     @JsonProperty
-    public override var id: String? = null
+    public var id: String? = null
 
     @JsonProperty
-    public override var type: ResourceType? = null
-
-    @JsonProperty
-    public override var name: ResourceName? = null
+    public var name: LocationName? = null
 
     @JsonProperty
     public var timezone: ZoneId? = null
@@ -237,26 +229,9 @@ public data class Location(
 
     public override fun annotations(path: String): List<Annotation> = when (path) {
         "id" -> listOf(NeverAsk())
-        "type" -> listOf(SlotPromptAnnotation(LazyAction {
-            SlotRequest(
-                "type",
-                "services.opencui.reservation.ResourceType", listOf(this), templateOf(
-                    "restful" to
-                            Prompts()
-                )
-            )
-        }), AlwaysAsk())
-
-        "name" -> listOf(SlotPromptAnnotation(LazyAction {
-            SlotRequest(
-                "name",
-                "services.opencui.reservation.ResourceName", listOf(this), templateOf(
-                    "restful" to
-                            Prompts()
-                )
-            )
-        }), AlwaysAsk())
-
+        "name" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("name",
+            "services.opencui.reservation.LocationName", listOf(this), templateOf("restful" to
+                    Prompts()))}), AlwaysAsk())
         "timezone" -> listOf(NeverAsk())
         "defaultDurations" -> listOf(NeverAsk())
         else -> listOf()
@@ -267,37 +242,18 @@ public data class Location(
         public var frame: Location? = this@Location
 
         public override fun invoke(path: ParamPath): FrameFiller<Location> {
-            val filler = FrameFiller({ (p as? KMutableProperty0<Location?>) ?: ::frame }, path)
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::id }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::type }, { s: String? ->
-                type?.origValue = s
-            }) { s, t ->
-                Json.decodeFromString(
-                    s, session!!.findKClass(
-                        t ?: "services.opencui.reservation.ResourceType"
-                    )!!
-                ) as?
-                        services.opencui.reservation.ResourceType
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::name }, { s: String? ->
-                name?.origValue = s
-            }) { s, t ->
-                Json.decodeFromString(
-                    s, session!!.findKClass(
-                        t ?: "services.opencui.reservation.ResourceName"
-                    )!!
-                ) as?
-                        services.opencui.reservation.ResourceName
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::timezone }, null) { s, t ->
+            val filler = FrameFiller({(p as? KMutableProperty0<Location?>) ?: ::frame}, path)
+            filler.addWithPath(EntityFiller({filler.target.get()!!::id}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::name}, {s: String? ->
+                name?.origValue = s}) {s, t -> Json.decodeFromString(s, session!!.findKClass(t ?:
+            "services.opencui.reservation.LocationName")!!) as?
+                    services.opencui.reservation.LocationName})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::timezone}, null) {s, t ->
                 Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.ZoneId")!!) as?
-                        java.time.ZoneId
-            })
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::defaultDurations }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Any")!!) as? kotlin.Any
-            })
+                        java.time.ZoneId})
+            filler.addWithPath(EntityFiller({filler.target.get()!!::defaultDurations}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Any")!!) as? kotlin.Any})
             return filler
         }
     }
@@ -326,56 +282,21 @@ public data class ValidationResult(
     public override fun annotations(path: String): List<Annotation> = when (path) {
         "success" -> listOf(NeverAsk())
         "invalidFeatureKeys" ->
-            listOf(SlotConditionalPromptAnnotation(listOf(LazyAction({
-                if (invalidFeatureKeys.isNullOrEmpty())
-                    LazyAction({
-                        SlotRequestMore(
-                            "invalidFeatureKeys", "kotlin.String", listOf(this),
-                            templateOf("restful" to Prompts())
-                        )
-                    }) else LazyAction({
-                    SlotRequestMore(
-                        "invalidFeatureKeys",
-                        "kotlin.String", listOf(this), templateOf("restful" to Prompts())
-                    )
-                })
-            }))),
-                MinMaxAnnotation(1, {
-                    SlotNotifyFailure(
-                        invalidFeatureKeys, "invalidFeatureKeys",
-                        "kotlin.String", io.opencui.core.da.FailType.MIN, listOf(this), templateOf(
-                            "restful" to
-                                    Prompts()
-                        )
-                    )
-                }, 99, {
-                    SlotNotifyFailure(
-                        invalidFeatureKeys, "invalidFeatureKeys",
-                        "kotlin.String", io.opencui.core.da.FailType.MAX, listOf(this), templateOf(
-                            "restful" to
-                                    Prompts()
-                        )
-                    )
-                }), ValueCheckAnnotation({
-                    MaxValueCheck(session, { invalidFeatureKeys }, 99,
-                        {
-                            SlotNotifyFailure(
-                                invalidFeatureKeys, "invalidFeatureKeys", "kotlin.String",
-                                io.opencui.core.da.FailType.MAX, listOf(this), templateOf("restful" to Prompts())
-                            )
-                        })
-                },
-                    switch = { invalidFeatureKeys != null && invalidFeatureKeys!!.size > 99 }), NeverAsk()
-            )
-
+            listOf(SlotConditionalPromptAnnotation(listOf(LazyAction({if(invalidFeatureKeys.isNullOrEmpty())
+                LazyAction({SlotRequestMore("invalidFeatureKeys", "kotlin.String", listOf(this),
+                    templateOf("restful" to Prompts()))}) else LazyAction({SlotRequestMore("invalidFeatureKeys",
+                "kotlin.String", listOf(this), templateOf("restful" to Prompts()))})}))),
+                MinMaxAnnotation(1, {SlotNotifyFailure(invalidFeatureKeys, "invalidFeatureKeys",
+                    "kotlin.String", io.opencui.core.da.FailType.MIN, listOf(this), templateOf("restful" to
+                            Prompts()))}, 99, {SlotNotifyFailure(invalidFeatureKeys, "invalidFeatureKeys",
+                    "kotlin.String", io.opencui.core.da.FailType.MAX, listOf(this), templateOf("restful" to
+                            Prompts()))}), ValueCheckAnnotation({MaxValueCheck(session, {invalidFeatureKeys}, 99,
+                    {SlotNotifyFailure(invalidFeatureKeys, "invalidFeatureKeys", "kotlin.String",
+                        io.opencui.core.da.FailType.MAX, listOf(this), templateOf("restful" to Prompts()))})},
+                    switch = {invalidFeatureKeys != null && invalidFeatureKeys!!.size > 99}), NeverAsk())
         "invalidFeatureKeys._item" ->
-            listOf(SlotPromptAnnotation(LazyAction {
-                SlotRequestMore(
-                    "invalidFeatureKeys",
-                    "kotlin.String", listOf(this), templateOf("restful" to Prompts())
-                )
-            }))
-
+            listOf(SlotPromptAnnotation(LazyAction{SlotRequestMore("invalidFeatureKeys",
+                "kotlin.String", listOf(this), templateOf("restful" to Prompts()))}))
         "message" -> listOf(NeverAsk())
         else -> listOf()
     }
@@ -385,23 +306,16 @@ public data class ValidationResult(
         public var frame: ValidationResult? = this@ValidationResult
 
         public override fun invoke(path: ParamPath): FrameFiller<ValidationResult> {
-            val filler = FrameFiller({ (p as? KMutableProperty0<ValidationResult?>) ?: ::frame }, path)
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::success }, null) { s, t ->
+            val filler = FrameFiller({(p as? KMutableProperty0<ValidationResult?>) ?: ::frame}, path)
+            filler.addWithPath(EntityFiller({filler.target.get()!!::success}, null) {s, t ->
                 Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Boolean")!!) as?
-                        kotlin.Boolean
-            })
-            filler.addWithPath(MultiValueFiller({ filler.target.get()!!::invalidFeatureKeys }, fun(
-                p:
-                KMutableProperty0<String?>
-            ): AEntityFiller {
-                return EntityFiller({ p }, null) { s, t ->
-                    Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as?
-                            kotlin.String
-                }
-            }))
-            filler.addWithPath(EntityFiller({ filler.target.get()!!::message }, null) { s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String
-            })
+                        kotlin.Boolean})
+            filler.addWithPath(MultiValueFiller({filler.target.get()!!::invalidFeatureKeys}, fun(p:
+                                                                                                 KMutableProperty0<String?>): AEntityFiller {return EntityFiller({p}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as?
+                        kotlin.String}}))
+            filler.addWithPath(EntityFiller({filler.target.get()!!::message}, null) {s, t ->
+                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
             return filler
         }
     }

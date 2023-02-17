@@ -376,18 +376,17 @@ data class ReservationProvider(
     }
 
     override fun listLocation(): List<Location> {
-        val resources = admin?.resources()?.Buildings()?.list(customerName!!)?.execute()?.buildings
+        val resources = admin?.resources()?.Buildings()?.list(customerName)?.execute()?.buildings
+        logger.debug("The resoures are :: $resources")
         val locations = mutableListOf<Location>()
         if (resources != null) {
             for (resource in resources) {
                 val location = Location(session)
                 location.id = resource.buildingId
-                location.name = ResourceName(resource.buildingName)
-                location.type = ResourceType(resource.description)
-                location.timezone =
-                    ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
-                location.defaultDurations =
-                    ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"]
+                location.name = LocationName(resource.buildingName)
+                location.timezone = ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
+                location.defaultDurations = ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"]
+                logger.debug("The location duration is ${location.defaultDurations}")
                 locations.add(location)
             }
         }
@@ -590,6 +589,7 @@ data class ReservationProvider(
 
 
     private fun getDuration(location: Location, type: ResourceType): Long {
+        logger.debug("location duration is ${location.defaultDurations}")
         val map = location.defaultDurations as Map<*, *>
         return map[type.value].toString().toLong()
     }
@@ -597,7 +597,6 @@ data class ReservationProvider(
     companion object : ExtensionBuilder<IReservation> {
         val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
-        const val CALENDAR_ID = "calendar_id"
         const val DELEGATED_USER = "delegated_user"
         const val CUSTOMERNAME = "customer_name"
         const val NotAvailable = "Resource Not Available"
