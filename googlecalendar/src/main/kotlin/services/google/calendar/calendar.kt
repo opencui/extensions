@@ -130,46 +130,15 @@ data class ReservationProvider(
         filter: List<SlotValue>?
     ): Reservation? {
         val timeZone = location.timezone!!.id
-
         val reservation = Reservation(session)
         val listOfResources = mutableListOf<CalendarResource>()
+        // First populate the listOfResource.
         if (filter == null) {
             val resources = getResourcesWhenFilterIsNull(location, resourceType)
-            if (resources.isNullOrEmpty()) {
-                return null
-            } else {
-                resources.forEach {
-                    val event = checkSlotAvailability(location, date!!, time!!, it.resourceEmail, resourceType, duration)
-                    if (event) {
-                        listOfResources.add(it)
-                    }
-                }
-                if (listOfResources.isNotEmpty()) {
-                    val calendar = client
-                    val event = Event()
-                    val resource = listOfResources[0]
-                    event.summary = "Reservation for $userId"
-                    event.description = "Reservation booked for ${resource.resourceName}"
-                    val startTime = localDateTimeToDateTime(date!!, time!!, timeZone)
-                    val endTime = localDateTimeToDateTime(date, time.plusSeconds(duration.toLong()), timeZone)
-                    event.start = EventDateTime().setDateTime(startTime)
-                    event.end = EventDateTime().setDateTime(endTime)
-                    println("The start $startTime, endTime $endTime")
-                    //https://developers.google.com/calendar/api/concepts/sharing
-                    event.attendees = listOf(
-                        EventAttendee().setResource(true).setEmail(resource.resourceEmail).setId(resource.resourceId)
-                    )
-                    val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute()
-                    reservation.id = createdEvent?.id
-                    reservation.duration = duration
-                    reservation.endDate = date
-                    reservation.endTime = time
-                    reservation.userId = userId
-                    reservation.resourceId = resource.resourceId
-                    reservation.startTime = time
-                    return reservation
-                } else {
-                    return null
+            resources?.forEach {
+                val event = checkSlotAvailability(location, date!!, time!!, it.resourceEmail, resourceType, duration)
+                if (event) {
+                    listOfResources.add(it)
                 }
             }
         } else {
@@ -180,33 +149,35 @@ data class ReservationProvider(
                     listOfResources.add(it)
                 }
             }
-            if (listOfResources.isNotEmpty()) {
-                val calendar = client
-                val event = Event()
-                val resource = listOfResources[0]
+        }
 
-                event.summary = "Reservation for $userId"
-                event.description = "Reservation booked for ${resource.resourceName}"
-                val startTime = localDateTimeToDateTime(date!!, time!!, timeZone)
-                val endTime = localDateTimeToDateTime(date, time.plusSeconds(duration.toLong()), timeZone)
-                event.start = EventDateTime().setDateTime(startTime)
-                event.end = EventDateTime().setDateTime(endTime)
-                event.attendees = listOf(
-                    EventAttendee().setResource(true).setEmail(resource.resourceEmail)
-                        .setId(resource.resourceId)
-                )
-                val createdEvent = calendar?.events()?.insert(listOfResources[0].resourceEmail, event)?.execute()
-                reservation.id = createdEvent?.id
-                reservation.duration = duration
-                reservation.endDate = date
-                reservation.endTime = time
-                reservation.userId = userId
-                reservation.resourceId = resource.resourceId
-                reservation.startTime = time
-                return reservation
-            } else {
-                return null
-            }
+        // Then create reservation based on the first one.
+        if (listOfResources.isNotEmpty()) {
+            val calendar = client
+            val event = Event()
+            val resource = listOfResources[0]
+            event.summary = "Reservation for $userId"
+            event.description = "Reservation booked for ${resource.resourceName}"
+            val startTime = localDateTimeToDateTime(date!!, time!!, timeZone)
+            val endTime = localDateTimeToDateTime(date, time.plusSeconds(duration.toLong()), timeZone)
+            event.start = EventDateTime().setDateTime(startTime)
+            event.end = EventDateTime().setDateTime(endTime)
+            println("The start $startTime, endTime $endTime")
+            //https://developers.google.com/calendar/api/concepts/sharing
+            event.attendees = listOf(
+                EventAttendee().setResource(true).setEmail(resource.resourceEmail).setId(resource.resourceId)
+            )
+            val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute()
+            reservation.id = createdEvent?.id
+            reservation.duration = duration
+            reservation.endDate = date
+            reservation.endTime = time
+            reservation.userId = userId
+            reservation.resourceId = resource.resourceId
+            reservation.startTime = time
+            return reservation
+        } else {
+            return null
         }
     }
 
