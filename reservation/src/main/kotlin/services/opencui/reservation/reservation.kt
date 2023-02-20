@@ -210,7 +210,7 @@ public data class Reservation(
 public data class Location(
   @JsonInclude(NON_NULL)
   public override var session: UserSession? = null
-
+) : IFrame {
   @JsonProperty
   public var id: String? = null
 
