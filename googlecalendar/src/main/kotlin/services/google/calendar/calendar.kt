@@ -70,7 +70,10 @@ data class ReservationProvider(
     override fun cloneForSession(userSession: UserSession): IExtension {
         return this.copy(session = userSession)
     }
-
+/**
+ *This function returns a Calendar API client object that is authorized to make requests on behalf
+ *  of the delegated user.
+ * */
     private fun buildClient(): Calendar? {
         val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
             .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
@@ -78,14 +81,26 @@ data class ReservationProvider(
 
         return Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Calendar API").build()
     }
-
+/**
+ * This function creates a Google Directory API client using the provided credentials and scopes,
+ * and sets the delegated user to be used when making requests.
+ * https://developers.google.com/admin-sdk/directory/v1/api-lib/java
+ * */
     private fun buildAdmin(): Directory? {
         val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
             .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
             .createDelegated(delegatedUser)
         return Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Calendar API").build()
     }
-
+/**
+ * The makeReservation function creates a new reservation for a resource. The resource is selected based on the
+ * given location, resourceType, and optionally, filter.
+ * The function checks the availability of the selected resource for the given date, time, and duration and creates a new reservation if the resource is available.
+ * The function returns a Reservation object representing the new reservation, or null if no resource is available or
+ * if an error occurs.
+ * https://developers.google.com/calendar/api/concepts/events-calendars
+ * https://developers.google.com/calendar/api/guides/create-events
+ * */
     override fun makeReservation(
         userId: String,
         location: Location,
@@ -121,9 +136,9 @@ data class ReservationProvider(
                     event.start = EventDateTime().setDateTime(startTime)
                     event.end = EventDateTime().setDateTime(endTime)
                     println("The start $startTime, endTime $endTime")
+                    //https://developers.google.com/calendar/api/concepts/sharing
                     event.attendees = listOf(
-                        EventAttendee().setResource(true).setEmail(resource.resourceEmail)
-                            .setDisplayName(resource.resourceId)
+                        EventAttendee().setResource(true).setEmail(resource.resourceEmail).setId(resource.resourceId)
                     )
                     val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute()
                     reservation.id = createdEvent?.id
@@ -159,7 +174,7 @@ data class ReservationProvider(
                 event.end = EventDateTime().setDateTime(endTime)
                 event.attendees = listOf(
                     EventAttendee().setResource(true).setEmail(resource.resourceEmail)
-                        .setDisplayName(resource.resourceId)
+                        .setId(resource.resourceId)
                 )
                 val createdEvent = calendar?.events()?.insert(listOfResources[0].resourceEmail, event)?.execute()
                 reservation.id = createdEvent?.id
@@ -202,11 +217,11 @@ data class ReservationProvider(
         }
 
         for (event in events) {
-            if (event?.summary?.contains(userId) == true) {
+            if (event.summary?.contains(userId) == true) {
                 val reservation = Reservation(session).apply {
                     id = event.id
                     this.userId = userId
-                    resourceId = event.attendees?.get(0)?.displayName
+                    resourceId = event.attendees[0].id
                     startDate = Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.of(timeZone))
                         .toLocalDate()
                     endDate =
@@ -214,7 +229,7 @@ data class ReservationProvider(
                     startTime = convertFromDateTime(event.start.dateTime)
                     endTime =
                         Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalTime()
-                    duration = (event?.end?.dateTime?.value!! - event?.start?.dateTime?.value!!).toInt()
+                    duration = (event.end?.dateTime?.value!! - event.start?.dateTime?.value!!).toInt()
 
                 }
                 reservations.add(reservation)
@@ -223,18 +238,34 @@ data class ReservationProvider(
         logger.debug("Existing listReservation with ${System.currentTimeMillis() - start}")
         return reservations
     }
-
+/**
+ * This is the implementation of a method named cancelReservation that takes in a Location
+ * object and a Reservation object as parameters. It cancels the reservation associated with
+ * the provided reservation object and returns a ValidationResult object with a success flag
+ * and a message indicating whether the operation was successful.
+ * The method also logs the cancellation and sets the time zone for the location.
+ * https://developers.google.com/calendar/api/v3/reference/events/delete?hl=en
+ * */
     override fun cancelReservation(location: Location, reservation: Reservation): ValidationResult {
         logger.info("cancel Reservation for ${getResource(reservation.resourceId!!)?.resourceEmail} and ${reservation.id}")
         timeZone = location.timezone!!.id
-        client?.events()?.delete(getResource(reservation.resourceId!!)?.resourceId, reservation.id)?.execute()
+        client?.events()?.delete(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return ValidationResult().apply { success = true;message = "reservation canceled" }
     }
-
+/**
+ * https://developers.google.com/admin-sdk/directory/reference/rest/v1/resources.calendars/get
+ * */
     private fun getResource(resourceId: String): CalendarResource? {
         return admin?.resources()?.calendars()?.get(customerName, resourceId)?.execute()
     }
 
+    /**
+     * The function resourceAvailable checks the availability of a resource of a specific type at a
+     * given time and location. It first checks if the requested time is in the future.
+     * Then, it filters the resources based on the provided filter, if any, and availability for
+     * the requested date and time.
+     * Finally, it returns a ValidationResult indicating whether the resource is available or not.
+     * */
     override fun resourceAvailable(
         location: Location,
         type: ResourceType,
@@ -283,7 +314,12 @@ data class ReservationProvider(
 
         }
     }
-
+/**
+ * This function checks whether a reservation can be updated or not by checking the availability
+ * of the resource and whether the reservation exists or not. It also checks if any features
+ * are requested to be updated, which is not allowed. The function returns a ValidationResult object
+ * indicating whether the operation was successful or not with a corresponding message.
+ * */
     override fun reservationUpdatable(
         location: Location,
         reservation: Reservation,
@@ -380,7 +416,13 @@ data class ReservationProvider(
             result
         }
     }
-
+/**
+ *This function retrieves a list of locations from an admin(google)
+ * and then creates a list of Location objects from the retrieved data.
+ * The function loops through the retrieved buildings, extracts the relevant
+ * data for each building, and creates a Location object with that data.
+ * The resulting list of Location objects is returned.
+ * */
     override fun listLocation(): List<Location> {
         val resources = admin?.resources()?.Buildings()?.list(customerName)?.execute()?.buildings
         logger.debug("The resoures are :: $resources")
@@ -396,7 +438,15 @@ data class ReservationProvider(
         }
         return locations
     }
-
+/**
+ * This function returns a list of available dates for a given location and resource,
+ * based on whether the user has specified a time or not. If a time is specified,
+ * the function will check if the given time is available on each date, and if it is,
+ * it will add that date to the list of available dates. If no time is specified, the function
+ * will check if there are any available time slots on each day within a range of five days,
+ * and if there are, it will add that date to the list of available dates. The filter parameter
+ * is used to filter resources based on specific criteria, if it is not null.
+ * */
     override fun availableDates(
         location: Location,
         resourceType: ResourceType,
@@ -432,7 +482,18 @@ data class ReservationProvider(
         }
         return availableDates
     }
-
+/**
+ * This function is used to find available time slots for a specific resource type at a given location
+ * on a particular day. It takes in several parameters including the location object, resource type, date,
+ * duration of the meeting, and filter values. The function first sets the time zone of the location and retrieves
+ * the resources that match the specified filter or all resources if no filter is given.
+ *
+ * If there are no resources found, the function returns an empty list.
+ * Otherwise, it calls the makeFreeBusyRequest function for each resource to get the
+ * free/busy information for the specified date. It then flattens the list of free times for all
+ * resources and removes any duplicates before returning the sorted list of available times. The returned
+ * times are in the LocalTime format.
+ * */
     override fun availableTimes(
         location: Location,
         resourceType: ResourceType,
@@ -452,7 +513,15 @@ data class ReservationProvider(
             .sorted()
     }
 
-
+/**
+ * This function takes in a Location, LocalDate, and calendarId and returns a list of free time
+ * slots on that date for the given calendar. It uses the Google Calendar API to make a free-busy
+ * request to determine when the calendar is busy and then calculates the free time slots in between
+ * those busy intervals. The free time slots are returned as a list of LocalTime objects. The function
+ * also handles some edge cases, such as starting the search from the current time if the search date
+ * is today and not returning any free time slots if the search date is in the past
+ * https://developers.google.com/calendar/api/v3/reference/freebusy
+ * */
     private fun makeFreeBusyRequest(location: Location, date: LocalDate, calendarId: String): MutableList<LocalTime> {
         timeZone = location.timezone!!.id
         val freeRanges = mutableListOf<LocalTime>()
@@ -545,14 +614,21 @@ data class ReservationProvider(
         }
         return resource
     }
-
+/**
+ * This function retrieves the list of calendar resources for a given location and resource type.
+ * If no filters are specified, it returns all calendar resources of the given type in the specified location.
+ * */
     private fun getResourcesWhenFilterIsNull(location: Location, resourceType: ResourceType): List<CalendarResource>? {
         val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items?.filter {
             it.resourceType == resourceType.value
         }
         return resources
     }
-
+/**
+ * This function retrieves the resources for a given location and resource type based
+ * on a list of filters, each consisting of a slot and a value. It checks the resource
+ * description to see if it contains the slot and value, and adds the resource to a list of matching resources.
+ * */
     private fun getResourcesWhenFilterIsNotNull(
         location: Location, resourceType: ResourceType, filter: List<SlotValue>
     ): List<CalendarResource>? {
@@ -570,7 +646,13 @@ data class ReservationProvider(
         }
         return cals
     }
-
+/**
+ * This is a function that converts a LocalDateTime object to a DateTime object,
+ * which is a class in the Google Calendar API. The function takes a LocalDate and a LocalTime,
+ * converts them to a ZonedDateTime object with the timezone defined in the class property timeZone,
+ * and finally creates a DateTime object using the toInstant() method of ZonedDateTime and the timezone
+ * offset.
+ * */
     private fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
         val zoneId = ZoneId.of(timeZone)
         val dateTime = ZonedDateTime.of(date, time, zoneId)
@@ -578,14 +660,20 @@ data class ReservationProvider(
         logger.debug("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
         return DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())
     }
-
+/**
+ * This function converts a DateTime object to a LocalTime object in a specified time zone.
+ * */
     private fun convertFromDateTime(dateTime: DateTime): LocalTime {
         val dT = dateTime.value
         val zoneId = ZoneId.of(timeZone)
         val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(dT), zoneId)
         return localDateTime.toLocalTime()
     }
-
+/**
+ * This function checks if a time slot is available for a given location, date, time, calendar ID,
+ * resource type, and duration by querying the calendar
+ * events within the specified time range. It returns a boolean indicating the availability of the time slot.
+ * */
     private fun checkSlotAvailability(
         location: Location, date: LocalDate, time: LocalTime, calendarId: String, resourceType: ResourceType, duration: Int
     ): Boolean {
