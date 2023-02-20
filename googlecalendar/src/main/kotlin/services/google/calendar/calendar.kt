@@ -393,9 +393,6 @@ data class ReservationProvider(
                 location.id = resource.buildingId
                 location.name = LocationName(resource.buildingName)
                 location.timezone = ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
-                location.defaultDurations = ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"] as JsonObject?
-                logger.debug(ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"].toString())
-                logger.debug("The location duration is ${location.defaultDurations}")
                 locations.add(location)
             }
         }
