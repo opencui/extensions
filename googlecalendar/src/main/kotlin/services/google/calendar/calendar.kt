@@ -16,7 +16,6 @@ import com.google.api.services.directory.DirectoryScopes
 import com.google.api.services.directory.model.CalendarResource
 import io.opencui.core.*
 import io.opencui.serialization.Json
-import io.opencui.serialization.JsonObject
 import io.opencui.sessionmanager.ChatbotLoader
 import org.slf4j.LoggerFactory
 import services.opencui.reservation.*
@@ -200,7 +199,6 @@ data class ReservationProvider(
             if (e != null) {
                 events.addAll(e)
             }
-
         }
 
         for (event in events) {
@@ -227,15 +225,14 @@ data class ReservationProvider(
     }
 
     override fun cancelReservation(location: Location, reservation: Reservation): ValidationResult {
-        logger.info("cancel Reservation for ${getResource(reservation)?.resourceEmail} and ${reservation.id}")
+        logger.info("cancel Reservation for ${getResource(reservation.resourceId!!)?.resourceEmail} and ${reservation.id}")
         timeZone = location.timezone!!.id
-        client?.events()?.delete(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
+        client?.events()?.delete(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return ValidationResult().apply { success = true;message = "reservation canceled" }
     }
 
-    private fun getResource(reservation: Reservation): CalendarResource? {
-        val admin = admin
-        return admin?.resources()?.calendars()?.get(customerName, reservation.resourceId)?.execute()
+    private fun getResource(resourceId: String): CalendarResource? {
+        return admin?.resources()?.calendars()?.get(customerName, resourceId)?.execute()
     }
 
     override fun resourceAvailable(
@@ -295,13 +292,13 @@ data class ReservationProvider(
         duration: Int,
         features: List<SlotValue>?
     ): ValidationResult {
-        val resourceEmail = getResource(reservation)!!.resourceEmail
-        val type = ResourceType(getResource(reservation)!!.resourceType)
+        val resourceEmail = getResource(reservation.resourceId!!)!!.resourceEmail
+        val type = ResourceType(getResource(reservation.resourceId!!)!!.resourceType)
 
         timeZone = location.timezone!!.id
         val validationResult = ValidationResult()
 
-        val event = client?.events()?.get(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
+        val event = client?.events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
 
         return if (event.isNullOrEmpty()) {
             validationResult.apply {
@@ -333,7 +330,7 @@ data class ReservationProvider(
         val listResources = mutableListOf<CalendarResource>()
 
         val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items
-        val event = client?.Events()?.get(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
+        val event = client?.Events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         if (event.isNullOrEmpty()) {
             validationResult.message = "cannot update"
             validationResult.success = false
@@ -370,7 +367,7 @@ data class ReservationProvider(
     override fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult {
         timeZone = location.timezone!!.id
         val now = Instant.now()
-        val event = client?.Events()?.get(getResource(reservation)?.resourceEmail, reservation.id)?.execute()
+        val event = client?.Events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return if (now.isAfter(Instant.parse(event?.start?.dateTime.toString()))) {
             val result = ValidationResult()
             result.success = false
