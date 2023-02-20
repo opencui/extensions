@@ -214,11 +214,10 @@ data class ReservationProvider(
     // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, location: Location, resourceType: ResourceType): List<Reservation> {
         val timeZone = location.timezone!!.id
-
         return cachedListReservation(userId, timeZone, resourceType)
     }
 
-    val cachedListReservation = CachedMethod3<String, String, ResourceType, Reservation>(this::listReservationImpl, values)
+    val cachedListReservation = CachedMethod3(this::listReservationImpl, values)
 
     fun listReservationImpl(userId: String, timeZone: String, resourceType: ResourceType): List<Reservation> {
         val start = System.currentTimeMillis()
@@ -268,7 +267,6 @@ data class ReservationProvider(
      * */
     override fun cancelReservation(location: Location, reservation: Reservation): ValidationResult {
         logger.info("cancel Reservation for ${getResource(reservation.resourceId!!)?.resourceEmail} and ${reservation.id}")
-        val timeZone = location.timezone!!.id
         client?.events()?.delete(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return ValidationResult().apply { success = true;message = "reservation canceled" }
     }
@@ -295,7 +293,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): ValidationResult {
-        val timeZone = location.timezone!!.id
         val now = LocalDateTime.now()
         val dateTime = if (time != null) date?.atTime(time) else null
         if (dateTime?.isBefore(now) == true) {
@@ -332,7 +329,6 @@ data class ReservationProvider(
                 success = false
                 message = NotAvailable
             }
-
         }
     }
 
@@ -353,7 +349,6 @@ data class ReservationProvider(
         val resourceEmail = getResource(reservation.resourceId!!)!!.resourceEmail
         val type = ResourceType(getResource(reservation.resourceId!!)!!.resourceType)
 
-        val timeZone = location.timezone!!.id
         val validationResult = ValidationResult()
 
         val event = client?.events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
@@ -381,10 +376,7 @@ data class ReservationProvider(
         duration: Int,
         features: List<SlotValue>
     ): ValidationResult {
-        val timeZone = location.timezone!!.id
-
         val validationResult = ValidationResult()
-
         val listResources = mutableListOf<CalendarResource>()
 
         val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items
@@ -423,7 +415,6 @@ data class ReservationProvider(
     }
 
     override fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult {
-        val timeZone = location.timezone!!.id
         val now = Instant.now()
         val event = client?.Events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return if (now.isAfter(Instant.parse(event?.start?.dateTime.toString()))) {
@@ -478,7 +469,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): List<LocalDate> {
-        val timeZone = location.timezone!!.id
         val availableDates = mutableListOf<LocalDate>()
         val now = LocalDate.now()
         val resources = if (filter == null) getResourcesWhenFilterIsNull(
@@ -526,7 +516,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): List<LocalTime> {
-        val timeZone = location.timezone!!.id
         val resources = when {
             filter == null -> getResourcesWhenFilterIsNull(location, resourceType)
             else -> getResourcesWhenFilterIsNotNull(location, resourceType, filter)
@@ -601,7 +590,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): List<Resource> {
-        val timeZone = location.timezone!!.id
         var calendarResources =
             if (filter == null) getResourcesWhenFilterIsNull(location, type) else getResourcesWhenFilterIsNotNull(
                 location, type, filter
