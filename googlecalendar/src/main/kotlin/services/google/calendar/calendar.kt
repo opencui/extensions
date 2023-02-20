@@ -401,9 +401,10 @@ data class ReservationProvider(
                 val location = Location(session)
                 location.id = resource.buildingId
                 location.name = LocationName(resource.buildingName)
-                location.timezone = ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
-                location.defaultDurations = ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"] as JsonObject?
-                logger.debug(ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"].toString())
+                val desc = ObjectMapper().readValue(resource.description, JsonObject::class.java) as JsonObject
+                location.timezone = ZoneId.of(desc.get("timezone").asText())
+                location.defaultDurations = desc.get("defaultDurations") as JsonObject?
+                logger.debug(desc.get("defaultDurations").asText())
                 logger.debug("The location duration is ${location.defaultDurations}")
                 locations.add(location)
             }
@@ -629,8 +630,8 @@ data class ReservationProvider(
 
     private fun getDuration(location: Location, type: ResourceType): String {
         logger.debug("location duration is ${location.defaultDurations}")
-        val map = location.defaultDurations as Map<*, *>
-        return map[type.value].toString()
+        val map = location.defaultDurations as JsonObject
+        return map.get(type.value).asText()
     }
 
     companion object : ExtensionBuilder<IReservation> {
