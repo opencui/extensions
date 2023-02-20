@@ -113,6 +113,8 @@ public interface Resource : IFrame {
     public var type: ResourceType?
 
     public var name: ResourceName?
+
+    public var defaultDuration: Int?
 }
 
 public data class Reservation(
