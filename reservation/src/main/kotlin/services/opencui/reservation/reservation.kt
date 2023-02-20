@@ -208,62 +208,61 @@ public data class Reservation(
 }
 
 public data class Location(
-    @JsonInclude(NON_NULL)
-    public override var session: UserSession? = null
-) : IFrame {
-    @JsonProperty
-    public var id: String? = null
+  @JsonInclude(NON_NULL)
+  public override var session: UserSession? = null
 
-    @JsonProperty
-    public var name: LocationName? = null
+  @JsonProperty
+  public var id: String? = null
 
-    @JsonProperty
-    public var timezone: ZoneId? = null
+  @JsonProperty
+  public var name: LocationName? = null
 
-    @JsonProperty
-    public var defaultDurations: JsonObject? = null
+  @JsonProperty
+  public var timezone: ZoneId? = null
 
-    public override fun annotations(path: String): List<Annotation> = when (path) {
-        "id" -> listOf(NeverAsk())
-        "name" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("name",
-            "services.opencui.reservation.LocationName", listOf(this), templateOf("restful" to
-                    Prompts()))}), AlwaysAsk())
-        "timezone" -> listOf(NeverAsk())
-        "defaultDurations" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("defaultDurations",
-            "io.opencui.core.serialization.JsonObject", listOf(this), templateOf("restful" to
-                    Prompts()))}), AlwaysAsk())
-        else -> listOf()
+  @JsonProperty
+  public var defaultDurations: JsonObject? = null
+
+  public override fun annotations(path: String): List<Annotation> = when (path) {
+    "id" -> listOf(NeverAsk())
+    "name" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("name",
+        "services.opencui.reservation.LocationName", listOf(this), templateOf("restful" to
+        Prompts()))}), AlwaysAsk())
+    "timezone" -> listOf(NeverAsk())
+    "defaultDurations" -> listOf(NeverAsk())
+    else -> listOf()
+  }
+
+  public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+      FillBuilder {
+    public var frame: Location? = this@Location
+
+    public override fun invoke(path: ParamPath): FrameFiller<Location> {
+      val filler = FrameFiller({(p as? KMutableProperty0<Location?>) ?: ::frame}, path)
+      filler.addWithPath(EntityFiller({filler.target.get()!!::id}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::name}, {s: String? ->
+          name?.origValue = s}) {s, t -> Json.decodeFromString(s, session!!.findKClass(t ?:
+          "services.opencui.reservation.LocationName")!!) as?
+          services.opencui.reservation.LocationName})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::timezone}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.ZoneId")!!) as?
+          java.time.ZoneId})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::defaultDurations}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?:
+          "io.opencui.serialization.JsonObject")!!) as? io.opencui.serialization.JsonObject})
+      return filler
+
     }
+  }
 
-    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
-        FillBuilder {
-        public var frame: Location? = this@Location
+  public companion object {
+    public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
+        String>>()
 
-        public override fun invoke(path: ParamPath): FrameFiller<Location> {
-            val filler = FrameFiller({(p as? KMutableProperty0<Location?>) ?: ::frame}, path)
-            filler.addWithPath(EntityFiller({filler.target.get()!!::id}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::name}, {s: String? ->
-                name?.origValue = s}) {s, t -> Json.decodeFromString(s, session!!.findKClass(t ?:
-            "services.opencui.reservation.LocationName")!!) as?
-                    services.opencui.reservation.LocationName})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::timezone}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.ZoneId")!!) as?
-                        java.time.ZoneId})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::defaultDurations}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?:
-                "io.opencui.core.serialization.JsonObject")!!) as?
-                        io.opencui.serialization.JsonObject})
-            return filler
-        }
-    }
 
-    public companion object {
-        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
-                String>>()
-
-        public inline fun <reified S : IFrame> from(s: S): Location = Json.mappingConvert(s)
-    }
+    public inline fun <reified S : IFrame> from(s: S): Location = Json.mappingConvert(s)
+  }
 }
 
 public data class ValidationResult(
