@@ -227,7 +227,7 @@ data class ReservationProvider(
     override fun cancelReservation(location: Location, reservation: Reservation): ValidationResult {
         logger.info("cancel Reservation for ${getResource(reservation.resourceId!!)?.resourceEmail} and ${reservation.id}")
         timeZone = location.timezone!!.id
-        client?.events()?.delete(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
+        client?.events()?.delete(getResource(reservation.resourceId!!)?.resourceId, reservation.id)?.execute()
         return ValidationResult().apply { success = true;message = "reservation canceled" }
     }
 
