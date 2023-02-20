@@ -7,8 +7,6 @@ import com.fasterxml.jackson.`annotation`.JsonProperty
 import com.fasterxml.jackson.`annotation`.JsonTypeInfo
 import com.fasterxml.jackson.`annotation`.JsonValue
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.databind.node.TextNode
-import io.opencui.channel.IChannel
 import io.opencui.core.AEntityFiller
 import io.opencui.core.AlwaysAsk
 import io.opencui.core.Annotation
@@ -44,18 +42,17 @@ import io.opencui.du.EntityType
 import io.opencui.du.LangPack
 import io.opencui.du.StateTracker
 import io.opencui.serialization.Json
+import io.opencui.serialization.JsonObject
 import java.lang.Class
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
-import kotlin.Any
 import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
 import kotlin.collections.List
 import kotlin.collections.Map
 import kotlin.collections.MutableList
-import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty0
 
 
@@ -105,7 +102,6 @@ public data class LocationName(
     public companion object {
         @JsonIgnore
         public val valueGood: ((String) -> Boolean)? = { true }
-
 
     }
 }
@@ -214,7 +210,7 @@ public data class Reservation(
 public data class Location(
   @JsonInclude(NON_NULL)
   public override var session: UserSession? = null
-) : IFrame {
+
   @JsonProperty
   public var id: String? = null
 
@@ -256,12 +252,14 @@ public data class Location(
           Json.decodeFromString(s, session!!.findKClass(t ?:
           "io.opencui.serialization.JsonObject")!!) as? io.opencui.serialization.JsonObject})
       return filler
+
     }
   }
 
   public companion object {
     public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
         String>>()
+
 
     public inline fun <reified S : IFrame> from(s: S): Location = Json.mappingConvert(s)
   }
@@ -337,6 +335,7 @@ public interface IReservation : IService {
         resourceType: ResourceType,
         date: LocalDate?,
         time: LocalTime?,
+        duration: Int,
         filter: List<SlotValue>?
     ): Reservation?
 
@@ -356,6 +355,7 @@ public interface IReservation : IService {
         type: ResourceType,
         date: LocalDate?,
         time: LocalTime?,
+        duration: Int,
         filter: List<SlotValue>?
     ): ValidationResult
 
@@ -363,8 +363,9 @@ public interface IReservation : IService {
     public fun reservationUpdatable(
         location: Location,
         reservation: Reservation,
-        date: LocalDate,
-        time: LocalTime,
+        date: LocalDate?,
+        time: LocalTime?,
+        duration: Int,
         features: List<SlotValue>?
     ): ValidationResult
 
@@ -374,6 +375,7 @@ public interface IReservation : IService {
         reservation: Reservation,
         date: LocalDate?,
         time: LocalTime?,
+        duration: Int,
         features: List<SlotValue>
     ): ValidationResult
 
@@ -388,6 +390,7 @@ public interface IReservation : IService {
         location: Location,
         resourceType: ResourceType,
         time: LocalTime?,
+        duration: Int,
         filter: List<SlotValue>?
     ): List<LocalDate>
 
@@ -396,6 +399,7 @@ public interface IReservation : IService {
         location: Location,
         resourceType: ResourceType,
         date: LocalDate?,
+        duration: Int,
         filter: List<SlotValue>?
     ): List<LocalTime>
 
@@ -408,6 +412,7 @@ public interface IReservation : IService {
         type: ResourceType,
         date: LocalDate?,
         time: LocalTime?,
+        duration: Int,
         filter: List<SlotValue>?
     ): List<Resource>
 }
