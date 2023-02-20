@@ -67,8 +67,6 @@ data class ReservationProvider(
     private val client = buildClient()
     private val admin = buildAdmin()
     private var timeZone = ""
-    private var defaultDuration = ""
-
 
     override fun cloneForSession(userSession: UserSession): IExtension {
         return this.copy(session = userSession)
@@ -98,7 +96,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): Reservation? {
-        defaultDuration = if (duration>0) duration.toString() else getDuration(location, resourceType)
         timeZone = location.timezone!!.id
 
         val reservation = Reservation(session)
@@ -109,7 +106,6 @@ data class ReservationProvider(
                 return null
             } else {
                 resources.forEach {
-
                     val event = checkSlotAvailability(location, date!!, time!!, it.resourceEmail, resourceType, duration)
                     if (event) {
                         listOfResources.add(it)
@@ -122,7 +118,7 @@ data class ReservationProvider(
                     event.summary = "Reservation for $userId"
                     event.description = "Reservation booked for ${resource.resourceName}"
                     val startTime = localDateTimeToDateTime(date!!, time!!)
-                    val endTime = localDateTimeToDateTime(date, time.plusSeconds(defaultDuration.toLong()))
+                    val endTime = localDateTimeToDateTime(date, time.plusSeconds(duration.toLong()))
                     event.start = EventDateTime().setDateTime(startTime)
                     event.end = EventDateTime().setDateTime(endTime)
                     println("The start $startTime, endTime $endTime")
@@ -159,7 +155,7 @@ data class ReservationProvider(
                 event.summary = "Reservation for $userId"
                 event.description = "Reservation booked for ${resource.resourceName}"
                 val startTime = localDateTimeToDateTime(date!!, time!!)
-                val endTime = localDateTimeToDateTime(date, time.plusSeconds(defaultDuration.toLong()))
+                val endTime = localDateTimeToDateTime(date, time.plusSeconds(duration.toLong()))
                 event.start = EventDateTime().setDateTime(startTime)
                 event.end = EventDateTime().setDateTime(endTime)
                 event.attendees = listOf(
@@ -249,8 +245,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): ValidationResult {
-        defaultDuration = if (duration>0) duration.toString() else getDuration(location, type)
-
         timeZone = location.timezone!!.id
         val now = LocalDateTime.now()
         val dateTime = if (time != null) date?.atTime(time) else null
@@ -273,7 +267,7 @@ data class ReservationProvider(
         logger.debug("Resource after filter of date is $resources")
         if (time != null) {
             resources = resources.filter {
-                checkSlotAvailability(location, date!!, time, it.resourceEmail, type, defaultDuration.toInt())
+                checkSlotAvailability(location, date!!, time, it.resourceEmail, type, duration)
             }
         }
         logger.debug("Resource after filter of date and time is $resources")
@@ -300,10 +294,8 @@ data class ReservationProvider(
         duration: Int,
         features: List<SlotValue>?
     ): ValidationResult {
-
         val resourceEmail = getResource(reservation)!!.resourceEmail
         val type = ResourceType(getResource(reservation)!!.resourceType)
-        defaultDuration = if (duration>0) duration.toString() else getDuration(location, type)
 
         timeZone = location.timezone!!.id
         val validationResult = ValidationResult()
@@ -319,12 +311,11 @@ data class ReservationProvider(
             validationResult.apply { success = false; message = "Reservation not updatable" }
         } else {
             validationResult.apply {
-                success = checkSlotAvailability(location, date!!, time!!, resourceEmail, type, defaultDuration.toInt())
+                success = checkSlotAvailability(location, date!!, time!!, resourceEmail, type, duration)
                 message = if (success as Boolean) "Reservation can be updated" else "Reservation cannot be updated"
             }
         }
     }
-
 
     override fun updateReservation(
         location: Location,
@@ -402,9 +393,6 @@ data class ReservationProvider(
                 location.id = resource.buildingId
                 location.name = LocationName(resource.buildingName)
                 location.timezone = ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
-                location.defaultDurations = ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"] as JsonObject?
-                logger.debug(ObjectMapper().readValue(resource.description, Map::class.java)["defaultDurations"].toString())
-                logger.debug("The location duration is ${location.defaultDurations}")
                 locations.add(location)
             }
         }
@@ -418,8 +406,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): List<LocalDate> {
-        defaultDuration = if (duration>0) duration.toString() else getDuration(location, resourceType)
-
         timeZone = location.timezone!!.id
         val availableDates = mutableListOf<LocalDate>()
         val now = LocalDate.now()
@@ -434,22 +420,20 @@ data class ReservationProvider(
 
             if (time == null) {
                 range.forEach { i ->
-                    val events = availableTimes(location, resourceType, now.plusDays(i.toLong()), defaultDuration.toInt(), filter)
+                    val events = availableTimes(location, resourceType, now.plusDays(i.toLong()), duration, filter)
                     if (events.isNotEmpty() && !availableDates.contains(now.plusDays(i.toLong()))) {
                         availableDates.add(now.plusDays(i.toLong()))
                     }
                 }
             } else {
                 range.forEach { i ->
-                    val event = checkSlotAvailability(location, now, time, it.resourceEmail, resourceType, defaultDuration.toInt())
+                    val event = checkSlotAvailability(location, now, time, it.resourceEmail, resourceType, duration)
                     if (event) availableDates.add(now.plusDays(i.toLong()))
                 }
             }
         }
-
         return availableDates
     }
-
 
     override fun availableTimes(
         location: Location,
@@ -458,8 +442,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): List<LocalTime> {
-        defaultDuration = if (duration>0) duration.toString() else getDuration(location, resourceType)
-
         timeZone = location.timezone!!.id
         val resources = when {
             filter == null -> getResourcesWhenFilterIsNull(location, resourceType)
@@ -527,10 +509,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): List<Resource> {
-        defaultDuration = if (duration>0) duration.toString() else getDuration(location, type)
-
-
-
         timeZone = location.timezone!!.id
         var calendarResources =
             if (filter == null) getResourcesWhenFilterIsNull(location, type) else getResourcesWhenFilterIsNotNull(
@@ -548,9 +526,8 @@ data class ReservationProvider(
         }
         if (time != null) {
             calendarResources = calendarResources.filter {
-                checkSlotAvailability(location, date!!, time, it.resourceEmail, type, defaultDuration.toInt())
+                checkSlotAvailability(location, date!!, time, it.resourceEmail, type, duration)
             }
-
         }
         calendarResources.forEach {
             val resource = Json.decodeFromString<Resource>(
@@ -559,8 +536,6 @@ data class ReservationProvider(
             resources.add(resource)
         }
         return resources
-
-
     }
 
     override fun getResourceInfo(resourceId: String): Resource? {
@@ -598,7 +573,6 @@ data class ReservationProvider(
         return cals
     }
 
-
     private fun localDateTimeToDateTime(date: LocalDate, time: LocalTime): DateTime {
         val zoneId = ZoneId.of(timeZone)
         val dateTime = ZonedDateTime.of(date, time, zoneId)
@@ -623,14 +597,6 @@ data class ReservationProvider(
 
         val events = client?.events()?.list(calendarId)?.setTimeMin(timeMin)?.setTimeMax(timeMax)?.execute()?.items
         return events.isNullOrEmpty()
-
-    }
-
-
-    private fun getDuration(location: Location, type: ResourceType): String {
-        logger.debug("location duration is ${location.defaultDurations}")
-        val map = location.defaultDurations as Map<*, *>
-        return map[type.value].toString()
     }
 
     companion object : ExtensionBuilder<IReservation> {
