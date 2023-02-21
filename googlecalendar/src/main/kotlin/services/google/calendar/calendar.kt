@@ -31,6 +31,12 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
+
+/**
+ * We need to convert local data time to Google DateTime, and we assume
+ * Datetime is always timeZoned. but local data and time are always related
+ * to that timeZone, which controlled by what is on location and resource.
+ */
 fun LocalDateTime.toDateTime(timeZone: String): DateTime {
     return toDateTime(ZoneId.of(timeZone))
 }
@@ -45,11 +51,11 @@ fun DateTime.toLocalDateTime(): LocalDateTime {
     return LocalDateTime.parse(this.toStringRfc3339(), DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 }
 fun DateTime.toLocalTime(): LocalTime {
-    return LocalDateTime.parse(this.toStringRfc3339(), DateTimeFormatter.ISO_OFFSET_DATE_TIME).toLocalTime()
+    return toLocalDateTime().toLocalTime()
 }
 
 fun DateTime.toLocalDate(): LocalDate {
-    return LocalDateTime.parse(this.toStringRfc3339(), DateTimeFormatter.ISO_OFFSET_DATE_TIME).toLocalDate()
+    return toLocalDateTime().toLocalDate()
 }
 
 data class ReservationProvider(
