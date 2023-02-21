@@ -30,7 +30,28 @@ import kotlin.collections.MutableList
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
+
+// We need to convert between local data time.
+fun LocalDateTime.toDateTime() : DateTime {
+    val f = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    return DateTime(this.format(f))
+}
+
+fun DateTime.toLocalDateTime(): LocalDateTime {
+    val f = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    return LocalDateTime.parse(this.toStringRfc3339(), f)
+}
+
+fun DateTime.toLocalTime(): LocalTime {
+    val f = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    return LocalDateTime.parse(this.toStringRfc3339(), f).toLocalTime()
+}
+fun DateTime.toLocalDate(): LocalDate {
+    val f = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    return LocalDateTime.parse(this.toStringRfc3339(), f).toLocalDate()
+}
 
 data class ReservationProvider(
     val config: Configuration,
@@ -96,7 +117,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): Reservation? {
-        val timeZone = location.timezone!!.id
         val reservation = Reservation(session)
         val listOfResources = mutableListOf<CalendarResource>()
         // First populate the listOfResource.
@@ -125,8 +145,10 @@ data class ReservationProvider(
             val resource = listOfResources[0]
             event.summary = "Reservation for $userId"
             event.description = "Reservation booked for ${resource.resourceName}"
-            val startTime = localDateTimeToDateTime(date!!, time!!, timeZone)
-            val endTime = localDateTimeToDateTime(date, time.plusSeconds(duration.toLong()), timeZone)
+            val localStartTime = date!!.atTime(time!!)
+            val localEndTime = localStartTime.plusSeconds(duration.toLong())
+            val startTime = localStartTime.toDateTime()
+            val endTime = localEndTime.toDateTime()
             event.start = EventDateTime().setDateTime(startTime)
             event.end = EventDateTime().setDateTime(endTime)
             println("The start $startTime, endTime $endTime")
@@ -151,17 +173,16 @@ data class ReservationProvider(
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, location: Location, resourceType: ResourceType): List<Reservation> {
-        val timeZone = location.timezone!!.id
-        return cachedListReservation(userId, timeZone, resourceType)
+        return cachedListReservation(userId, resourceType)
     }
 
-    val cachedListReservation = CachedMethod3(this::listReservationImpl, values)
+    val cachedListReservation = CachedMethod2(this::listReservationImpl, values)
 
     // TODO: Why is we use userId
-    fun listReservationImpl(userId: String, timeZone: String, resourceType: ResourceType): List<Reservation> {
+    fun listReservationImpl(userId: String, resourceType: ResourceType): List<Reservation> {
         val start = System.currentTimeMillis()
         logger.debug("Entering list Reservation")
-        val now = localDateTimeToDateTime(LocalDate.now(), LocalTime.now(), timeZone)
+        val now = LocalDateTime.now().toDateTime()
         val reservations = mutableListOf<Reservation>()
         val events = mutableListOf<Event>()
         val admin = admin
@@ -180,15 +201,11 @@ data class ReservationProvider(
                     id = event.id
                     this.userId = userId
                     resourceId = event.attendees[0].id
-                    startDate = Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.of(timeZone))
-                        .toLocalDate()
-                    endDate =
-                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalDate()
-                    startTime = convertFromDateTime(event.start.dateTime, timeZone)
-                    endTime =
-                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalTime()
+                    startDate = event.start?.dateTime?.toLocalDate()
+                    endDate = event.end?.dateTime?.toLocalDate()
+                    startTime = event.start.dateTime.toLocalTime()
+                    endTime = event.end?.dateTime?.toLocalTime()
                     duration = (event.end?.dateTime?.value!! - event.start?.dateTime?.value!!).toInt()
-
                 }
                 reservations.add(reservation)
             }
@@ -386,7 +403,6 @@ data class ReservationProvider(
                 val location = Location(session)
                 location.id = resource.buildingId
                 location.name = LocationName(resource.buildingName)
-                location.timezone = ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
                 locations.add(location)
             }
         }
@@ -477,19 +493,18 @@ data class ReservationProvider(
      * https://developers.google.com/calendar/api/v3/reference/freebusy
      * */
     private fun makeFreeBusyRequest(location: Location, date: LocalDate, calendarId: String): MutableList<LocalTime> {
-        val timeZone = location.timezone!!.id
         val freeRanges = mutableListOf<LocalTime>()
 
-        var timeMinimum = localDateTimeToDateTime(date, LocalTime.of(0, 0), timeZone)
-        var timeMaximum = localDateTimeToDateTime(date, LocalTime.of(23, 59), timeZone)
+        var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime()
+        var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime()
 
         val today = LocalDate.now().atTime(LocalTime.now())
         if (date == LocalDate.now()) {
             // For today, we always start from now.
-            timeMinimum = localDateTimeToDateTime(date, LocalTime.now(), timeZone)
+            timeMinimum = date.atTime(LocalTime.now()).toDateTime()
         }
 
-        if (date.atTime(convertFromDateTime(timeMaximum, timeZone)).isBefore(today)) {
+        if (date.atTime(timeMaximum.toLocalTime()).isBefore(today)) {
             return freeRanges
         }
 
@@ -508,13 +523,13 @@ data class ReservationProvider(
         var currentStart = timeMinimum
         val busyIntervals = response?.calendars?.get(calendarId)!!.busy
         busyIntervals.forEach {
-            if (convertFromDateTime(it.start, timeZone).isAfter(convertFromDateTime(currentStart, timeZone))) {
-                localTimesPair.add(Pair(convertFromDateTime(currentStart, timeZone), convertFromDateTime(it.start, timeZone)))
+            if (it.start.toLocalTime().isAfter(currentStart.toLocalTime())) {
+                localTimesPair.add(Pair(currentStart.toLocalTime(), it.start.toLocalTime()))
             }
             currentStart = it.end
         }
-        if (convertFromDateTime(currentStart, timeZone).isBefore(convertFromDateTime(timeMaximum, timeZone))) {
-            localTimesPair.add(Pair(convertFromDateTime(currentStart, timeZone), convertFromDateTime(timeMaximum, timeZone)))
+        if (currentStart.toLocalTime().isBefore(timeMaximum.toLocalTime())) {
+            localTimesPair.add(Pair(currentStart.toLocalTime(), timeMaximum.toLocalTime()))
         }
         localTimesPair.forEach {
             freeRanges.add(it.first)
@@ -603,31 +618,6 @@ data class ReservationProvider(
     }
 
     /**
-     * This is a function that converts a LocalDateTime object to a DateTime object,
-     * which is a class in the Google Calendar API. The function takes a LocalDate and a LocalTime,
-     * converts them to a ZonedDateTime object with the timezone defined in the class property timeZone,
-     * and finally creates a DateTime object using the toInstant() method of ZonedDateTime and the timezone
-     * offset.
-     * */
-    private fun localDateTimeToDateTime(date: LocalDate, time: LocalTime, timeZone: String): DateTime {
-        val zoneId = ZoneId.of(timeZone)
-        val dateTime = ZonedDateTime.of(date, time, zoneId)
-        val offset = zoneId.rules.getOffset(Instant.now()).totalSeconds
-        logger.debug("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
-        return DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())
-    }
-
-    /**
-     * This function converts a DateTime object to a LocalTime object in a specified time zone.
-     * */
-    private fun convertFromDateTime(dateTime: DateTime, timeZone: String): LocalTime {
-        val dT = dateTime.value
-        val zoneId = ZoneId.of(timeZone)
-        val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(dT), zoneId)
-        return localDateTime.toLocalTime()
-    }
-
-    /**
      * This function checks if a time slot is available for a given location, date, time, calendar ID,
      * resource type, and duration by querying the calendar
      * events within the specified time range. It returns a boolean indicating the availability of the time slot.
@@ -636,10 +626,9 @@ data class ReservationProvider(
         location: Location, date: LocalDate, time: LocalTime, calendarId: String, resourceType: ResourceType, duration: Int
     ): Boolean {
         val client = buildClient()
-        val timeZone = location.timezone!!.id
 
-        val timeMin = localDateTimeToDateTime(date, time, timeZone)
-        val timeMax = localDateTimeToDateTime(date, time.plusSeconds(duration.toLong())!!, timeZone)
+        val timeMin = date.atTime(time).toDateTime()
+        val timeMax = date.atTime(time).plusSeconds(duration.toLong()).toDateTime()
 
         val events = client?.events()?.list(calendarId)?.setTimeMin(timeMin)?.setTimeMax(timeMax)?.execute()?.items
         return events.isNullOrEmpty()
@@ -656,7 +645,7 @@ data class ReservationProvider(
             return ReservationProvider(config)
         }
 
-        private val values = mutableMapOf<Triple<String, String, ResourceType>, Pair<List<Reservation>, LocalDateTime>>()
+        private val values = mutableMapOf<Pair<String, ResourceType>, Pair<List<Reservation>, LocalDateTime>>()
     }
 }
 
