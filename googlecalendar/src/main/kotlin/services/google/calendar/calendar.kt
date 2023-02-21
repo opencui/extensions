@@ -32,10 +32,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 fun LocalDateTime.toDateTime(timeZone: String): DateTime {
-    val zoneId = ZoneId.of(timeZone)
-    val dateTime = ZonedDateTime.of(this, zoneId)
-    val offset = zoneId.rules.getOffset(LocalDateTime.now()).totalSeconds
-    return DateTime(dateTime.toInstant().toEpochMilli(), offset.div(60))
+    return toDateTime(ZoneId.of(timeZone))
 }
 
 fun LocalDateTime.toDateTime(zoneId: ZoneId): DateTime {
@@ -614,6 +611,16 @@ data class ReservationProvider(
             Json.decodeFromString<Resource>(
                 it.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo)
             )
+        }
+        // Assume the durations is already filled.
+        if (resource?.id != null) {
+            resource.id = calendar!!.resourceId
+        }
+        if (resource?.type != null) {
+            resource.type = ResourceType(calendar.resourceType)
+        }
+        if (resource?.name != null) {
+            resource.name = ResourceName(calendar.resourceName)
         }
         return resource
     }

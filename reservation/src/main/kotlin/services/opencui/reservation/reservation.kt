@@ -114,7 +114,7 @@ public interface Resource : IFrame {
 
     public var name: ResourceName?
 
-    public var defaultDuration: Int?
+    public var durations: List<Int>?
 }
 
 public data class Reservation(
@@ -252,10 +252,7 @@ public data class Location(
   }
 
   public companion object {
-    public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
-        String>>()
-
-
+    public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String, String>>()
     public inline fun <reified S : IFrame> from(s: S): Location = Json.mappingConvert(s)
   }
 }
