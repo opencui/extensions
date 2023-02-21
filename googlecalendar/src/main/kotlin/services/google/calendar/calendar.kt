@@ -651,7 +651,7 @@ data class ReservationProvider(
         }
         return cals
     }
-    
+
     /**
      * This function checks if a time slot is available for a given location, date, time, calendar ID,
      * resource type, and duration by querying the calendar

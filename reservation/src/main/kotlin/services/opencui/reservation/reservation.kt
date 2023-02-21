@@ -222,16 +222,12 @@ public data class Location(
   @JsonProperty
   public var timezone: ZoneId? = null
 
-  @JsonProperty
-  public var defaultDurations: JsonObject? = null
-
   public override fun annotations(path: String): List<Annotation> = when (path) {
     "id" -> listOf(NeverAsk())
     "name" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("name",
         "services.opencui.reservation.LocationName", listOf(this), templateOf("restful" to
         Prompts()))}), AlwaysAsk())
     "timezone" -> listOf(NeverAsk())
-    "defaultDurations" -> listOf(NeverAsk())
     else -> listOf()
   }
 
@@ -250,9 +246,6 @@ public data class Location(
       filler.addWithPath(EntityFiller({filler.target.get()!!::timezone}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.ZoneId")!!) as?
           java.time.ZoneId})
-      filler.addWithPath(EntityFiller({filler.target.get()!!::defaultDurations}, null) {s, t ->
-          Json.decodeFromString(s, session!!.findKClass(t ?:
-          "io.opencui.serialization.JsonObject")!!) as? io.opencui.serialization.JsonObject})
       return filler
 
     }
