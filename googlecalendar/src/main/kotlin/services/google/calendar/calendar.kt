@@ -151,8 +151,8 @@ data class ReservationProvider(
             val resource = listOfResources[0]
             event.summary = "Reservation for $userId"
             event.description = "Reservation booked for ${resource.resourceName}"
-            val startTime = localDateTimeToDateTime(date!!.atTime(time!!), timeZone)
-            val endTime = localDateTimeToDateTime(date.atTime(time).plusSeconds(duration.toLong()), timeZone)
+            val startTime = date!!.atTime(time!!).toDateTime(timeZone)
+            val endTime = date.atTime(time).plusSeconds(duration.toLong()).toDateTime(timeZone)
             event.start = EventDateTime().setDateTime(startTime)
             event.end = EventDateTime().setDateTime(endTime)
             println("The start $startTime, endTime $endTime")
@@ -188,8 +188,8 @@ data class ReservationProvider(
     fun listReservationImpl(userId: String, timeZone: String, resourceType: ResourceType): List<Reservation> {
         val start = System.currentTimeMillis()
         logger.debug("Entering list Reservation")
-        // TODO: I feel we should use instead LocalDateTime.now(ZoneId.of(timeZone)
-        val now = localDateTimeToDateTime(LocalDateTime.now(), timeZone)
+        // I feel we should use instead LocalDateTime.now(ZoneId.of(timeZone)
+        val now = LocalDateTime.now(ZoneId.of(timeZone)).toDateTime(timeZone)
         val reservations = mutableListOf<Reservation>()
         val events = mutableListOf<Event>()
         val admin = admin
@@ -517,14 +517,15 @@ data class ReservationProvider(
         val timeZone = location.timezone!!.id
         val freeRanges = mutableListOf<LocalTime>()
 
-        var timeMinimum = localDateTimeToDateTime(date.atTime(LocalTime.of(0, 0)), timeZone)
-        var timeMaximum = localDateTimeToDateTime(date.atTime(LocalTime.of(23, 59)), timeZone)
+        var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(timeZone)
+        var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(timeZone)
 
-        // TODO: should we use LocalDateTime.now(ZoneId.of(timeZone)
-        val today = LocalDateTime.now()
-        if (date == LocalDate.now()) {
+        // We should always use LocalDateTime.now(ZoneId.of(timeZone)
+        val zoneId = ZoneId.of(timeZone)
+        val today = LocalDateTime.now(zoneId)
+        if (date == LocalDate.now(zoneId)) {
             // For today, we always start from now.
-            timeMinimum = localDateTimeToDateTime(date.atTime(LocalTime.now()), timeZone)
+            timeMinimum = date.atTime(LocalTime.now(zoneId)).toDateTime(timeZone)
         }
 
         if (date.atTime(timeMaximum.toLocalTime()).isBefore(today)) {
@@ -650,25 +651,25 @@ data class ReservationProvider(
         }
         return cals
     }
-
-
-    private fun localDateTimeToDateTime(dateTime: LocalDateTime, timeZone: String): DateTime {
-        return dateTime.toDateTime(timeZone)
-    }
-
+    
     /**
      * This function checks if a time slot is available for a given location, date, time, calendar ID,
      * resource type, and duration by querying the calendar
      * events within the specified time range. It returns a boolean indicating the availability of the time slot.
      * */
     private fun checkSlotAvailability(
-        location: Location, date: LocalDate, time: LocalTime, calendarId: String, resourceType: ResourceType, duration: Int
+        location: Location,
+        date: LocalDate,
+        time: LocalTime,
+        calendarId: String,
+        resourceType: ResourceType,
+        duration: Int
     ): Boolean {
         val client = buildClient()
         val timeZone = location.timezone!!.id
 
-        val timeMin = localDateTimeToDateTime(date.atTime(time), timeZone)
-        val timeMax = localDateTimeToDateTime(date.atTime(time).plusSeconds(duration.toLong())!!, timeZone)
+        val timeMin = date.atTime(time).toDateTime(timeZone)
+        val timeMax = date.atTime(time).plusSeconds(duration.toLong())!!.toDateTime(timeZone)
 
         val events = client?.events()?.list(calendarId)?.setTimeMin(timeMin)?.setTimeMax(timeMax)?.execute()?.items
         return events.isNullOrEmpty()
