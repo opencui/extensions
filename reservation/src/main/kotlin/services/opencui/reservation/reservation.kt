@@ -24,29 +24,18 @@ import io.opencui.core.MultiValueFiller
 import io.opencui.core.NeverAsk
 import io.opencui.core.ParamPath
 import io.opencui.core.Prompts
-import io.opencui.core.RoutingInfo
 import io.opencui.core.SlotConditionalPromptAnnotation
 import io.opencui.core.SlotPromptAnnotation
 import io.opencui.core.SlotValue
 import io.opencui.core.UserSession
 import io.opencui.core.ValueCheckAnnotation
-import io.opencui.core.da.DialogActRewriter
 import io.opencui.core.da.SlotNotifyFailure
 import io.opencui.core.da.SlotRequest
 import io.opencui.core.da.SlotRequestMore
 import io.opencui.core.templateOf
-import io.opencui.du.BertStateTracker
-import io.opencui.du.DUMeta
-import io.opencui.du.DUSlotMeta
-import io.opencui.du.EntityType
-import io.opencui.du.LangPack
-import io.opencui.du.StateTracker
 import io.opencui.serialization.Json
-import io.opencui.serialization.JsonObject
-import java.lang.Class
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZoneId
 import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
@@ -65,11 +54,9 @@ public data class ResourceType(
     @JsonValue
     public override fun toString(): String = value
 
-
     public companion object {
         @JsonIgnore
         public val valueGood: ((String) -> Boolean)? = { true }
-
     }
 }
 
@@ -86,7 +73,6 @@ public data class ResourceName(
     public companion object {
         @JsonIgnore
         public val valueGood: ((String) -> Boolean)? = { true }
-
     }
 }
 
@@ -102,7 +88,6 @@ public data class LocationName(
     public companion object {
         @JsonIgnore
         public val valueGood: ((String) -> Boolean)? = { true }
-
     }
 }
 
@@ -114,7 +99,7 @@ public interface Resource : IFrame {
 
     public var name: ResourceName?
 
-    public var defaultDuration: Int?
+    public var durations: MutableList<Int>?
 }
 
 public data class Reservation(
@@ -219,12 +204,6 @@ public data class Location(
   @JsonProperty
   public var name: LocationName? = null
 
-  @JsonProperty
-  public var timezone: ZoneId? = null
-
-  @JsonProperty
-  public var defaultDurations: JsonObject? = null
-
   public override fun annotations(path: String): List<Annotation> = when (path) {
     "id" -> listOf(NeverAsk())
     "name" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("name",
@@ -247,22 +226,12 @@ public data class Location(
           name?.origValue = s}) {s, t -> Json.decodeFromString(s, session!!.findKClass(t ?:
           "services.opencui.reservation.LocationName")!!) as?
           services.opencui.reservation.LocationName})
-      filler.addWithPath(EntityFiller({filler.target.get()!!::timezone}, null) {s, t ->
-          Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.ZoneId")!!) as?
-          java.time.ZoneId})
-      filler.addWithPath(EntityFiller({filler.target.get()!!::defaultDurations}, null) {s, t ->
-          Json.decodeFromString(s, session!!.findKClass(t ?:
-          "io.opencui.serialization.JsonObject")!!) as? io.opencui.serialization.JsonObject})
       return filler
-
     }
   }
 
   public companion object {
-    public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
-        String>>()
-
-
+    public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String, String>>()
     public inline fun <reified S : IFrame> from(s: S): Location = Json.mappingConvert(s)
   }
 }

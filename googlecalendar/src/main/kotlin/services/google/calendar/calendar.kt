@@ -28,8 +28,6 @@ import kotlin.collections.List
 import kotlin.collections.Map
 import kotlin.collections.MutableList
 import java.time.LocalTime
-import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 
@@ -256,18 +254,21 @@ data class ReservationProvider(
             return ValidationResult(session).apply { success = false; message = NotAvailable }
         }
         var resources =
-            if (filter == null) getResourcesWhenFilterIsNull(location, type) else getResourcesWhenFilterIsNotNull(
-                location, type, filter
-            )
+            if (filter == null)
+                getResourcesWhenFilterIsNull(location, type)
+            else
+                getResourcesWhenFilterIsNotNull(location, type, filter)
+
         if (resources.isNullOrEmpty()) {
             return ValidationResult(session).apply { success = false;message = NotAvailable }
         }
+
         if (date != null) {
             resources = resources.filter {
                 !makeFreeBusyRequest(location, date, it.resourceEmail).isNullOrEmpty()
             }
-
         }
+
         logger.debug("Resource after filter of date is $resources")
         if (time != null) {
             resources = resources.filter {
@@ -579,6 +580,11 @@ data class ReservationProvider(
             Json.decodeFromString<Resource>(
                 it.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo)
             )
+        }
+        if (resource != null) {
+            resource.id = calendar?.resourceId
+            resource.type = ResourceType(calendar?.resourceType!!)
+            resource.name = ResourceName(calendar?.resourceName)
         }
         return resource
     }
