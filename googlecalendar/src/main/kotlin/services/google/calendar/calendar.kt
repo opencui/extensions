@@ -144,15 +144,15 @@ data class ReservationProvider(
                 }
             }
         }
-        
+
         if (listOfResources.isNotEmpty()) {
             val calendar = client
             val event = Event()
             val resource = listOfResources[0]
             event.summary = "Reservation for $userId"
             event.description = "Reservation booked for ${resource.resourceName}"
-            val startTime = localDateTimeToDateTime(date!!, time!!, timeZone)
-            val endTime = localDateTimeToDateTime(date, time.plusSeconds(duration.toLong()), timeZone)
+            val startTime = localDateTimeToDateTime(date!!.atTime(time!!), timeZone)
+            val endTime = localDateTimeToDateTime(date.atTime(time).plusSeconds(duration.toLong()), timeZone)
             event.start = EventDateTime().setDateTime(startTime)
             event.end = EventDateTime().setDateTime(endTime)
             println("The start $startTime, endTime $endTime")
@@ -188,7 +188,8 @@ data class ReservationProvider(
     fun listReservationImpl(userId: String, timeZone: String, resourceType: ResourceType): List<Reservation> {
         val start = System.currentTimeMillis()
         logger.debug("Entering list Reservation")
-        val now = localDateTimeToDateTime(LocalDate.now(), LocalTime.now(), timeZone)
+        // TODO: I feel we should use instead LocalDateTime.now(ZoneId.of(timeZone)
+        val now = localDateTimeToDateTime(LocalDateTime.now(), timeZone)
         val reservations = mutableListOf<Reservation>()
         val events = mutableListOf<Event>()
         val admin = admin
@@ -516,13 +517,14 @@ data class ReservationProvider(
         val timeZone = location.timezone!!.id
         val freeRanges = mutableListOf<LocalTime>()
 
-        var timeMinimum = localDateTimeToDateTime(date, LocalTime.of(0, 0), timeZone)
-        var timeMaximum = localDateTimeToDateTime(date, LocalTime.of(23, 59), timeZone)
+        var timeMinimum = localDateTimeToDateTime(date.atTime(LocalTime.of(0, 0)), timeZone)
+        var timeMaximum = localDateTimeToDateTime(date.atTime(LocalTime.of(23, 59)), timeZone)
 
-        val today = LocalDate.now().atTime(LocalTime.now())
+        // TODO: should we use LocalDateTime.now(ZoneId.of(timeZone)
+        val today = LocalDateTime.now()
         if (date == LocalDate.now()) {
             // For today, we always start from now.
-            timeMinimum = localDateTimeToDateTime(date, LocalTime.now(), timeZone)
+            timeMinimum = localDateTimeToDateTime(date.atTime(LocalTime.now()), timeZone)
         }
 
         if (date.atTime(timeMaximum.toLocalTime()).isBefore(today)) {
@@ -649,16 +651,7 @@ data class ReservationProvider(
         return cals
     }
 
-    /**
-     * This is a function that converts a LocalDateTime object to a DateTime object,
-     * which is a class in the Google Calendar API. The function takes a LocalDate and a LocalTime,
-     * converts them to a ZonedDateTime object with the timezone defined in the class property timeZone,
-     * and finally creates a DateTime object using the toInstant() method of ZonedDateTime and the timezone
-     * offset.
-     * */
-    private fun localDateTimeToDateTime(date: LocalDate, time: LocalTime, timeZone: String): DateTime {
-        return date.atTime(time).toDateTime(timeZone)
-    }
+
     private fun localDateTimeToDateTime(dateTime: LocalDateTime, timeZone: String): DateTime {
         return dateTime.toDateTime(timeZone)
     }
