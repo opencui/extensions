@@ -227,7 +227,6 @@ data class ReservationProvider(
      * */
     override fun cancelReservation(location: Location, reservation: Reservation): ValidationResult {
         logger.info("cancel Reservation for ${getResource(reservation.resourceId!!)?.resourceEmail} and ${reservation.id}")
-        val timeZone = location.timezone!!.id
         client?.events()?.delete(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return ValidationResult().apply { success = true;message = "reservation canceled" }
     }
@@ -254,7 +253,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): ValidationResult {
-        val timeZone = location.timezone!!.id
         val now = LocalDateTime.now()
         val dateTime = if (time != null) date?.atTime(time) else null
         if (dateTime?.isBefore(now) == true) {
@@ -312,7 +310,6 @@ data class ReservationProvider(
         val resourceEmail = getResource(reservation.resourceId!!)!!.resourceEmail
         val type = ResourceType(getResource(reservation.resourceId!!)!!.resourceType)
 
-        val timeZone = location.timezone!!.id
         val validationResult = ValidationResult()
 
         val event = client?.events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
@@ -340,8 +337,6 @@ data class ReservationProvider(
         duration: Int,
         features: List<SlotValue>
     ): ValidationResult {
-        val timeZone = location.timezone!!.id
-
         val validationResult = ValidationResult()
 
         val listResources = mutableListOf<CalendarResource>()
@@ -382,7 +377,6 @@ data class ReservationProvider(
     }
 
     override fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult {
-        val timeZone = location.timezone!!.id
         val now = Instant.now()
         val event = client?.Events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return if (now.isAfter(Instant.parse(event?.start?.dateTime.toString()))) {
@@ -407,7 +401,7 @@ data class ReservationProvider(
      * */
     override fun listLocation(): List<Location> {
         val resources = admin?.resources()?.Buildings()?.list(customerName)?.execute()?.buildings
-        logger.debug("The resoures are :: $resources")
+        logger.debug("The resources are :: $resources")
         val locations = mutableListOf<Location>()
         if (resources != null) {
             for (resource in resources) {
@@ -437,7 +431,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): List<LocalDate> {
-        val timeZone = location.timezone!!.id
         val availableDates = mutableListOf<LocalDate>()
         val now = LocalDate.now()
         val resources = if (filter == null) getResourcesWhenFilterIsNull(
@@ -485,7 +478,6 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): List<LocalTime> {
-        val timeZone = location.timezone!!.id
         val resources = when {
             filter == null -> getResourcesWhenFilterIsNull(location, resourceType)
             else -> getResourcesWhenFilterIsNotNull(location, resourceType, filter)
@@ -493,8 +485,7 @@ data class ReservationProvider(
 
         if (resources.isNullOrEmpty()) return emptyList()
 
-        return resources.flatMap { makeFreeBusyRequest(location, date ?: LocalDate.now(), it.resourceEmail) }.distinct()
-            .sorted()
+        return resources.flatMap { makeFreeBusyRequest(location, date ?: LocalDate.now(), it.resourceEmail) }.distinct().sorted()
     }
 
     /**
