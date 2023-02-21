@@ -19,7 +19,6 @@ import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
 import org.slf4j.LoggerFactory
 import services.opencui.reservation.*
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -236,7 +235,7 @@ data class ReservationProvider(
                         .toLocalDate()
                     endDate =
                         Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalDate()
-                    startTime = convertFromDateTime(event.start.dateTime, timeZone)
+                    startTime = event.start.dateTime.toLocalTime()
                     endTime =
                         Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalTime()
                     duration = (event.end?.dateTime?.value!! - event.start?.dateTime?.value!!).toInt()
@@ -551,7 +550,7 @@ data class ReservationProvider(
             timeMinimum = localDateTimeToDateTime(date, LocalTime.now(), timeZone)
         }
 
-        if (date.atTime(convertFromDateTime(timeMaximum, timeZone)).isBefore(today)) {
+        if (date.atTime(timeMaximum.toLocalTime()).isBefore(today)) {
             return freeRanges
         }
 
@@ -570,13 +569,23 @@ data class ReservationProvider(
         var currentStart = timeMinimum
         val busyIntervals = response?.calendars?.get(calendarId)!!.busy
         busyIntervals.forEach {
-            if (convertFromDateTime(it.start, timeZone).isAfter(convertFromDateTime(currentStart, timeZone))) {
-                localTimesPair.add(Pair(convertFromDateTime(currentStart, timeZone), convertFromDateTime(it.start, timeZone)))
+            if (it.start.toLocalTime().isAfter(currentStart.toLocalTime())) {
+                localTimesPair.add(
+                    Pair(
+                        currentStart.toLocalTime(),
+                        it.start.toLocalTime()
+                    )
+                )
             }
             currentStart = it.end
         }
-        if (convertFromDateTime(currentStart, timeZone).isBefore(convertFromDateTime(timeMaximum, timeZone))) {
-            localTimesPair.add(Pair(convertFromDateTime(currentStart, timeZone), convertFromDateTime(timeMaximum, timeZone)))
+        if (currentStart.toLocalTime().isBefore(timeMaximum.toLocalTime())) {
+            localTimesPair.add(
+                Pair(
+                    currentStart.toLocalTime(),
+                    timeMaximum.toLocalTime()
+                )
+            )
         }
         localTimesPair.forEach {
             freeRanges.add(it.first)
@@ -673,21 +682,7 @@ data class ReservationProvider(
      * offset.
      * */
     private fun localDateTimeToDateTime(date: LocalDate, time: LocalTime, timeZone: String): DateTime {
-        val zoneId = ZoneId.of(timeZone)
-        val dateTime = ZonedDateTime.of(date, time, zoneId)
-        val offset = zoneId.rules.getOffset(Instant.now()).totalSeconds
-        logger.debug("date time : ${DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())}")
-        return DateTime(dateTime.toInstant().toEpochMilli(), (offset.toDouble() / 60).toInt())
-    }
-
-    /**
-     * This function converts a DateTime object to a LocalTime object in a specified time zone.
-     * */
-    private fun convertFromDateTime(dateTime: DateTime, timeZone: String): LocalTime {
-        val dT = dateTime.value
-        val zoneId = ZoneId.of(timeZone)
-        val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(dT), zoneId)
-        return localDateTime.toLocalTime()
+        return date.atTime(time).toDateTime(timeZone)
     }
 
     /**
