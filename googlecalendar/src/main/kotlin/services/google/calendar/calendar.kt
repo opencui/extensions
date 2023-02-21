@@ -204,15 +204,11 @@ data class ReservationProvider(
                     id = event.id
                     this.userId = userId
                     resourceId = event.attendees[0].id
-                    startDate = Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.of(timeZone))
-                        .toLocalDate()
-                    endDate =
-                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalDate()
+                    startDate = event.start?.dateTime?.toLocalDate()
+                    endDate = event.end?.dateTime?.toLocalDate()
                     startTime = event.start.dateTime.toLocalTime()
-                    endTime =
-                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalTime()
+                    endTime = event.end?.dateTime?.toLocalTime()
                     duration = (event.end?.dateTime?.value!! - event.start?.dateTime?.value!!).toInt()
-
                 }
                 reservations.add(reservation)
             }
