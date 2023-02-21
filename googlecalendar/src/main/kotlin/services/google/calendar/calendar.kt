@@ -48,7 +48,10 @@ fun DateTime.toLocalTime(): LocalTime {
     val f = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     return LocalDateTime.parse(this.toStringRfc3339(), f).toLocalTime()
 }
-
+fun DateTime.toLocalDate(): LocalDate {
+    val f = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    return LocalDateTime.parse(this.toStringRfc3339(), f).toLocalDate()
+}
 
 data class ReservationProvider(
     val config: Configuration,
@@ -170,14 +173,13 @@ data class ReservationProvider(
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, location: Location, resourceType: ResourceType): List<Reservation> {
-        val timeZone = location.timezone!!.id
-        return cachedListReservation(userId, timeZone, resourceType)
+        return cachedListReservation(userId, resourceType)
     }
 
-    val cachedListReservation = CachedMethod3(this::listReservationImpl, values)
+    val cachedListReservation = CachedMethod2(this::listReservationImpl, values)
 
     // TODO: Why is we use userId
-    fun listReservationImpl(userId: String, timeZone: String, resourceType: ResourceType): List<Reservation> {
+    fun listReservationImpl(userId: String, resourceType: ResourceType): List<Reservation> {
         val start = System.currentTimeMillis()
         logger.debug("Entering list Reservation")
         val now = LocalDateTime.now().toDateTime()
@@ -199,15 +201,11 @@ data class ReservationProvider(
                     id = event.id
                     this.userId = userId
                     resourceId = event.attendees[0].id
-                    startDate = Instant.ofEpochMilli(event.start?.dateTime?.value!!).atZone(ZoneId.of(timeZone))
-                        .toLocalDate()
-                    endDate =
-                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalDate()
+                    startDate = event.start?.dateTime?.toLocalDate()
+                    endDate = event.end?.dateTime?.toLocalDate()
                     startTime = event.start.dateTime.toLocalTime()
-                    endTime =
-                        Instant.ofEpochMilli(event.end?.dateTime?.value!!).atZone(ZoneId.of(timeZone)).toLocalTime()
+                    endTime = event.end?.dateTime?.toLocalTime()
                     duration = (event.end?.dateTime?.value!! - event.start?.dateTime?.value!!).toInt()
-
                 }
                 reservations.add(reservation)
             }
@@ -405,7 +403,6 @@ data class ReservationProvider(
                 val location = Location(session)
                 location.id = resource.buildingId
                 location.name = LocationName(resource.buildingName)
-                location.timezone = ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
                 locations.add(location)
             }
         }
@@ -648,7 +645,7 @@ data class ReservationProvider(
             return ReservationProvider(config)
         }
 
-        private val values = mutableMapOf<Triple<String, String, ResourceType>, Pair<List<Reservation>, LocalDateTime>>()
+        private val values = mutableMapOf<Pair<String, ResourceType>, Pair<List<Reservation>, LocalDateTime>>()
     }
 }
 
