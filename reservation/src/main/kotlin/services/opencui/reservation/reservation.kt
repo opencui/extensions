@@ -34,10 +34,7 @@ import io.opencui.core.da.SlotRequest
 import io.opencui.core.da.SlotRequestMore
 import io.opencui.core.templateOf
 import io.opencui.serialization.Json
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
+import java.time.*
 import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
@@ -119,10 +116,10 @@ public data class Reservation(
   public var userId: String? = null
 
   @JsonProperty
-  public var start: LocalDateTime? = null
+  public var start: OffsetDateTime? = null
 
   @JsonProperty
-  public var end: LocalDateTime? = null
+  public var end: OffsetDateTime? = null
 
   @get:JsonIgnore
   public val reservationService: IReservation
@@ -155,11 +152,11 @@ public data class Reservation(
       filler.addWithPath(EntityFiller({filler.target.get()!!::userId}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
       filler.addWithPath(EntityFiller({filler.target.get()!!::start}, null) {s, t ->
-          Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDateTime")!!) as?
-          java.time.LocalDateTime})
+          Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.OffsetDateTime")!!) as?
+          java.time.OffsetDateTime})
       filler.addWithPath(EntityFiller({filler.target.get()!!::end}, null) {s, t ->
-          Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDateTime")!!) as?
-          java.time.LocalDateTime})
+          Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.OffsetDateTime")!!) as?
+          java.time.OffsetDateTime})
       return filler
     }
   }
