@@ -202,15 +202,20 @@ data class ReservationProvider(
      * https://developers.google.com/calendar/api/v3/reference/events/delete?hl=en
      * */
     override fun cancelReservation(location: Location, reservation: Reservation): ValidationResult {
-        logger.info("cancel Reservation for ${getResource(reservation.resourceId!!)?.resourceEmail} and ${reservation.id}")
-        client?.events()?.delete(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
-        return ValidationResult().apply { success = true;message = "reservation canceled" }
+        val calendarResource = getCalendarResource(reservation.resourceId!!)
+        return if (calendarResource != null) {
+            logger.info("cancel Reservation for ${calendarResource.resourceEmail} and ${reservation.id}")
+            client?.events()?.delete(calendarResource.resourceEmail, reservation.id)?.execute()
+            ValidationResult().apply { success = true; message = "reservation canceled" }
+        } else{
+            ValidationResult().apply { success = false; message = "reservation cancellation failed" }
+        }
     }
 
     /**
      * https://developers.google.com/admin-sdk/directory/reference/rest/v1/resources.calendars/get
      * */
-    private fun getResource(resourceId: String): CalendarResource? {
+    private fun getCalendarResource(resourceId: String): CalendarResource? {
         return admin?.resources()?.calendars()?.get(customerName, resourceId)?.execute()
     }
 
@@ -286,12 +291,12 @@ data class ReservationProvider(
         duration: Int,
         features: List<SlotValue>?
     ): ValidationResult {
-        val resourceEmail = getResource(reservation.resourceId!!)!!.resourceEmail
-        val type = ResourceType(getResource(reservation.resourceId!!)!!.resourceType)
+        val resourceEmail = getCalendarResource(reservation.resourceId!!)!!.resourceEmail
+        val type = ResourceType(getCalendarResource(reservation.resourceId!!)!!.resourceType)
 
         val validationResult = ValidationResult()
 
-        val event = client?.events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
+        val event = client?.events()?.get(getCalendarResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
 
         return if (event.isNullOrEmpty()) {
             validationResult.apply {
@@ -321,7 +326,7 @@ data class ReservationProvider(
         val listResources = mutableListOf<CalendarResource>()
 
         val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items
-        val event = client?.Events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
+        val event = client?.Events()?.get(getCalendarResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         if (event.isNullOrEmpty()) {
             validationResult.message = "cannot update"
             validationResult.success = false
@@ -357,7 +362,7 @@ data class ReservationProvider(
 
     override fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult {
         val now = Instant.now()
-        val event = client?.Events()?.get(getResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
+        val event = client?.Events()?.get(getCalendarResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return if (now.isAfter(Instant.parse(event?.start?.dateTime.toString()))) {
             val result = ValidationResult()
             result.success = false
