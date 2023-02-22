@@ -72,7 +72,7 @@ data class ReservationProvider(
     private val HTTP_TRANSPORT: NetHttpTransport = GoogleNetHttpTransport.newTrustedTransport()
     private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
-
+    private val delegatedUser = config[DELEGATED_USER] as String
     private val client = buildClient()
     private val admin = buildAdmin()
 
@@ -87,7 +87,7 @@ data class ReservationProvider(
     private fun buildClient(): Calendar? {
         val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
             .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
-
+            .createDelegated(delegatedUser)
         return Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Calendar API").build()
     }
 
@@ -99,6 +99,7 @@ data class ReservationProvider(
     private fun buildAdmin(): Directory? {
         val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
             .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
+            .createDelegated(delegatedUser)          
         return Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Calendar API").build()
     }
 
