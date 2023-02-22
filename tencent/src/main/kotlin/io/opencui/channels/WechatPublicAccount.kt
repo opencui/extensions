@@ -154,7 +154,7 @@ data class WechatPublicAccountChannel(override val info: Configuration) : IMessa
       .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_XML_VALUE)
       .build()
 
-    inline fun <reified T> post(payload: T, path: String): String? {
+    inline fun <reified T : Any> post(payload: T, path: String): String? {
         val response = client.post()
             .uri(path)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -375,7 +375,7 @@ data class WechatPublicAccountChannel(override val info: Configuration) : IMessa
     }
 
     fun getAccessTokenLocal(botInfo: BotInfo) : String {
-        return Dispatcher.sessionManager.botStore!!.getRaw(botInfo, "wechat:$label:access_token")!!
+        return Dispatcher.sessionManager.botStore!!.get("wechat:$label:access_token")!!
     }
 
     fun getAccessTokenRemote(botInfo: BotInfo) : String ? {
@@ -415,7 +415,7 @@ data class WechatPublicAccountChannel(override val info: Configuration) : IMessa
                 timerTask {
                     val accessToken = channel.getAccessTokenRemote(botInfo)
                     val key = "wechat:$label:access_token"
-                    Dispatcher.sessionManager.botStore?.putRaw(botInfo, key, accessToken?:"")
+                    Dispatcher.sessionManager.botStore?.set(key, accessToken?:"")
 
                 },
                 0, delay)
