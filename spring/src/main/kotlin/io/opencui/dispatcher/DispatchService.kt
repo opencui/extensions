@@ -30,12 +30,16 @@ class DispatchService(
 	@EventListener(ApplicationReadyEvent::class)
 	fun init() {
 		ObjectMapper().registerModule(KotlinModule())
+		Dispatcher.botPrefix = botPrefix
+
+		val botInfo = master()
 
 		RuntimeConfig.put(DucklingRecognizer::class, duDuckling)
 		RuntimeConfig.put(TfRestBertNLUModel::class, Triple(duHost, duPort.toInt(), duProtocol))
- 		RuntimeConfig.put(ChatbotLoader::class, InMemoryBotStore())
+ 		RuntimeConfig.put(ChatbotLoader::class, InMemoryBotStore(botInfo))
 
-		val sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore())
+		// TODO: for persistent, we need more extra coding and deployment of storage.
+		val sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
 
 		// This make sure that we keep the existing index if we have it.
 		// I think the dispatcher can not be used as is.
