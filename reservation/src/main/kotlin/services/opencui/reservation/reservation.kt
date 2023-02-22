@@ -35,6 +35,7 @@ import io.opencui.core.da.SlotRequestMore
 import io.opencui.core.templateOf
 import io.opencui.serialization.Json
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import kotlin.Boolean
@@ -103,96 +104,71 @@ public interface Resource : IFrame {
     public var durations: MutableList<Int>?
 }
 
+
 public data class Reservation(
-    @JsonInclude(NON_NULL)
-    public override var session: UserSession? = null
+  @JsonInclude(NON_NULL)
+  public override var session: UserSession? = null
 ) : IFrame {
-    @JsonProperty
-    public var id: String? = null
+  @JsonProperty
+  public var id: String? = null
 
-    @JsonProperty
-    public var resourceId: String? = null
+  @JsonProperty
+  public var resourceId: String? = null
 
-    @JsonProperty
-    public var userId: String? = null
+  @JsonProperty
+  public var userId: String? = null
 
-    @JsonProperty
-    public var startDate: LocalDate? = null
+  @JsonProperty
+  public var start: LocalDateTime? = null
 
-    @JsonProperty
-    public var startTime: LocalTime? = null
+  @JsonProperty
+  public var end: LocalDateTime? = null
 
-    @JsonProperty
-    public var duration: Int? = null
+  @get:JsonIgnore
+  public val reservationService: IReservation
+    public get() = session!!.getExtension<IReservation>()!!
 
-    @JsonProperty
-    public var endDate: LocalDate? = null
+  @JsonIgnore
+  public fun getResourceInfo(): Resource? {
+    return reservationService!!.getResourceInfo(resourceId!!)
+  }
 
-    @JsonProperty
-    public var endTime: LocalTime? = null
+  public override fun annotations(path: String): List<Annotation> = when (path) {
+    "id" -> listOf(NeverAsk())
+    "resourceId" -> listOf(NeverAsk())
+    "userId" -> listOf(NeverAsk())
+    "start" -> listOf(NeverAsk())
+    "end" -> listOf(NeverAsk())
+    else -> listOf()
+  }
 
-    @get:JsonIgnore
-    public val reservationService: IReservation
-        public get() = session!!.getExtension<IReservation>()!!
+  public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+      FillBuilder {
+    public var frame: Reservation? = this@Reservation
 
-    @JsonIgnore
-    public fun getResourceInfo(): Resource? {
-        return reservationService!!.getResourceInfo(resourceId!!)
+    public override fun invoke(path: ParamPath): FrameFiller<Reservation> {
+      val filler = FrameFiller({(p as? KMutableProperty0<Reservation?>) ?: ::frame}, path)
+      filler.addWithPath(EntityFiller({filler.target.get()!!::id}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::resourceId}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::userId}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::start}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDateTime")!!) as?
+          java.time.LocalDateTime})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::end}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDateTime")!!) as?
+          java.time.LocalDateTime})
+      return filler
     }
+  }
 
-    public override fun annotations(path: String): List<Annotation> = when (path) {
-        "id" -> listOf(NeverAsk())
-        "resourceId" -> listOf(NeverAsk())
-        "userId" -> listOf(NeverAsk())
-        "startDate" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("startDate",
-            "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
-        "startTime" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("startTime",
-            "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
-        "duration" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("duration", "kotlin.Int",
-            listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
-        "endDate" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("endDate",
-            "java.time.LocalDate", listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
-        "endTime" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequest("endTime",
-            "java.time.LocalTime", listOf(this), templateOf("restful" to Prompts()))}), AlwaysAsk())
-        else -> listOf()
-    }
+  public companion object {
+    public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String, String>>()
 
-    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
-        FillBuilder {
-        public var frame: Reservation? = this@Reservation
-
-        public override fun invoke(path: ParamPath): FrameFiller<Reservation> {
-            val filler = FrameFiller({(p as? KMutableProperty0<Reservation?>) ?: ::frame}, path)
-            filler.addWithPath(EntityFiller({filler.target.get()!!::id}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::resourceId}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::userId}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::startDate}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as?
-                        java.time.LocalDate})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::startTime}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalTime")!!) as?
-                        java.time.LocalTime})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::duration}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Int")!!) as? kotlin.Int})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::endDate}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as?
-                        java.time.LocalDate})
-            filler.addWithPath(EntityFiller({filler.target.get()!!::endTime}, null) {s, t ->
-                Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalTime")!!) as?
-                        java.time.LocalTime})
-            return filler
-        }
-    }
-
-    public companion object {
-        public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String,
-                String>>()
-
-        public inline fun <reified S : IFrame> from(s: S): Reservation = Json.mappingConvert(s)
-    }
+    public inline fun <reified S : IFrame> from(s: S): Reservation = Json.mappingConvert(s)
+  }
 }
 
 public data class Location(
