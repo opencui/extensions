@@ -46,6 +46,11 @@ fun LocalDateTime.toDateTime(zoneId: ZoneId): DateTime {
 fun DateTime.toLocalDateTime(): LocalDateTime {
     return LocalDateTime.parse(this.toStringRfc3339(), DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 }
+
+fun DateTime.toOffsetDateTime(): OffsetDateTime {
+    return OffsetDateTime.parse(this.toStringRfc3339(), DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+}
+
 fun DateTime.toLocalTime(): LocalTime {
     return toLocalDateTime().toLocalTime()
 }
@@ -59,7 +64,6 @@ data class ReservationProvider(
     override var session: UserSession? = null,
 ) : IReservation, IProvider {
 
-    private val delegatedUser = config[DELEGATED_USER] as String
 
     private val secrets_json = config[CLIENT_SECRET] as String
 
@@ -83,7 +87,6 @@ data class ReservationProvider(
     private fun buildClient(): Calendar? {
         val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
             .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
-            .createDelegated(delegatedUser)
 
         return Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Calendar API").build()
     }
@@ -96,7 +99,6 @@ data class ReservationProvider(
     private fun buildAdmin(): Directory? {
         val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
             .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
-            .createDelegated(delegatedUser)
         return Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Calendar API").build()
     }
 
@@ -163,10 +165,10 @@ data class ReservationProvider(
         return if (createdEvent != null) {
             val reservation = Reservation(session)
             reservation.id = createdEvent?.id
-            reservation.end = endTime.toLocalDateTime()
+            reservation.end = endTime.toOffsetDateTime()
             reservation.userId = userId
             reservation.resourceId = resource.resourceId
-            reservation.start = startTime.toLocalDateTime()
+            reservation.start = startTime.toOffsetDateTime()
 
             val botStore = Dispatcher.sessionManager.botStore!!
             val value = Json.encodeToString(reservation)
@@ -189,7 +191,7 @@ data class ReservationProvider(
         val reservationStrs = botStore.lrange(getKey(userId), 0, -1)
         val reservations = reservationStrs.map { Json.decodeFromString<Reservation>(it) }
         reservations.map{ it. session = session }
-        return reservations.sortedBy {  it.start }
+        return reservations.sortedBy {  it.start }.filter { it.start!!.isAfter(OffsetDateTime.now(it.start!!.offset.normalized()))!!  }
     }
 
 
