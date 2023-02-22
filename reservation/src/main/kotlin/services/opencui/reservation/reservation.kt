@@ -101,9 +101,9 @@ public interface Resource : IFrame {
     public var durations: MutableList<Int>?
 }
 
-
+// We need to figure out code gen.
 public data class Reservation(
-  @JsonInclude(NON_NULL)
+  @JsonIgnore
   public override var session: UserSession? = null
 ) : IFrame {
   @JsonProperty
