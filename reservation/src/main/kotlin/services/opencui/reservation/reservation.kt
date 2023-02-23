@@ -1,9 +1,8 @@
 package services.opencui.reservation
 
 
+import com.fasterxml.jackson.annotation.*
 import com.fasterxml.jackson.`annotation`.JsonInclude.Include.NON_NULL
-import com.fasterxml.jackson.annotation.JsonSetter
-import com.fasterxml.jackson.annotation.Nulls
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.core.AEntityFiller
 import io.opencui.core.AlwaysAsk
