@@ -48,6 +48,7 @@ fun DateTime.toLocalDateTime(): LocalDateTime {
 }
 
 fun DateTime.toOffsetDateTime(): OffsetDateTime {
+    println("Input DateTime: ${this.toStringRfc3339()}")
     return OffsetDateTime.parse(this.toStringRfc3339(), DateTimeFormatter.ISO_OFFSET_DATE_TIME)
 }
 
