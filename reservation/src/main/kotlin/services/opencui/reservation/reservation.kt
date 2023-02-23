@@ -1,11 +1,8 @@
 package services.opencui.reservation
 
-import com.fasterxml.jackson.`annotation`.JsonIgnore
-import com.fasterxml.jackson.`annotation`.JsonInclude
+
+import com.fasterxml.jackson.annotation.*
 import com.fasterxml.jackson.`annotation`.JsonInclude.Include.NON_NULL
-import com.fasterxml.jackson.`annotation`.JsonProperty
-import com.fasterxml.jackson.`annotation`.JsonTypeInfo
-import com.fasterxml.jackson.`annotation`.JsonValue
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.opencui.core.AEntityFiller
 import io.opencui.core.AlwaysAsk
@@ -103,7 +100,7 @@ public interface Resource : IFrame {
 
 // We need to figure out code gen.
 public data class Reservation(
-  @JsonIgnore
+  @JsonSetter(contentNulls = Nulls.SKIP)
   public override var session: UserSession? = null
 ) : IFrame {
   @JsonProperty
