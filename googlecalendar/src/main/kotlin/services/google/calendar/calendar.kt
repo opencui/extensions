@@ -164,7 +164,7 @@ data class ReservationProvider(
         val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute()
 
         return if (createdEvent != null) {
-            val reservation = Reservation(session)
+            val reservation = Reservation(null)
             reservation.id = createdEvent?.id
             reservation.end = endTime.toOffsetDateTime()
             reservation.userId = userId
@@ -191,7 +191,7 @@ data class ReservationProvider(
         val botStore = Dispatcher.sessionManager.botStore!!
         val reservationStrs = botStore.lrange(getKey(userId), 0, -1)
         val reservations = reservationStrs.map { Json.decodeFromString<Reservation>(it) }
-        reservations.map{ it. session = session }
+        reservations.map{ it.session = session }
         return reservations.sortedBy {  it.start }.filter { it.start!!.isAfter(OffsetDateTime.now(it.start!!.offset.normalized()))!!  }
     }
 
