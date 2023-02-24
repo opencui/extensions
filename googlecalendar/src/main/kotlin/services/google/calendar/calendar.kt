@@ -140,7 +140,7 @@ data class ReservationProvider(
 
         return if (createdEvent != null) {
             val reservation = Reservation(null)
-            reservation.id = createdEvent?.id
+            reservation.id = createdEvent!!.id
             reservation.end = endTime.toOffsetDateTime()
             reservation.userId = userId
             reservation.resourceId = resource.resourceId
@@ -507,13 +507,11 @@ data class ReservationProvider(
         time: LocalTime?,
         duration: Int
     ): List<Resource> {
-        val timeZone = location.timezone!!.id
         var calendarResources = getResourcesWhenFilterIsNull(location, type)
+        if (calendarResources.isNullOrEmpty()) return emptyList()
 
         val resources = mutableListOf<Resource>()
-        if (calendarResources.isNullOrEmpty()) {
-            return resources
-        }
+
         if (date != null) {
             calendarResources = calendarResources.filter {
                 !makeFreeBusyRequest(location, date, it.resourceEmail).isNullOrEmpty()
@@ -524,10 +522,15 @@ data class ReservationProvider(
                 checkSlotAvailability(location, date!!, time, it.resourceEmail,  duration)
             }
         }
+
         calendarResources.forEach {
             val resource = Json.decodeFromString<Resource>(
                 it.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo)
             )
+            resource.id = it.resourceId
+            resource.type = ResourceType(it.resourceType)
+            resource.name = ResourceName(it.resourceName)
+            // TODO: it might be better to include email as human readable identity.
             resources.add(resource)
         }
         return resources
@@ -548,6 +551,7 @@ data class ReservationProvider(
         }
         return resource
     }
+
 
     /**
      * This function retrieves the list of calendar resources for a given location and resource type.
