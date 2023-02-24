@@ -238,11 +238,19 @@ data class ReservationProvider(
         duration: Int,
         filter: List<SlotValue>?
     ): ValidationResult {
-        val now = LocalDateTime.now()
-        val dateTime = if (time != null) date?.atTime(time) else null
-        if (dateTime?.isBefore(now) == true) {
-            return ValidationResult(session).apply { success = false; message = NotAvailable }
+        val timeZone = location.timezone!!.id
+        val zoneId = ZoneId.of(timeZone)
+        val now = LocalDateTime.now(zoneId)
+
+        // Make sure time it not passed in both datetime, and date.
+        if (time != null && date?.atTime(time)?.isBefore(now) == true) {
+            return ValidationResult(session).apply { success = false; message = TimePassed }
         }
+
+        if (date?.isBefore(now.toLocalDate()) == true) {
+            return ValidationResult(session).apply { success = false; message = TimePassed }
+        }
+
         var resources =
             if (filter == null)
                 getResourcesWhenFilterIsNull(location, type)
@@ -658,6 +666,7 @@ data class ReservationProvider(
         const val DELEGATED_USER = "delegated_user"
         const val CUSTOMERNAME = "customer_name"
         const val NotAvailable = "Resource Not Available"
+        const val TimePassed = "Time Passed"
         const val Available = "Resource Available"
         override fun invoke(config: Configuration): IReservation {
             return ReservationProvider(config)
