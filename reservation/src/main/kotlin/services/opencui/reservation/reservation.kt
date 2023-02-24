@@ -273,93 +273,87 @@ public data class ValidationResult(
         public inline fun <reified S : IFrame> from(s: S): ValidationResult = Json.mappingConvert(s)
     }
 }
-
 public interface IReservation : IService {
-    @JsonIgnore
-    public fun makeReservation(
-        userId: String,
-        location: Location,
-        resourceType: ResourceType,
-        date: LocalDate?,
-        time: LocalTime?,
-        duration: Int,
-        filter: List<SlotValue>?
-    ): Reservation?
+  @JsonIgnore
+  public fun makeReservation(
+    userId: String,
+    location: Location,
+    date: LocalDate?,
+    time: LocalTime?,
+    duration: Int,
+    resource: Resource
+  ): Reservation?
 
-    @JsonIgnore
-    public fun listReservation(
-        userId: String,
-        location: Location,
-        resourceType: ResourceType
-    ): List<Reservation>
+  @JsonIgnore
+  public fun listReservation(
+    userId: String,
+    location: Location,
+    resourceType: ResourceType
+  ): List<Reservation>
 
-    @JsonIgnore
-    public fun cancelReservation(location: Location, reservation: Reservation): ValidationResult
+  @JsonIgnore
+  public fun cancelReservation(location: Location, reservation: Reservation): ValidationResult
 
-    @JsonIgnore
-    public fun resourceAvailable(
-        location: Location,
-        type: ResourceType,
-        date: LocalDate?,
-        time: LocalTime?,
-        duration: Int,
-        filter: List<SlotValue>?
-    ): ValidationResult
+  @JsonIgnore
+  public fun resourceAvailable(
+    location: Location,
+    date: LocalDate?,
+    time: LocalTime?,
+    duration: Int,
+    resource: Resource
+  ): ValidationResult
 
-    @JsonIgnore
-    public fun reservationUpdatable(
-        location: Location,
-        reservation: Reservation,
-        date: LocalDate?,
-        time: LocalTime?,
-        duration: Int,
-        features: List<SlotValue>?
-    ): ValidationResult
+  @JsonIgnore
+  public fun reservationUpdatable(
+    location: Location,
+    reservation: Reservation,
+    date: LocalDate?,
+    time: LocalTime?,
+    duration: Int,
+    resource: Resource
+  ): ValidationResult
 
-    @JsonIgnore
-    public fun updateReservation(
-        location: Location,
-        reservation: Reservation,
-        date: LocalDate?,
-        time: LocalTime?,
-        duration: Int,
-        features: List<SlotValue>
-    ): ValidationResult
+  @JsonIgnore
+  public fun updateReservation(
+    location: Location,
+    reservation: Reservation,
+    date: LocalDate?,
+    time: LocalTime?,
+    duration: Int,
+    resource: Resource
+  ): ValidationResult
 
-    @JsonIgnore
-    public fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult
+  @JsonIgnore
+  public fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult
 
-    @JsonIgnore
-    public fun listLocation(): List<Location>
+  @JsonIgnore
+  public fun listLocation(): List<Location>
 
-    @JsonIgnore
-    public fun availableDates(
-        location: Location,
-        resourceType: ResourceType,
-        time: LocalTime?,
-        duration: Int,
-        filter: List<SlotValue>?
-    ): List<LocalDate>
+  @JsonIgnore
+  public fun availableDates(
+    location: Location,
+    time: LocalTime?,
+    duration: Int,
+    resource: Resource
+  ): List<LocalDate>
 
-    @JsonIgnore
-    public fun availableTimes(
-        location: Location,
-        resourceType: ResourceType,
-        date: LocalDate?,
-        duration: Int,
-        filter: List<SlotValue>?
-    ): List<LocalTime>
+  @JsonIgnore
+  public fun availableTimes(
+    location: Location,
+    date: LocalDate?,
+    duration: Int,
+    resource: Resource
+  ): List<LocalTime>
 
-    @JsonIgnore
-    public fun getResourceInfo(resourceId: String): Resource?
+  @JsonIgnore
+  public fun getResourceInfo(resourceId: String): Resource?
 
-    @JsonIgnore
-    public fun listResource(
-        location: Location,
-        type: ResourceType,
-        date: LocalDate?,
-        time: LocalTime?,
-        duration: Int,
-        filter: List<SlotValue>?
-    ): List<Resource>
+  @JsonIgnore
+  public fun listResource(
+    location: Location,
+    type: ResourceType,
+    date: LocalDate?,
+    time: LocalTime?,
+    duration: Int
+  ): List<Resource>
 }
