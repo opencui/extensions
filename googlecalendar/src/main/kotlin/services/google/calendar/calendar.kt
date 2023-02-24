@@ -60,6 +60,12 @@ fun DateTime.toLocalDate(): LocalDate {
     return toLocalDateTime().toLocalDate()
 }
 
+fun Resource.update(presource: CalendarResource) {
+    id = presource.resourceId
+    type = ResourceType(presource.resourceType)
+    name = ResourceName(presource.resourceName)
+}
+
 data class ReservationProvider(
     val config: Configuration,
     override var session: UserSession? = null,
@@ -131,29 +137,27 @@ data class ReservationProvider(
         val endTime = date.atTime(time).plusSeconds(duration.toLong()).toDateTime(timeZone)
         event.start = EventDateTime().setDateTime(startTime)
         event.end = EventDateTime().setDateTime(endTime)
-        println("The start $startTime, endTime $endTime")
+
         //https://developers.google.com/calendar/api/concepts/sharing
         event.attendees = listOf(
             EventAttendee().setResource(true).setEmail(resource.resourceEmail).setId(resource.resourceId)
         )
-        val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute()
 
-        return if (createdEvent != null) {
-            val reservation = Reservation(null)
-            reservation.id = createdEvent?.id
-            reservation.end = endTime.toOffsetDateTime()
-            reservation.userId = userId
-            reservation.resourceId = resource.resourceId
-            reservation.start = startTime.toOffsetDateTime()
+        val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute() ?: return null
 
-            val botStore = Dispatcher.sessionManager.botStore!!
-            val value = Json.encodeToString(reservation)
-            botStore.rpush(getKey(userId), value)
+        val reservation = Reservation(null)
+        reservation.id = createdEvent.id
+        reservation.end = endTime.toOffsetDateTime()
+        reservation.userId = userId
+        reservation.resourceId = resource.resourceId
+        reservation.start = startTime.toOffsetDateTime()
 
-            reservation
-        } else {
-            null
-        }
+        // record in the kv store.
+        val botStore = Dispatcher.sessionManager.botStore!!
+        val value = Json.encodeToString(reservation)
+        botStore.rpush(getKey(userId), value)
+
+        return reservation
     }
 
     fun getKey(userId: String): String {
@@ -357,18 +361,18 @@ data class ReservationProvider(
      * The resulting list of Location objects is returned.
      * */
     override fun listLocation(): List<Location> {
-        val resources = admin?.resources()?.Buildings()?.list(customerName)?.execute()?.buildings
-        logger.debug("The resources are :: $resources")
+        val buildings = admin?.resources()?.Buildings()?.list(customerName)?.execute()?.buildings ?: emptyList()
+        logger.debug("The locations are :: $buildings")
         val locations = mutableListOf<Location>()
-        if (resources != null) {
-            for (resource in resources) {
-                val location = Location(session)
-                location.id = resource.buildingId
-                location.name = LocationName(resource.buildingName)
-                location.timezone = ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
-                locations.add(location)
-            }
+
+        for (resource in buildings) {
+            val location = Location(session)
+            location.id = resource.buildingId
+            location.name = LocationName(resource.buildingName)
+            location.timezone = ZoneId.of(ObjectMapper().readValue(resource.description, Map::class.java)["timezone"] as String)
+            locations.add(location)
         }
+
         return locations
     }
 
@@ -507,13 +511,11 @@ data class ReservationProvider(
         time: LocalTime?,
         duration: Int
     ): List<Resource> {
-        val timeZone = location.timezone!!.id
-        var calendarResources = getResourcesWhenFilterIsNull(location, type)
+        var calendarResources = getResourcesByLocationAndType(location, type)
+        if (calendarResources.isNullOrEmpty()) return emptyList()
 
         val resources = mutableListOf<Resource>()
-        if (calendarResources.isNullOrEmpty()) {
-            return resources
-        }
+
         if (date != null) {
             calendarResources = calendarResources.filter {
                 !makeFreeBusyRequest(location, date, it.resourceEmail).isNullOrEmpty()
@@ -524,28 +526,24 @@ data class ReservationProvider(
                 checkSlotAvailability(location, date!!, time, it.resourceEmail,  duration)
             }
         }
+
         calendarResources.forEach {
             val resource = Json.decodeFromString<Resource>(
                 it.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo)
             )
+            resource.update(it)
+            // TODO: it might be better to include email as human readable identity.
             resources.add(resource)
         }
         return resources
     }
 
     override fun getResourceInfo(resourceId: String): Resource? {
-        val calendar = admin?.resources()?.calendars()?.get(customerName, resourceId)?.execute()
-        val resource = calendar?.let {
-            Json.decodeFromString<Resource>(
-                it.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo)
-            )
-        }
+        val calendar = admin?.resources()?.calendars()?.get(customerName, resourceId)?.execute() ?: return null
+        val resource = Json.decodeFromString<Resource>(
+                calendar.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo))
 
-        if (resource != null) {
-            resource.id = calendar?.resourceId
-            resource.type = ResourceType(calendar?.resourceType!!)
-            resource.name = ResourceName(calendar?.resourceName)
-        }
+        resource?.update(calendar)
         return resource
     }
 
@@ -553,13 +551,12 @@ data class ReservationProvider(
      * This function retrieves the list of calendar resources for a given location and resource type.
      * If no filters are specified, it returns all calendar resources of the given type in the specified location.
      * */
-    private fun getResourcesWhenFilterIsNull(location: Location, resourceType: ResourceType): List<CalendarResource>? {
+    private fun getResourcesByLocationAndType(location: Location, resourceType: ResourceType): List<CalendarResource>? {
         val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items?.filter {
-            it.resourceType == resourceType.value
+            it.resourceType == resourceType.value && it.buildingId == location.id
         }
         return resources
     }
-
 
     /**
      * This function checks if a time slot is available for a given location, date, time, calendar ID,
