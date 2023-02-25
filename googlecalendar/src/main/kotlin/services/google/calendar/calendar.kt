@@ -23,7 +23,6 @@ import java.time.*
 import kotlin.String
 import kotlin.collections.List
 import kotlin.collections.Map
-import kotlin.collections.MutableList
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -446,23 +445,23 @@ data class ReservationProvider(
      * is today and not returning any free time slots if the search date is in the past
      * https://developers.google.com/calendar/api/v3/reference/freebusy
      * */
-    private fun makeFreeBusyRequest(location: Location, date: LocalDate, calendarId: String): MutableList<LocalTime> {
+    private fun makeFreeBusyRequest(location: Location, date: LocalDate, calendarId: String): List<LocalTime> {
         val timeZone = location.timezone!!.id
-        val freeRanges = mutableListOf<LocalTime>()
+
 
         var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(timeZone)
         var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(timeZone)
 
         // We should always use LocalDateTime.now(ZoneId.of(timeZone)
         val zoneId = ZoneId.of(timeZone)
-        val today = LocalDateTime.now(zoneId)
+        val now = LocalDateTime.now(zoneId)
         if (date == LocalDate.now(zoneId)) {
             // For today, we always start from now.
-            timeMinimum = date.atTime(LocalTime.now(zoneId)).toDateTime(timeZone)
+            timeMinimum = now.toDateTime(timeZone)
         }
 
-        if (date.atTime(timeMaximum.toLocalTime()).isBefore(today)) {
-            return freeRanges
+        if (date.atTime(timeMaximum.toLocalTime()).isBefore(now)) {
+            return emptyList()
         }
 
         val freeBusyRequest = FreeBusyRequest().apply {
@@ -472,36 +471,27 @@ data class ReservationProvider(
                 id = calendarId
             })
         }
-        logger.debug("Free busy request for $calendarId is $freeBusyRequest")
 
-        var localTimesPair = mutableListOf<Pair<LocalTime, LocalTime>>()
 
         val response = client?.freebusy()?.query(freeBusyRequest)?.execute()
         var currentStart = timeMinimum
         val busyIntervals = response?.calendars?.get(calendarId)!!.busy
+        logger.debug("Free busy request for $calendarId is $freeBusyRequest")
+        logger.debug("busyInterval is: $busyIntervals")
+        var freeIntervals = mutableListOf<Pair<LocalTime, LocalTime>>()
         busyIntervals.forEach {
             if (it.start.toLocalTime().isAfter(currentStart.toLocalTime())) {
-                localTimesPair.add(
-                    Pair(
-                        currentStart.toLocalTime(),
-                        it.start.toLocalTime()
-                    )
-                )
+                freeIntervals.add(Pair(currentStart.toLocalTime(), it.start.toLocalTime()))
+                currentStart = it.end
             }
-            currentStart = it.end
+            if (currentStart.toLocalDateTime().isBefore(it.end.toLocalDateTime())) {
+                currentStart = it.end
+            }
         }
         if (currentStart.toLocalTime().isBefore(timeMaximum.toLocalTime())) {
-            localTimesPair.add(
-                Pair(
-                    currentStart.toLocalTime(),
-                    timeMaximum.toLocalTime()
-                )
-            )
+            freeIntervals.add(Pair(currentStart.toLocalTime(), timeMaximum.toLocalTime()))
         }
-        localTimesPair.forEach {
-            freeRanges.add(it.first)
-        }
-        return freeRanges
+        return freeIntervals.map{ it.first }
     }
 
     override fun listResource(
