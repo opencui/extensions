@@ -481,12 +481,7 @@ data class ReservationProvider(
         var freeIntervals = mutableListOf<Pair<LocalTime, LocalTime>>()
         busyIntervals.forEach {
             if (it.start.toLocalTime().isAfter(currentStart.toLocalTime())) {
-                freeIntervals.add(
-                    Pair(
-                        currentStart.toLocalTime(),
-                        it.start.toLocalTime()
-                    )
-                )
+                freeIntervals.add(Pair(currentStart.toLocalTime(), it.start.toLocalTime()))
                 currentStart = it.end
             }
             if (currentStart.toLocalDateTime().isBefore(it.end.toLocalDateTime())) {
@@ -494,12 +489,7 @@ data class ReservationProvider(
             }
         }
         if (currentStart.toLocalTime().isBefore(timeMaximum.toLocalTime())) {
-            freeIntervals.add(
-                Pair(
-                    currentStart.toLocalTime(),
-                    timeMaximum.toLocalTime()
-                )
-            )
+            freeIntervals.add(Pair(currentStart.toLocalTime(), timeMaximum.toLocalTime()))
         }
         return freeIntervals.map{ it.first }
     }
