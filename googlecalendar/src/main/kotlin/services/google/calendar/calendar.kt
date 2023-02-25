@@ -487,8 +487,11 @@ data class ReservationProvider(
                         it.start.toLocalTime()
                     )
                 )
+                currentStart = it.end
             }
-            currentStart = it.end
+            if (currentStart.toLocalDateTime().isBefore(it.end.toLocalDateTime())) {
+                currentStart = it.end
+            }
         }
         if (currentStart.toLocalTime().isBefore(timeMaximum.toLocalTime())) {
             freeIntervals.add(
