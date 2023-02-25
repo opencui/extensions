@@ -392,7 +392,7 @@ data class ReservationProvider(
         presource: Resource
     ): List<LocalDate> {
         val availableDates = mutableListOf<LocalDate>()
-        val now = LocalDate.now()
+        val now = LocalDate.now(location.timezone!!)
         val resource = getCalendarResource(presource.id!!)!!
         val range = 0..5
 
