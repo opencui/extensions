@@ -32,10 +32,6 @@ import java.time.format.DateTimeFormatter
  * Datetime is always timeZoned. but local data and time are always related
  * to that timeZone, which controlled by what is on location and resource.
  */
-fun LocalDateTime.toDateTime(timeZone: String): DateTime {
-    return toDateTime(ZoneId.of(timeZone))
-}
-
 fun LocalDateTime.toDateTime(zoneId: ZoneId): DateTime {
     val dateTime = ZonedDateTime.of(this, zoneId)
     val offset = zoneId.rules.getOffset(LocalDateTime.now()).totalSeconds
@@ -126,7 +122,7 @@ data class ReservationProvider(
         duration: Int,
         presource: Resource
     ): Reservation? {
-        val timeZone = location.timezone!!.id
+        val timeZone = location.timezone!!
         val resource = getCalendarResource(presource.id!!)!!
         val calendar = client
         val event = Event()
@@ -446,18 +442,16 @@ data class ReservationProvider(
      * https://developers.google.com/calendar/api/v3/reference/freebusy
      * */
     private fun makeFreeBusyRequest(location: Location, date: LocalDate, calendarId: String): List<LocalTime> {
-        val timeZone = location.timezone!!.id
+        val zoneId = location.timezone!!
 
-
-        var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(timeZone)
-        var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(timeZone)
+        var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
+        var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
 
         // We should always use LocalDateTime.now(ZoneId.of(timeZone)
-        val zoneId = ZoneId.of(timeZone)
         val now = LocalDateTime.now(zoneId)
         if (date == LocalDate.now(zoneId)) {
             // For today, we always start from now.
-            timeMinimum = now.toDateTime(timeZone)
+            timeMinimum = now.toDateTime(zoneId)
         }
 
         if (date.atTime(timeMaximum.toLocalTime()).isBefore(now)) {
@@ -467,11 +461,11 @@ data class ReservationProvider(
         val freeBusyRequest = FreeBusyRequest().apply {
             timeMin = timeMinimum
             timeMax = timeMaximum
+            timeZone = zoneId.id
             items = listOf(FreeBusyRequestItem().apply {
                 id = calendarId
             })
         }
-
 
         val response = client?.freebusy()?.query(freeBusyRequest)?.execute()
         var currentStart = timeMinimum
@@ -561,7 +555,7 @@ data class ReservationProvider(
         duration: Int
     ): Boolean {
         val client = buildClient()
-        val timeZone = location.timezone!!.id
+        val timeZone = location.timezone!!
 
         val timeMin = date.atTime(time).toDateTime(timeZone)
         val timeMax = date.atTime(time).plusSeconds(duration.toLong())!!.toDateTime(timeZone)
