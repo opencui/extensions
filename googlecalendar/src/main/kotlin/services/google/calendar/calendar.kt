@@ -116,13 +116,12 @@ data class ReservationProvider(
      * */
     override fun makeReservation(
         userId: String,
-        location: Location,
         date: LocalDate?,
         time: LocalTime?,
         duration: Int,
         presource: Resource
     ): Reservation? {
-        val timeZone = location.timezone!!
+        val timeZone = presource.timezone!!
         val resource = getCalendarResource(presource.id!!)!!
         val calendar = client
         val event = Event()
@@ -161,9 +160,12 @@ data class ReservationProvider(
 
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
-    override fun listReservation(userId: String, location: Location, resourceType: ResourceType): List<Reservation> {
+    override fun listReservation(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
         val botStore = Dispatcher.sessionManager.botStore!!
         val reservationStrs = botStore.lrange(getKey(userId), 0, -1)
+        // TODO: Implement these when needed.
+        assert(location == null)
+        assert(resourceType == null)
         val reservations = reservationStrs.map { Json.decodeFromString<Reservation>(it) }
         reservations.map{ it.session = session }
         return reservations.sortedBy {  it.start }.filter { it.start!!.isAfter(OffsetDateTime.now(it.start!!.offset.normalized()))!!  }
@@ -178,7 +180,7 @@ data class ReservationProvider(
      * The method also logs the cancellation and sets the time zone for the location.
      * https://developers.google.com/calendar/api/v3/reference/events/delete?hl=en
      * */
-    override fun cancelReservation(location: Location, reservation: Reservation): ValidationResult {
+    override fun cancelReservation(reservation: Reservation): ValidationResult {
         val calendarResource = getCalendarResource(reservation.resourceId!!)
         return if (calendarResource != null) {
             logger.info("cancel Reservation for ${calendarResource.resourceEmail} and ${reservation.id}")
@@ -204,14 +206,12 @@ data class ReservationProvider(
      * Finally, it returns a ValidationResult indicating whether the resource is available or not.
      * */
     override fun resourceAvailable(
-        location: Location,
         date: LocalDate?,
         time: LocalTime?,
         duration: Int,
         presource: Resource
     ): ValidationResult {
-        val timeZone = location.timezone!!.id
-        val zoneId = ZoneId.of(timeZone)
+        val zoneId = presource.timezone!!
         val now = LocalDateTime.now(zoneId)
         val resource = getCalendarResource(presource.id!!)
 
@@ -230,7 +230,7 @@ data class ReservationProvider(
             }
         }
 
-        var available =  makeFreeBusyRequest(location, date!!, resource!!.resourceEmail)
+        var available =  makeFreeBusyRequest(zoneId, date!!, resource!!.resourceEmail)
         if (available.isNullOrEmpty()) {
             return  ValidationResult(session).apply {
                 success = false;
@@ -239,7 +239,7 @@ data class ReservationProvider(
         }
 
         logger.debug("Resource after filter of date is $resource")
-        return if(checkSlotAvailability(location, date!!, time!!, resource.resourceEmail, duration)){
+        return if(checkSlotAvailability(zoneId, date!!, time!!, resource.resourceEmail, duration)){
             ValidationResult(session).apply {
                 success = true
                 message = Available
@@ -260,7 +260,6 @@ data class ReservationProvider(
      * indicating whether the operation was successful or not with a corresponding message.
      * */
     override fun reservationUpdatable(
-        location: Location,
         reservation: Reservation,
         date: LocalDate?,
         time: LocalTime?,
@@ -279,14 +278,13 @@ data class ReservationProvider(
             }
         } else {
             validationResult.apply {
-                success = checkSlotAvailability(location, date!!, time!!, resourceEmail, duration)
+                success = checkSlotAvailability(resource.timezone!!, date!!, time!!, resourceEmail, duration)
                 message = if (success as Boolean) "Reservation can be updated" else "Reservation cannot be updated"
             }
         }
     }
 
     override fun updateReservation(
-        location: Location,
         reservation: Reservation,
         date: LocalDate?,
         time: LocalTime?,
@@ -332,7 +330,7 @@ data class ReservationProvider(
         return validationResult
     }
 
-    override fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult {
+    override fun reservationCancelable(reservation: Reservation): ValidationResult {
         val now = Instant.now()
         val event = client?.Events()?.get(getCalendarResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return if (now.isAfter(Instant.parse(event?.start?.dateTime.toString()))) {
@@ -381,26 +379,26 @@ data class ReservationProvider(
      * is used to filter resources based on specific criteria, if it is not null.
      * */
     override fun availableDates(
-        location: Location,
         time: LocalTime?,
         duration: Int,
         presource: Resource
     ): List<LocalDate> {
         val availableDates = mutableListOf<LocalDate>()
-        val now = LocalDate.now(location.timezone!!)
+        val now = LocalDate.now(presource.timezone!!)
         val resource = getCalendarResource(presource.id!!)!!
+        // TODO: improve this soon.
         val range = 0..5
 
         if (time == null) {
             range.forEach { i ->
-                val events = availableTimes(location, now.plusDays(i.toLong()), duration, presource)
+                val events = availableTimes(now.plusDays(i.toLong()), duration, presource)
                 if (events.isNotEmpty() && !availableDates.contains(now.plusDays(i.toLong()))) {
                     availableDates.add(now.plusDays(i.toLong()))
                 }
             }
         } else {
             range.forEach { i ->
-                val event = checkSlotAvailability(location, now, time, resource.resourceEmail, duration)
+                val event = checkSlotAvailability(presource.timezone!!, now, time, resource.resourceEmail, duration)
                 if (event) availableDates.add(now.plusDays(i.toLong()))
             }
         }
@@ -421,14 +419,13 @@ data class ReservationProvider(
      * times are in the LocalTime format.
      * */
       public override fun availableTimes(
-        location: Location,
         date: LocalDate?,
         duration: Int,
         presource: Resource
       ): List<LocalTime> {
-          val timeZone = location.timezone!!
+          val timeZone = presource.timezone!!
           val resource = getCalendarResource(presource.id!!)
-          return makeFreeBusyRequest(location, date ?: LocalDate.now(timeZone), resource!!.resourceEmail)
+          return makeFreeBusyRequest(timeZone, date ?: LocalDate.now(timeZone), resource!!.resourceEmail)
       }
 
 
@@ -441,9 +438,7 @@ data class ReservationProvider(
      * is today and not returning any free time slots if the search date is in the past
      * https://developers.google.com/calendar/api/v3/reference/freebusy
      * */
-    private fun makeFreeBusyRequest(location: Location, date: LocalDate, calendarId: String): List<LocalTime> {
-        val zoneId = location.timezone!!
-
+    private fun makeFreeBusyRequest(zoneId: ZoneId, date: LocalDate, calendarId: String): List<LocalTime> {
         var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
         var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
 
@@ -502,12 +497,12 @@ data class ReservationProvider(
 
         if (date != null) {
             calendarResources = calendarResources.filter {
-                !makeFreeBusyRequest(location, date, it.resourceEmail).isNullOrEmpty()
+                !makeFreeBusyRequest(location.timezone!!, date, it.resourceEmail).isNullOrEmpty()
             }
         }
         if (time != null) {
             calendarResources = calendarResources.filter {
-                checkSlotAvailability(location, date!!, time, it.resourceEmail,  duration)
+                checkSlotAvailability(location.timezone!!, date!!, time, it.resourceEmail,  duration)
             }
         }
 
@@ -516,6 +511,7 @@ data class ReservationProvider(
                 it.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo)
             )
             resource.update(it)
+            resource.timezone = location.timezone
             // TODO: it might be better to include email as human readable identity.
             resources.add(resource)
         }
@@ -528,6 +524,7 @@ data class ReservationProvider(
                 calendar.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo))
 
         resource?.update(calendar)
+        calendar.buildingId
         return resource
     }
 
@@ -548,15 +545,13 @@ data class ReservationProvider(
      * events within the specified time range. It returns a boolean indicating the availability of the time slot.
      * */
     private fun checkSlotAvailability(
-        location: Location,
+        timeZone: ZoneId,
         date: LocalDate,
         time: LocalTime,
         calendarId: String,
         duration: Int
     ): Boolean {
         val client = buildClient()
-        val timeZone = location.timezone!!
-
         val timeMin = date.atTime(time).toDateTime(timeZone)
         val timeMax = date.atTime(time).plusSeconds(duration.toLong())!!.toDateTime(timeZone)
 
