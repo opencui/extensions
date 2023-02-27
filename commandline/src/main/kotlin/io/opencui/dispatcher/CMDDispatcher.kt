@@ -116,28 +116,27 @@ class CMDDispatcher(
 
 		@JvmStatic
 		fun main(args: Array<String>) {
-			val botInfo = master()
+			val botInfo = botInfo("me.test", "frameVR_0222")
 			init(botInfo.fullName)
 			val userInfo = UserInfo("test_channel", "test_user", null)
 			val sessionManager = Dispatcher.sessionManager
 
 			val firstSession = sessionManager.createUserSession(userInfo, botInfo)
-			val mainEvent = FrameEvent("Main", emptyList(), emptyList(), "${ChatbotLoader.botPrefix}")
+			val mainEvent = FrameEvent("Main", emptyList(), emptyList(), "${botInfo.fullName}")
 			var responses = sessionManager.getReply(firstSession, "", listOf(userInfo.channelType!!), listOf(mainEvent))
 
 			while (true) {
-				println(responses)
-
+				println(Json.encodeToJsonElement(responses).toPrettyString())
 				print("Enter text: ")
-    			val line = readLine()
-				val session: UserSession = sessionManager.getUserSession(userInfo, botInfo)!!
-
+    			        val line = readLine()
+				
 				// line is not blank now.
 				if (line.isNullOrEmpty()) {
 					println("Input is empty.")
 					print("Enter text")
 				}
-
+				println("Your input is: ${line?.strip()}")
+				val session: UserSession = sessionManager.getUserSession(userInfo, botInfo)!!
 				responses = sessionManager.getReply(session, line!!, listOf(userInfo.channelType!!))
 			}
 		}
