@@ -96,6 +96,8 @@ public interface Resource : IFrame {
     public var name: ResourceName?
 
     public var durations: MutableList<Int>?
+
+    public var timezone: ZoneId?
 }
 
 // We need to figure out code gen.
@@ -273,11 +275,11 @@ public data class ValidationResult(
         public inline fun <reified S : IFrame> from(s: S): ValidationResult = Json.mappingConvert(s)
     }
 }
+
 public interface IReservation : IService {
   @JsonIgnore
   public fun makeReservation(
     userId: String,
-    location: Location,
     date: LocalDate?,
     time: LocalTime?,
     duration: Int,
@@ -287,16 +289,15 @@ public interface IReservation : IService {
   @JsonIgnore
   public fun listReservation(
     userId: String,
-    location: Location,
-    resourceType: ResourceType
+    location: Location?,
+    resourceType: ResourceType?
   ): List<Reservation>
 
   @JsonIgnore
-  public fun cancelReservation(location: Location, reservation: Reservation): ValidationResult
+  public fun cancelReservation(reservation: Reservation): ValidationResult
 
   @JsonIgnore
   public fun resourceAvailable(
-    location: Location,
     date: LocalDate?,
     time: LocalTime?,
     duration: Int,
@@ -305,7 +306,6 @@ public interface IReservation : IService {
 
   @JsonIgnore
   public fun reservationUpdatable(
-    location: Location,
     reservation: Reservation,
     date: LocalDate?,
     time: LocalTime?,
@@ -315,7 +315,6 @@ public interface IReservation : IService {
 
   @JsonIgnore
   public fun updateReservation(
-    location: Location,
     reservation: Reservation,
     date: LocalDate?,
     time: LocalTime?,
@@ -324,14 +323,13 @@ public interface IReservation : IService {
   ): ValidationResult
 
   @JsonIgnore
-  public fun reservationCancelable(location: Location, reservation: Reservation): ValidationResult
+  public fun reservationCancelable(reservation: Reservation): ValidationResult
 
   @JsonIgnore
   public fun listLocation(): List<Location>
 
   @JsonIgnore
   public fun availableDates(
-    location: Location,
     time: LocalTime?,
     duration: Int,
     resource: Resource
@@ -339,7 +337,6 @@ public interface IReservation : IService {
 
   @JsonIgnore
   public fun availableTimes(
-    location: Location,
     date: LocalDate?,
     duration: Int,
     resource: Resource
