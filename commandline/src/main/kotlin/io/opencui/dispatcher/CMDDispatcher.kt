@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.opencui.channel.IChannel
 import io.opencui.core.*
+import io.opencui.serialization.Json
 import io.opencui.core.Dispatcher
 import io.opencui.core.user.IUserIdentifier
 import io.opencui.core.user.UserInfo
