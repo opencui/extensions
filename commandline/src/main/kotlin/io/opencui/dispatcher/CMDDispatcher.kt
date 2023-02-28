@@ -2,26 +2,18 @@ package io.opencui.dispatcher
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import io.opencui.channel.IChannel
 import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.core.Dispatcher
-import io.opencui.core.user.IUserIdentifier
 import io.opencui.core.user.UserInfo
 import io.opencui.du.DucklingRecognizer
 import io.opencui.du.TfRestBertNLUModel
-import io.opencui.serialization.JsonObject
 import io.opencui.sessionmanager.*
-import java.io.File
-import java.util.logging.Logger
-
 
 /**
  * This dispatcher is designed to be used for debugging the chatbot in the commandline.
  */
 class CMDDispatcher {
-
-
 	companion object {
 		@JvmStatic
 		fun init(
