@@ -149,20 +149,27 @@ data class ReservationProvider(
         // record in the kv store.
         val botStore = Dispatcher.sessionManager.botStore!!
         val value = Json.encodeToString(reservation)
-        botStore.rpush(getKey(userId), value)
+        botStore.rpush(getReservationKey(userId), value)
 
         return reservation
     }
 
-    fun getKey(userId: String): String {
-        return "$userId:googlecalendar"
+    private fun getReservationKey(userId: String): String {
+        return "$userId:googlecalendar:reservation"
     }
 
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
+        return cachedListReservation(userId, location, resourceType)
+    }
+
+    val cachedListReservation = CachedMethod3(this::listReservationImpl, values)
+
+    private fun listReservationImpl(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
+        // We suspect the hosted redis instance has some sort of rate limit, so we need to keep this in cache.
         val botStore = Dispatcher.sessionManager.botStore!!
-        val reservationStrs = botStore.lrange(getKey(userId), 0, -1)
+        val reservationStrs = botStore.lrange(getReservationKey(userId), 0, -1)
         // TODO: Implement these when needed.
         assert(location == null)
         assert(resourceType == null)
@@ -570,6 +577,8 @@ data class ReservationProvider(
         override fun invoke(config: Configuration): IReservation {
             return ReservationProvider(config)
         }
+
+        private val values = mutableMapOf<Triple<String, Location?, ResourceType?>, Pair<List<Reservation>, LocalDateTime>>()
     }
 }
 
