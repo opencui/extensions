@@ -192,6 +192,8 @@ data class ReservationProvider(
         return if (calendarResource != null) {
             logger.info("cancel Reservation for ${calendarResource.resourceEmail} and ${reservation.id}")
             client?.events()?.delete(calendarResource.resourceEmail, reservation.id)?.execute()
+            val botStore = Dispatcher.sessionManager.botStore!!
+            botStore.lrem(getReservationKey(reservation.userId!!), Json.encodeToString(reservation))
             ValidationResult().apply { success = true; message = "reservation canceled" }
         } else{
             ValidationResult().apply { success = false; message = "reservation cancellation failed" }
