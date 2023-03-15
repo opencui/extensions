@@ -175,9 +175,18 @@ data class ReservationProvider(
         assert(resourceType == null)
         val reservations = reservationStrs.map { Json.decodeFromString<Reservation>(it) }
         reservations.map{ it.session = session }
-        return reservations.sortedBy {  it.start }.filter { it.start!!.isAfter(OffsetDateTime.now(it.start!!.offset.normalized()))!!  }
+        return reservations
+            .sortedBy {  it.start }
+            .filter { it.start!!.isAfter(OffsetDateTime.now(it.start!!.offset.normalized()))!!  }
+            .filter { isReservationGood(it)  }
     }
 
+    private fun isReservationGood(reservation: Reservation): Boolean {
+        val calendarResource = getCalendarResource(reservation.resourceId!!) ?: return false
+        logger.info("test Reservation for ${calendarResource.resourceEmail} and ${reservation.id}")
+        val event = client?.events()?.get(calendarResource.resourceEmail, reservation.id)?.execute()
+        return event != null
+    }
 
     /**
      * This is the implementation of a method named cancelReservation that takes in a Location
