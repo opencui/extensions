@@ -150,7 +150,10 @@ data class ReservationProvider(
         val botStore = Dispatcher.sessionManager.botStore!!
         val value = Json.encodeToString(reservation)
         botStore.rpush(getReservationKey(userId), value)
-
+        
+        // Before we have more automatic solution, manually invalidate cache.
+        cachedListReservation.invalidate(userId, null, null)
+        
         return reservation
     }
 
