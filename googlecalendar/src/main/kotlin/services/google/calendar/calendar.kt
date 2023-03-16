@@ -148,8 +148,8 @@ data class ReservationProvider(
 
         // record in the kv store.
         val botStore = Dispatcher.sessionManager.botStore!!
-        val value = Json.encodeToString(reservation)
-        botStore.rpush(getReservationKey(userId), value)
+        botStore.rpush(getReservationKey(userId), Json.encodeToString(reservation))
+        logger.debug("rpush for $userId and ${Json.encodeToString(reservation)}")
         
         // Before we have more automatic solution, manually invalidate cache.
         cachedListReservation.invalidate(userId, null, null)
@@ -186,7 +186,7 @@ data class ReservationProvider(
 
     private fun isReservationGood(reservation: Reservation): Boolean {
         val calendarResource = getCalendarResource(reservation.resourceId!!) ?: return false
-        logger.info("test Reservation for ${calendarResource.resourceEmail} and ${reservation.id}")
+        logger.debug("test Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
         val event = client?.events()?.get(calendarResource.resourceEmail, reservation.id)?.execute()
         logger.debug("reservation ${Json.encodeToString(reservation)} returns $event")
         return event != null
