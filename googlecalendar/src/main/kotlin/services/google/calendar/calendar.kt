@@ -152,7 +152,7 @@ data class ReservationProvider(
         logger.debug("rpush for $userId and ${Json.encodeToString(reservation)}")
         
         // Before we have more automatic solution, manually invalidate cache.
-        cachedListReservation.invalidate(userId, null, null)
+        cachedListReservation.invalidate(userId)
         
         return reservation
     }
@@ -164,18 +164,16 @@ data class ReservationProvider(
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
-        return cachedListReservation(userId, location, resourceType)
+        return cachedListReservation(userId)
     }
 
-    val cachedListReservation = CachedMethod3(this::listReservationImpl, values)
+    val cachedListReservation = CachedMethod1(this::listReservationImpl, values)
 
-    private fun listReservationImpl(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
+    private fun listReservationImpl(userId: String): List<Reservation> {
         // We suspect the hosted redis instance has some sort of rate limit, so we need to keep this in cache.
         val botStore = Dispatcher.sessionManager.botStore!!
         val reservationStrs = botStore.lrange(getReservationKey(userId), 0, -1)
         // TODO: Implement these when needed.
-        assert(location == null)
-        assert(resourceType == null)
         val reservations = reservationStrs.map { Json.decodeFromString<Reservation>(it) }
         reservations.map{ it.session = session }
         return reservations
@@ -594,7 +592,7 @@ data class ReservationProvider(
             return ReservationProvider(config)
         }
 
-        private val values = mutableMapOf<Triple<String, Location?, ResourceType?>, Pair<List<Reservation>, LocalDateTime>>()
+        private val values = mutableMapOf<String, Pair<List<Reservation>, LocalDateTime>>()
     }
 }
 
