@@ -179,15 +179,6 @@ data class ReservationProvider(
         return reservations
             .sortedBy {  it.start }
             .filter { it.start!!.isAfter(OffsetDateTime.now(it.start!!.offset.normalized()))!!  }
-            .filter { isReservationGood(it)  }
-    }
-
-    private fun isReservationGood(reservation: Reservation): Boolean {
-        val calendarResource = getCalendarResource(reservation.resourceId!!) ?: return false
-        logger.debug("test Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
-        val event = client?.events()?.get(calendarResource.resourceEmail, reservation.id)?.execute()
-        logger.debug("reservation ${Json.encodeToString(reservation)} returns $event")
-        return event != null
     }
 
     /**
@@ -206,6 +197,10 @@ data class ReservationProvider(
             client?.events()?.delete(calendarResource.resourceEmail, reservation.id)?.execute()
             val botStore = Dispatcher.sessionManager.botStore!!
             botStore.lrem(getReservationKey(reservation.userId!!), Json.encodeToString(reservation))
+            
+            // We should invalidate cache after cancel as well.
+            cachedListReservation.invalidate(reservation.userId!!)
+            
             ValidationResult().apply { success = true; message = "reservation canceled" }
         } else{
             ValidationResult().apply { success = false; message = "reservation cancellation failed" }
