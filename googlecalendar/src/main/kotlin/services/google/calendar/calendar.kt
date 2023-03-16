@@ -179,15 +179,6 @@ data class ReservationProvider(
         return reservations
             .sortedBy {  it.start }
             .filter { it.start!!.isAfter(OffsetDateTime.now(it.start!!.offset.normalized()))!!  }
-            .filter { isReservationGood(it)  }
-    }
-
-    private fun isReservationGood(reservation: Reservation): Boolean {
-        val calendarResource = getCalendarResource(reservation.resourceId!!) ?: return false
-        logger.debug("test Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
-        val event = client?.events()?.get(calendarResource.resourceEmail, reservation.id)?.execute()
-        logger.debug("reservation ${Json.encodeToString(reservation)} returns $event")
-        return event != null
     }
 
     /**
