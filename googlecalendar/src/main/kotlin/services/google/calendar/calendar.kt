@@ -188,6 +188,7 @@ data class ReservationProvider(
         val calendarResource = getCalendarResource(reservation.resourceId!!) ?: return false
         logger.info("test Reservation for ${calendarResource.resourceEmail} and ${reservation.id}")
         val event = client?.events()?.get(calendarResource.resourceEmail, reservation.id)?.execute()
+        logger.debug("reservation ${Json.encodeToString(reservation)} returns $event")
         return event != null
     }
 
@@ -203,7 +204,7 @@ data class ReservationProvider(
         val calendarResource = getCalendarResource(reservation.resourceId!!)
         return if (calendarResource != null) {
             reservation.session = null
-            logger.info("cancel Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
+            logger.debug("cancel Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
             client?.events()?.delete(calendarResource.resourceEmail, reservation.id)?.execute()
             val botStore = Dispatcher.sessionManager.botStore!!
             botStore.lrem(getReservationKey(reservation.userId!!), Json.encodeToString(reservation))
