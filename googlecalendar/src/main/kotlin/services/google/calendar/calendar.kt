@@ -199,10 +199,10 @@ data class ReservationProvider(
     override fun cancelReservation(reservation: Reservation): ValidationResult {
         val calendarResource = getCalendarResource(reservation.resourceId!!)
         return if (calendarResource != null) {
-            logger.info("cancel Reservation for ${calendarResource.resourceEmail} and ${reservation.id}")
+            reservation.session = null
+            logger.info("cancel Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
             client?.events()?.delete(calendarResource.resourceEmail, reservation.id)?.execute()
             val botStore = Dispatcher.sessionManager.botStore!!
-            reservation.session = null
             botStore.lrem(getReservationKey(reservation.userId!!), Json.encodeToString(reservation))
             ValidationResult().apply { success = true; message = "reservation canceled" }
         } else{
