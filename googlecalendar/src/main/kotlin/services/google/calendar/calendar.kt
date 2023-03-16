@@ -206,6 +206,10 @@ data class ReservationProvider(
             client?.events()?.delete(calendarResource.resourceEmail, reservation.id)?.execute()
             val botStore = Dispatcher.sessionManager.botStore!!
             botStore.lrem(getReservationKey(reservation.userId!!), Json.encodeToString(reservation))
+            
+            // We should invalidate cache after cancel as well.
+            cachedListReservation.invalidate(reservation.userId!!)
+            
             ValidationResult().apply { success = true; message = "reservation canceled" }
         } else{
             ValidationResult().apply { success = false; message = "reservation cancellation failed" }
