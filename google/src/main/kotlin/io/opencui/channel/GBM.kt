@@ -103,13 +103,9 @@ class GBMResource {
             if (utterance != null) {
                 // Before we process incoming message, we need to create user session.
                 val userInfo = UserInfo(CHANNELTYPE, conversationId, label)
-                var userSession = Dispatcher.getUserSession(userInfo, botInfo)
-                if (userSession == null) {
-                    userSession = Dispatcher.createUserSession(userInfo, botInfo)
-                }
-                Dispatcher.getReply(userSession, textMessage(utterance, requestId))
+                Dispatcher.process(userInfo, master(lang), textMessage(utterance, requestId))
             } else {
-                return ResponseEntity(Json.makePrimitive("not $MESSAGE nor $SUGGESTION"), HttpStatus.BAD_REQUEST)
+                logger.info("no utterance found in $body.")
             }
         } else {
             logger.info("no $REQUESTID found in $body.")
