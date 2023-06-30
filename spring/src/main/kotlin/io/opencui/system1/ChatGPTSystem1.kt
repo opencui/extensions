@@ -9,6 +9,7 @@ import com.cjcrafter.openai.chat.ChatMessage.Companion.toSystemMessage
 import com.cjcrafter.openai.chat.ChatMessage.Companion.toUserMessage
 import com.cjcrafter.openai.chat.ChatRequest
 
+
 data class ChatGPTSystem1(val key: String, val profile: String, val model: String) : ISystem1 {
     val openai = OpenAI(key)
     val systemMessage = profile.toSystemMessage()
