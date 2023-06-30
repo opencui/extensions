@@ -7,6 +7,7 @@ import io.opencui.serialization.Json
 import io.opencui.core.Dispatcher
 import io.opencui.core.user.UserInfo
 import io.opencui.du.DucklingRecognizer
+import io.opencui.du.ListRecognizerBuilder
 import io.opencui.du.TfRestBertNLUModel
 import io.opencui.sessionmanager.*
 
@@ -45,7 +46,7 @@ class CMDDispatcher {
 		@JvmStatic
 		fun main(args: Array<String>) {
 			// val botInfo = botInfo("me.test", "frameVR_0222")
-			val botInfo = botInfo("me.test", "slotUpdate_0321")
+			val botInfo = botInfo("me.test", "copilotChatbot")
 			//val botInfo = botInfo("me.restaurant", "tableReservationApp")
 
 			init(botInfo.fullName)
@@ -56,10 +57,24 @@ class CMDDispatcher {
 			val mainEvent = FrameEvent("Main", emptyList(), emptyList(), "${botInfo.fullName}")
 			var responses = sessionManager.getReply(firstSession, "", listOf(userInfo.channelType!!), listOf(mainEvent))
 
+			//
+			val entities = mapOf(
+				"io.opencui.core.FrameType" to mapOf(
+					"Main" to listOf("Main"),
+					"Greeting" to listOf("Greeting"),
+					"Goodbye" to listOf("Goodbye"),
+					"FoodOrdering" to listOf("food ordering", "just test")),
+				"io.opencui.core.SlotEntity" to mapOf(
+					"Main/Greeting" to listOf(),
+					"FoodOrdering/dish" to listOf("dish")))
+
+			val events = listOf<FrameEvent>()
+			val recognizer = ListRecognizerBuilder("en", entities)
+
 			while (true) {
 				println(Json.encodeToJsonElement(responses).toPrettyString())
 				print("Enter text: ")
-    			        val line = readLine()
+				val line = readLine()
 				
 				// line is not blank now.
 				if (line.isNullOrEmpty()) {
@@ -68,7 +83,12 @@ class CMDDispatcher {
 				}
 				println("Your input is: ${line?.strip()}")
 				val session: UserSession = sessionManager.getUserSession(userInfo, botInfo)!!
-				responses = sessionManager.getReply(session, line!!, listOf(userInfo.channelType!!))
+				session.sessionRecognizer = recognizer
+				val response = mutableListOf<String>()
+				val sink = SimpleSink(response)
+
+				Dispatcher.getReply(session, TextPayload(line!!), sink, events)
+				responses = mapOf("restful" to response)
 			}
 		}
 	}
