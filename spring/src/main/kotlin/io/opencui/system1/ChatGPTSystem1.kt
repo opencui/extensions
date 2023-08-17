@@ -8,7 +8,14 @@ import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
-data class System1Request(val prompt: String, val turns: List<CoreMessage>)
+data class OpenAIMessage(val role: String, val content: String)
+
+data class System1Request(val prompt: String, val turns: List<OpenAIMessage>) {
+    constructor(prompt: string, pturns : List<CoreMessage>) : this(prompt, pturns.map{
+        OpenAIMessage(if (it.user) "user" else "assistant", it.message)
+    })
+}
+
 data class System1Reply(val reply: String)
 
 data class ChatGPTSystem1(val url: String, val prompt: String, val key: String? = null, val model: String? = null) : ISystem1 {
