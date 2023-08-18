@@ -9,12 +9,10 @@ import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 
 data class OpenAIMessage(val role: String, val content: String)
-
-data class System1Request(val prompt: String, val turns: List<OpenAIMessage>) {
-    constructor(prompt: string, pturns : List<CoreMessage>) : this(prompt, pturns.map{
-        OpenAIMessage(if (it.user) "user" else "assistant", it.message)
-    })
+fun List<CoreMessage>.convert(): List<OpenAIMessage> {
+    return this.map { OpenAIMessage(if (it.user) "user" else "assistant", it.message) }
 }
+data class System1Request(val prompt: String, val turns: List<OpenAIMessage>)
 
 data class System1Reply(val reply: String)
 
@@ -26,7 +24,7 @@ data class ChatGPTSystem1(val url: String, val prompt: String, val key: String? 
       .build()
 
     override fun response(msgs: List<CoreMessage>): String {
-        val request = System1Request(prompt, msgs)
+        val request = System1Request(prompt, msgs.convert())
         val response = client.post()
             .body(Mono.just(request), System1Request::class.java)
             .retrieve()
