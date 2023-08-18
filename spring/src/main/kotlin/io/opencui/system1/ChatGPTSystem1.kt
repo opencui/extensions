@@ -2,39 +2,50 @@ package io.opencui.system1
 
 import io.opencui.core.Configuration
 import io.opencui.core.ExtensionBuilder
-import com.cjcrafter.openai.OpenAI
-import com.cjcrafter.openai.chat.ChatMessage
-import com.cjcrafter.openai.chat.ChatMessage.Companion.toAssistantMessage
-import com.cjcrafter.openai.chat.ChatMessage.Companion.toSystemMessage
-import com.cjcrafter.openai.chat.ChatMessage.Companion.toUserMessage
-import com.cjcrafter.openai.chat.ChatRequest
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
 
+import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.publisher.Mono
 
-data class ChatGPTSystem1(val key: String, val profile: String, val model: String) : ISystem1 {
-    val openai = OpenAI(key)
-    val systemMessage = profile.toSystemMessage()
+data class OpenAIMessage(val role: String, val content: String)
+
+data class System1Request(val prompt: String, val turns: List<OpenAIMessage>) {
+    constructor(prompt: string, pturns : List<CoreMessage>) : this(prompt, pturns.map{
+        OpenAIMessage(if (it.user) "user" else "assistant", it.message)
+    })
+}
+
+data class System1Reply(val reply: String)
+
+data class ChatGPTSystem1(val url: String, val prompt: String, val key: String? = null, val model: String? = null) : ISystem1 {
+
+    val client = WebClient.builder()
+      .baseUrl(url)
+      .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+      .build()
 
     override fun response(msgs: List<CoreMessage>): String {
-        val messages = mutableListOf<ChatMessage>()
-        messages.add(systemMessage)
-        for (msg in msgs) {
-            messages.add(if (msg.user) msg.message.toUserMessage() else msg.message.toAssistantMessage())
-        }
-        val request = ChatRequest(model, messages)
-        val response = openai.createChatCompletion(request)
-        return response[0].message.content
+        val request = System1Request(prompt, msgs)
+        val response = client.post()
+            .body(Mono.just(request), System1Request::class.java)
+            .retrieve()
+            .bodyToMono(System1Reply::class.java)
+        return response.block()!!.reply
     }
 
     companion object : ExtensionBuilder<ChatGPTSystem1> {
         override fun invoke(p1: Configuration): ChatGPTSystem1 {
+            val url = p1[urlKey]!! as String
             val systemPrompt = p1[profileKey] as String?
             val securityKey = p1[openaiKey]!! as String
             val model : String? = p1[modelKey] as String?
-            return ChatGPTSystem1(securityKey, systemPrompt ?: "", model ?: "gpt-3.5-turbo-0613")
+            return ChatGPTSystem1(url,systemPrompt ?: "", securityKey,model ?: "gpt-3.5-turbo-0613")
         }
 
         const val profileKey = "SystemPrompt"
         const val openaiKey = "OpenAIKey"
         const val modelKey = "Model"
+        const val urlKey = "URL"
     }
 }
