@@ -16,7 +16,7 @@ data class System1Request(val prompt: String, val turns: List<OpenAIMessage>)
 
 data class System1Reply(val reply: String)
 
-data class ChatGPTSystem1(val url: String, val prompt: String, val key: String? = null, val model: String? = null) : ISystem1 {
+data class ChatGPTSystem1(val url: String, val prompt: String, val model: String? = null) : ISystem1 {
 
     val client = WebClient.builder()
       .baseUrl(url)
@@ -36,14 +36,12 @@ data class ChatGPTSystem1(val url: String, val prompt: String, val key: String? 
         override fun invoke(p1: Configuration): ISystem1 {
             val url = p1[urlKey]!! as String
             val systemPrompt = p1[profileKey] as String?
-            val securityKey = p1[openaiKey]!! as String
             val model : String? = p1[modelKey] as String?
-            return ChatGPTSystem1(url,systemPrompt ?: "", securityKey,model ?: "gpt-3.5-turbo-0613")
+            return ChatGPTSystem1(url, systemPrompt ?: "", model ?: "gpt-3.5-turbo-0613")
         }
 
-        const val profileKey = "SystemPrompt"
-        const val openaiKey = "OpenAIKey"
-        const val modelKey = "Model"
-        const val urlKey = "URL"
+        const val profileKey = "systemPrompt"
+        const val modelKey = "model"
+        const val urlKey = "url"
     }
 }
