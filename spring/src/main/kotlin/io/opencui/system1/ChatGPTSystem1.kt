@@ -26,6 +26,7 @@ data class ChatGPTSystem1(val url: String, val prompt: String, val model: String
     override fun response(msgs: List<CoreMessage>): String {
         val request = System1Request(prompt, msgs.convert())
         val response = client.post()
+            .uri("query")
             .body(Mono.just(request), System1Request::class.java)
             .retrieve()
             .bodyToMono(System1Reply::class.java)
