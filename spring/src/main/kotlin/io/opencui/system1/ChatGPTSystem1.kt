@@ -12,19 +12,21 @@ data class OpenAIMessage(val role: String, val content: String)
 fun List<CoreMessage>.convert(): List<OpenAIMessage> {
     return this.map { OpenAIMessage(if (it.user) "user" else "assistant", it.message) }
 }
-data class System1Request(val prompt: String, val turns: List<OpenAIMessage>)
+
+
+// Feedback is only useful when turns is empty.
+data class System1Request(val prompt: String, val turns: List<OpenAIMessage>, val feedback: Map<String, Any>? = null)
 
 data class System1Reply(val reply: String)
 
 data class ChatGPTSystem1(val url: String, val prompt: String, val model: String? = null) : ISystem1 {
-
     val client = WebClient.builder()
       .baseUrl(url)
       .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
       .build()
 
-    override fun response(msgs: List<CoreMessage>): String {
-        val request = System1Request(prompt, msgs.convert())
+    override fun response(msgs: List<CoreMessage>, feedback: Map<String, Any>?): String {
+        val request = System1Request(prompt, msgs.convert(), feedback)
         val response = client.post()
             .uri("query")
             .body(Mono.just(request), System1Request::class.java)
