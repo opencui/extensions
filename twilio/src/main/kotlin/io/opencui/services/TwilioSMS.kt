@@ -15,7 +15,7 @@ class TwilioSender(val info: Configuration) : IMessageSender {
     public fun send(phoneNumer: String, content: String): Unit {
         val to = com.twilio.type.PhoneNumber(phoneNumer);
         val from = com.twilio.type.PhoneNumber(info[SOURCE]!!)
-        message = Message.creator(to, from, content).create()
+        Message.creator(to, from, content).create()
     }
 
     companion object : ExtensionBuilder<IMessageSender> {
