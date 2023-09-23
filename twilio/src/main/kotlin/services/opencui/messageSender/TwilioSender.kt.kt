@@ -3,11 +3,7 @@ package services.opencui.messageSender
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
-import services.opencui.messageSender.IMessageSender
 import io.opencui.core.*
-import io.opencui.core.user.*
-import io.opencui.serialization.*
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 // This is used to send the SMS
@@ -16,9 +12,9 @@ class TwilioSender(val info: Configuration) : IMessageSender {
         Twilio.init(info[SID]!! as String, info[ACCESSTOKEN]!! as String)
     }
 
-    public override fun send(phoneNumer: String, content: String): Unit {
-        val to = com.twilio.type.PhoneNumber(phoneNumer);
-        val from = com.twilio.type.PhoneNumber(info[SOURCE]!! as String)
+    public override fun send(phoneNumber: String, content: String): Unit {
+        val to = PhoneNumber(phoneNumber);
+        val from = PhoneNumber(info[SOURCE]!! as String)
         Message.creator(to, from, content).create()
     }
 
