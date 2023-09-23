@@ -1,4 +1,4 @@
-package services.opencui.messageSender
+package io.opencui.messageSender
 
 import io.opencui.core.IService
 

@@ -1,4 +1,4 @@
-package services.opencui.messageSender
+package io.opencui.messageSender
 
 import com.twilio.Twilio;
 import com.twilio.rest.api.v2010.account.Message;
