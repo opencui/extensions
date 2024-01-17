@@ -55,8 +55,7 @@ class DispatchService(
 			}
 		} else {
 			// This make sure that we keep the existing index if we have it.
-			val sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
-			Dispatcher.sessionManager = sessionManager
+			Dispatcher.sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
 			Dispatcher.botPrefix = botPrefix
 			ChatbotLoader.init(File("./jardir/"), botPrefix)
 			Dispatcher.logger.info("finish the builder initialization.")
