@@ -8,13 +8,11 @@ import io.opencui.du.DucklingRecognizer
 import io.opencui.du.TfRestBertNLUModel
 import io.opencui.du.dump
 import io.opencui.sessionmanager.*
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.runApplication
-import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.context.event.EventListener
 import java.io.File
 import kotlin.system.exitProcess
@@ -44,9 +42,13 @@ class DispatchService(
 			try {
 				ChatbotLoader.init(File("./jardir/"), botPrefix)
 				// now we need to create files for python code.
-				val agent = ChatbotLoader.findChatbot(botInfo).duMeta
-				val path = "./dumeta/${agent.getOrg()}_${agent.getLabel()}_${agent.getLang()}_${agent.getBranch()}"
-				agent.dump(path)
+				val chatbots = ChatbotLoader.findChatbotsByPrefix(botPrefix)
+				for (chatbot in chatbots) {
+					// This dumps du meta for all languages.
+					val agent = chatbot.duMeta
+					val path = "./dumeta/${agent.getOrg()}_${agent.getLabel()}_${agent.getLang()}_${agent.getBranch()}"
+					agent.dump(path)
+				}
 			} catch (e: Exception) {
 				e.printStackTrace()
 			} finally {
