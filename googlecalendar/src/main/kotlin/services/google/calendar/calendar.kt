@@ -69,7 +69,7 @@ data class ReservationProvider(
     private val secrets_json = config[CLIENT_SECRET] as String
 
     // This for the business
-    private val businessName = config[CUSTOMERNAME] as String? ?: "my_customer"
+    private val businessName = config[CUSTOMERNAME]!! as String
 
     private val HTTP_TRANSPORT: NetHttpTransport = GoogleNetHttpTransport.newTrustedTransport()
     private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
@@ -589,7 +589,7 @@ data class ReservationProvider(
         val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
         const val DELEGATED_USER = "delegated_user"
-        const val CUSTOMERNAME = "customer_name"
+        const val CUSTOMERNAME = "customer_name"   // This is for business (customer for platform), not end user.
         const val NotAvailable = "Resource Not Available"
         const val TimePassed = "Time Passed"
         const val Available = "Resource Available"
