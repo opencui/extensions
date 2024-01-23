@@ -3,33 +3,11 @@ package services.opencui.reservation
 
 import com.fasterxml.jackson.annotation.*
 import com.fasterxml.jackson.`annotation`.JsonInclude.Include.NON_NULL
-import com.fasterxml.jackson.databind.node.ObjectNode
-import io.opencui.core.AEntityFiller
-import io.opencui.core.AlwaysAsk
+import io.opencui.core.*
 import io.opencui.core.Annotation
-import io.opencui.core.EntityFiller
-import io.opencui.core.FillBuilder
-import io.opencui.core.FrameFiller
-import io.opencui.core.IChatbot
-import io.opencui.core.IEntity
-import io.opencui.core.IFrame
-import io.opencui.core.IService
-import io.opencui.core.LazyAction
-import io.opencui.core.MaxValueCheck
-import io.opencui.core.MinMaxAnnotation
-import io.opencui.core.MultiValueFiller
-import io.opencui.core.NeverAsk
-import io.opencui.core.ParamPath
-import io.opencui.core.Prompts
-import io.opencui.core.SlotConditionalPromptAnnotation
-import io.opencui.core.SlotPromptAnnotation
-import io.opencui.core.SlotValue
-import io.opencui.core.UserSession
-import io.opencui.core.ValueCheckAnnotation
 import io.opencui.core.da.SlotNotifyFailure
 import io.opencui.core.da.SlotRequest
 import io.opencui.core.da.SlotRequestMore
-import io.opencui.core.templateOf
 import io.opencui.serialization.Json
 import java.time.*
 import kotlin.Boolean
@@ -279,11 +257,14 @@ public data class ValidationResult(
 public interface IReservation : IService {
   @JsonIgnore
   public fun makeReservation(
-    userId: String,
-    date: LocalDate?,
-    time: LocalTime?,
-    duration: Int,
-    resource: Resource
+      userId: String,
+      userEmail: Email,
+      duration: Int,
+      resource: Resource,
+      date: LocalDate?,
+      time: LocalTime?,
+      title: String?,
+      userName: Person?,
   ): Reservation?
 
   @JsonIgnore
