@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.opencui.core.*
 import io.opencui.core.Dispatcher
 import io.opencui.du.DucklingRecognizer
+import io.opencui.du.RestNluService
 import io.opencui.du.TfRestBertNLUModel
 import io.opencui.du.dump
 import io.opencui.sessionmanager.*
@@ -25,8 +26,7 @@ class DispatchService(
 	@Value("\${du.host}") val duHost: String,
 	@Value("\${du.port}") val duPort: String,
 	@Value("\${du.protocol}") val duProtocol: String,
-	@Value("\${bot.prefix:}") val botPrefix: String,
-	@Value("\${indexing:}") val indexing: String
+	@Value("\${bot.prefix:}") val botPrefix: String
 ) {
 
 	@EventListener(ApplicationReadyEvent::class)
@@ -34,34 +34,18 @@ class DispatchService(
 		ObjectMapper().registerModule(KotlinModule())
 
 		RuntimeConfig.put(DucklingRecognizer::class, duDuckling)
-		RuntimeConfig.put(TfRestBertNLUModel::class, Triple(duHost, duPort.toInt(), duProtocol))
+		// Use the same the format for new nlu service.
+		RuntimeConfig.put(RestNluService::class, "$duProtocol:://${duHost}:${duPort}")
+
 		Dispatcher.memoryBased = false
 		Dispatcher.botPrefix = botPrefix
 		val botInfo = master()
-		if (indexing.toBoolean()) {
-			try {
-				ChatbotLoader.init(File("./jardir/"), botPrefix)
-				// now we need to create files for python code.
-				val chatbots = ChatbotLoader.findChatbotsByPrefix(botPrefix)
-				for (chatbot in chatbots) {
-					// This dumps du meta for all languages.
-					val agent = chatbot.duMeta
-					val path = "./dumeta/${agent.getOrg()}_${agent.getLabel()}_${agent.getLang()}_${agent.getBranch()}"
-					agent.dump(path)
-				}
-			} catch (e: Exception) {
-				e.printStackTrace()
-			} finally {
-				Dispatcher.logger.info("finish the indexing, exit...")
-				exitProcess(0)
-			}
-		} else {
-			// This make sure that we keep the existing index if we have it.
-			Dispatcher.sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
-			Dispatcher.botPrefix = botPrefix
-			ChatbotLoader.init(File("./jardir/"), botPrefix)
-			Dispatcher.logger.info("finish the builder initialization.")
-		}
+		// This make sure that we keep the existing index if we have it.
+		Dispatcher.sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
+		Dispatcher.botPrefix = botPrefix
+		ChatbotLoader.init(File("./jardir/"), botPrefix)
+		Dispatcher.logger.info("finish the builder initialization.")
+
 	}
 
 	companion object {

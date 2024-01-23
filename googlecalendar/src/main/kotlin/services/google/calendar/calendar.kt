@@ -66,10 +66,10 @@ data class ReservationProvider(
     override var session: UserSession? = null,
 ) : IReservation, IProvider {
 
-
     private val secrets_json = config[CLIENT_SECRET] as String
 
-    private val customerName = config[CUSTOMERNAME] as String? ?: "my_customer"
+    // This for the business
+    private val businessName = config[CUSTOMERNAME]!! as String
 
     private val HTTP_TRANSPORT: NetHttpTransport = GoogleNetHttpTransport.newTrustedTransport()
     private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
@@ -116,17 +116,20 @@ data class ReservationProvider(
      * */
     override fun makeReservation(
         userId: String,
+        userEmail: Email,
+        duration: Int,
+        presource: Resource,
         date: LocalDate?,
         time: LocalTime?,
-        duration: Int,
-        presource: Resource
+        title: String?,
+        userName: Person?,
     ): Reservation? {
         val timeZone = presource.timezone!!
         val resource = getCalendarResource(presource.id!!)!!
         val calendar = client
         val event = Event()
-        event.summary = "Reservation for $userId"
-        event.description = "Reservation booked for ${resource.resourceName}"
+        event.summary = title ?: "$userName and $businessName"
+        event.description = "${resource.resourceName} is booked at $businessName"
         val startTime = date!!.atTime(time!!).toDateTime(timeZone)
         val endTime = date.atTime(time).plusSeconds(duration.toLong()).toDateTime(timeZone)
         event.start = EventDateTime().setDateTime(startTime)
@@ -134,7 +137,14 @@ data class ReservationProvider(
 
         //https://developers.google.com/calendar/api/concepts/sharing
         event.attendees = listOf(
-            EventAttendee().setResource(true).setEmail(resource.resourceEmail).setId(resource.resourceId)
+            EventAttendee()  // This is for resource.
+                .setResource(true)
+                .setEmail(resource.resourceEmail)
+                .setDisplayName(resource.resourceName)
+                .setId(resource.resourceId),
+            EventAttendee()   // this is for end user.
+                .setEmail(userEmail.toString())
+                .setDisplayName(userName?.toString() ?: userId)
         )
 
         val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute() ?: return null
@@ -211,7 +221,7 @@ data class ReservationProvider(
      * https://developers.google.com/admin-sdk/directory/reference/rest/v1/resources.calendars/get
      * */
     private fun getCalendarResource(resourceId: String): CalendarResource? {
-        return admin?.resources()?.calendars()?.get(customerName, resourceId)?.execute()
+        return admin?.resources()?.calendars()?.get(businessName, resourceId)?.execute()
     }
 
     /**
@@ -311,7 +321,7 @@ data class ReservationProvider(
 
         val listResources = mutableListOf<CalendarResource>()
 
-        val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items
+        val resources = admin?.resources()?.calendars()?.list(businessName)?.execute()?.items
         val event = client?.Events()?.get(getCalendarResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         if (event.isNullOrEmpty()) {
             validationResult.message = "cannot update"
@@ -370,7 +380,7 @@ data class ReservationProvider(
      * The resulting list of Location objects is returned.
      * */
     override fun listLocation(): List<Location> {
-        val buildings = admin?.resources()?.Buildings()?.list(customerName)?.execute()?.buildings ?: emptyList()
+        val buildings = admin?.resources()?.Buildings()?.list(businessName)?.execute()?.buildings ?: emptyList()
         logger.debug("The locations are :: $buildings")
         val locations = mutableListOf<Location>()
 
@@ -535,7 +545,7 @@ data class ReservationProvider(
     }
 
     override fun getResourceInfo(resourceId: String): Resource? {
-        val calendar = admin?.resources()?.calendars()?.get(customerName, resourceId)?.execute() ?: return null
+        val calendar = admin?.resources()?.calendars()?.get(businessName, resourceId)?.execute() ?: return null
         val resource = Json.decodeFromString<Resource>(
                 calendar.resourceDescription, ChatbotLoader.findClassLoader(session!!.botInfo))
 
@@ -549,7 +559,7 @@ data class ReservationProvider(
      * If no filters are specified, it returns all calendar resources of the given type in the specified location.
      * */
     private fun getResourcesByLocationAndType(location: Location, resourceType: ResourceType): List<CalendarResource>? {
-        val resources = admin?.resources()?.calendars()?.list(customerName)?.execute()?.items?.filter {
+        val resources = admin?.resources()?.calendars()?.list(businessName)?.execute()?.items?.filter {
             it.resourceType == resourceType.value && it.buildingId == location.id
         }
         return resources
@@ -579,7 +589,7 @@ data class ReservationProvider(
         val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
         const val DELEGATED_USER = "delegated_user"
-        const val CUSTOMERNAME = "customer_name"
+        const val CUSTOMERNAME = "customer_name"   // This is for business (customer for platform), not end user.
         const val NotAvailable = "Resource Not Available"
         const val TimePassed = "Time Passed"
         const val Available = "Resource Available"
