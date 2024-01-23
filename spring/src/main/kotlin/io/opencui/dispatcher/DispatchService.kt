@@ -6,8 +6,6 @@ import io.opencui.core.*
 import io.opencui.core.Dispatcher
 import io.opencui.du.DucklingRecognizer
 import io.opencui.du.RestNluService
-import io.opencui.du.TfRestBertNLUModel
-import io.opencui.du.dump
 import io.opencui.sessionmanager.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Configuration
@@ -16,7 +14,6 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.runApplication
 import org.springframework.context.event.EventListener
 import java.io.File
-import kotlin.system.exitProcess
 
 
 @Configuration
