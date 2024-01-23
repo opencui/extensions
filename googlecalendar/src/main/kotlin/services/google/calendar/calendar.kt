@@ -128,8 +128,8 @@ data class ReservationProvider(
         val resource = getCalendarResource(presource.id!!)!!
         val calendar = client
         val event = Event()
-        event.summary = title ?: "Reservation for ${userName ?: userId}"
-        event.description = "Reservation booked for ${resource.resourceName}"
+        event.summary = title ?: "$userName and $businessName"
+        event.description = "${resource.resourceName} is booked at $businessName"
         val startTime = date!!.atTime(time!!).toDateTime(timeZone)
         val endTime = date.atTime(time).plusSeconds(duration.toLong()).toDateTime(timeZone)
         event.start = EventDateTime().setDateTime(startTime)
