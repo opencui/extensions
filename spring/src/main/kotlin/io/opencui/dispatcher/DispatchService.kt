@@ -25,14 +25,13 @@ class DispatchService(
 	@Value("\${du.protocol}") val duProtocol: String,
 	@Value("\${bot.prefix:}") val botPrefix: String
 ) {
-
 	@EventListener(ApplicationReadyEvent::class)
 	fun init() {
 		ObjectMapper().registerModule(KotlinModule())
 
 		RuntimeConfig.put(DucklingRecognizer::class, duDuckling)
 		// Use the same the format for new nlu service.
-		RuntimeConfig.put(RestNluService::class, "$duProtocol:://${duHost}:${duPort}")
+		RuntimeConfig.put(RestNluService::class, "$duProtocol://${duHost}:${duPort}")
 
 		Dispatcher.memoryBased = false
 		Dispatcher.botPrefix = botPrefix
@@ -42,7 +41,6 @@ class DispatchService(
 		Dispatcher.botPrefix = botPrefix
 		ChatbotLoader.init(File("./jardir/"), botPrefix)
 		Dispatcher.logger.info("finish the builder initialization.")
-
 	}
 
 	companion object {
