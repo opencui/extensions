@@ -20,7 +20,7 @@ class CMDDispatcher {
 			botPrefix: String,
 			duDuckling: String = "http://127.0.0.1:8000/parse",
 			duHost: String =  "127.0.0.1",
-			duPort: Int = 8501,
+			duPort: Int = 3001,
 			duProtocol: String = "http") {
 			ObjectMapper().registerModule(KotlinModule())
 			Dispatcher.botPrefix = botPrefix
@@ -45,7 +45,7 @@ class CMDDispatcher {
 		@JvmStatic
 		fun main(args: Array<String>) {
 			// val botInfo = botInfo("me.test", "frameVR_0222")
-			val botInfo = botInfo("me.test", "slotUpdate_0321")
+			val botInfo = botInfo("me.test", "foodOrderingAppListOf")
 			//val botInfo = botInfo("me.restaurant", "tableReservationApp")
 
 			init(botInfo.fullName)
