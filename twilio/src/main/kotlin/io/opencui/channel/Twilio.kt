@@ -136,7 +136,7 @@ data class TwilioChannel(override val info: Configuration) : IMessageChannel {
         TODO("Not yet implemented")
     }
 
-    override fun getProfile(botInfo: BotInfo, id: String): IUserIdentifier? {
+    override fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier {
         TODO("Not yet implemented")
     }
 
