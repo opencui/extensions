@@ -57,7 +57,7 @@ class TwilioResource{
         @PathVariable lang: String,
         @PathVariable channelId: String): ResponseEntity<String> {
         val sessionId = body.From
-        val userInfo = UserInfo(CHANNELTYPE, sessionId, channelId)
+        val userInfo = UserInfo(CHANNELTYPE, sessionId, channelId, true)
         val txt = body.Body
         val msgTimestemp = "$body.From}:${DateTimeFormatter.ISO_INSTANT.format(Instant.now())}"
         val msgId = BigInteger(1, md.digest(msgTimestemp.toByteArray())).toString(16).padStart(32, '0')

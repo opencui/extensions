@@ -283,7 +283,7 @@ class MessengerResources() {
                     // always forward to dispatcher so that they can decide what to do.
                     if (message.containsKey(TEXT)) {
                         val txt = message.getPrimitive(TEXT).content()
-                        val userInfo = UserInfo(MESSENGER, psid, channelId)
+                        val userInfo = UserInfo(MESSENGER, psid, channelId, true)
                         Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
                     }
                 }
