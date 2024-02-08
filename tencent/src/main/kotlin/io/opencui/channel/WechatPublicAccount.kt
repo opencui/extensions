@@ -108,7 +108,7 @@ class WechatPublicAccountResource {
             val msgId = objJson.get(MSGID).asText()
             val msgText = objJson.get(CONTENT).asText()
             // Before we process incoming message, we need to acquire user session.
-            val userInfo = UserInfo(CHANNELTYPE, toId, label)
+            val userInfo = UserInfo(CHANNELTYPE, toId, label, true)
 
             // For now, we assume the language of user session are decided at beginning and
             // not changed after that.

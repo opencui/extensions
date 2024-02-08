@@ -124,7 +124,7 @@ class WhatsappResources() {
                     // https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages
                     val msgId = message.id
 
-                    val userInfo = UserInfo(whatsapp, from, channelId)
+                    val userInfo = UserInfo(whatsapp, from, channelId, true)
                     Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
                 }
             }
