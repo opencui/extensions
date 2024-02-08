@@ -262,7 +262,7 @@ data class GBMChannel(override val info: Configuration) : IMessageChannel {
         // sendIsTypingMessage(id)
     }
 
-    override fun getProfile(botInfo: BotInfo, id: String): IUserIdentifier? {
+    override fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier {
         TODO("Not yet implemented")
     }
 

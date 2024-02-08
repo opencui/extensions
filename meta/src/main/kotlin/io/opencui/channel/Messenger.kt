@@ -66,17 +66,17 @@ class MessengerChannel(override val info: Configuration) : IMessageChannel {
         return response.block()
     }
 
-    override fun getProfile(botInfo: BotInfo, psid: String): IUserIdentifier? {
+    override fun getIdentifier(botInfo: BotInfo, psid: String): IUserIdentifier {
         val response = client.get()
             .uri("/${psid}?fields=name,email,profile_pic&access_token=${info[PAGEACCESSTOKEN]}")
             .retrieve()
             .bodyToMono<JsonObject>()
 
-        val res = response.block() ?: return null
-        return UserInfo("messenger", psid, channelLabel).apply {
-            this.name = res["name"].textValue()
-            this.email = res["email"]?.textValue() ?: "$psid@${info.label}.messenger"
-            this.phone = null
+        val res = response.block()!!
+        return UserInfo(ChannelType, psid, channelLabel, true).apply {
+            this.name = PersonName(res["name"].textValue())
+            this.email = Email(res["email"]?.textValue() ?: "$psid@${info.label}.messenger")
+            this.phone = if (res["phone"] != null) PhoneNumber(res["phone"]!!.textValue()) else null
         }
     }
 
@@ -204,7 +204,7 @@ class MessengerChannel(override val info: Configuration) : IMessageChannel {
         const val MARKSEEN = "mark_seen"
         const val TYPEON = "typing_on"
         const val OK = "ok"
-        val channelType = "messenger"
+        const val ChannelType = "MessengerChannel"
 
         override fun invoke(config: Configuration): IChannel {
             return MessengerChannel(config)
@@ -261,8 +261,14 @@ class MessengerResources() {
 			@RequestBody body: MessengerReceiveRequest): ResponseEntity<String> {
         logger.info("RECEIVED post request from messenger body: ${body.toString()}")
 		val botInfo = master(lang)
-		Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)
-				?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
+		val bot = Dispatcher.getChatbot(botInfo)
+
+        // This make sure that we have this channelId
+        bot.getConfiguration<IChannel>(channelId)
+            ?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
+
+        // Now we need to get the channel.
+
 		if (body.subscription == "page") {
 			body.entry.forEach {
 				logger.info(it.toString())

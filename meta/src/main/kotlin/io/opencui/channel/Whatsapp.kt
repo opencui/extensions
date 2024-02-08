@@ -170,7 +170,7 @@ class WhatsappChannel(override val info: Configuration) : IMessageChannel {
             ?.block()
     }
 
-    override fun getProfile(botInfo: BotInfo, psid: String): IUserIdentifier? {
+    override fun getIdentifier(botInfo: BotInfo, psid: String): IUserIdentifier {
         val request = client.get()
             .uri("/${psid}?fields=name,email,profile_pic&access_token=${info[ACCESSTOKEN]}")
 
@@ -180,9 +180,9 @@ class WhatsappChannel(override val info: Configuration) : IMessageChannel {
             .bodyToMono(JsonObject::class.java)
 
         val res = rres.block()!!
-        return UserInfo("whatsapp", psid, channelLabel).apply {
-            this.name = res["name"].textValue()
-            this.email = res["email"]?.textValue() ?: "$psid@${info.label}.whatsapp"
+        return UserInfo(ChannelType, psid, channelLabel, true).apply {
+            this.name = PersonName(res["name"].textValue())
+            this.email = Email(res["email"]?.textValue() ?: "$psid@${info.label}.whatsapp")
             this.phone = null
         }
     }
@@ -319,6 +319,8 @@ class WhatsappChannel(override val info: Configuration) : IMessageChannel {
         const val WHATSAPP = "whatsapp"
         const val BOTID = "phone_number_id"
         const val OK = "ok"
+        const val ChannelType = "WhatsappChannel"
+
         override fun invoke(config: Configuration): IChannel {
             return WhatsappChannel(config)
         }

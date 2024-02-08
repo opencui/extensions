@@ -77,11 +77,8 @@ data class Text(    // both OpenID
  * https://mp.weixin.qq.com/debug/cgi-bin/apiinfo?t=index&type=%E8%87%AA%E5%AE%9A%E4%B9%89%E8%8F%9C%E5%8D%95&form=%E8%87%AA%E5%AE%9A%E4%B9%89%E8%8F%9C%E5%8D%95%E5%88%9B%E5%BB%BA%E6%8E%A5%E5%8F%A3%20/menu/creat
  */
 @RestController
-@RequestMapping("/org/{org}/bot/{agentId}/")
 class WechatPublicAccountResource {
-
-
-    @GetMapping("c/io.opencui.channels.WechatPublicAccountChannel/v1/{label}/{lang}", produces = [MediaType.TEXT_PLAIN_VALUE])
+    @GetMapping("/IChannel/WechatPublicAccountChannel/v1/{label}/{lang}", produces = [MediaType.TEXT_PLAIN_VALUE])
     fun getResponse(
         @PathVariable("org") org: String,
         @PathVariable("agentId") agentId: String,
@@ -94,8 +91,7 @@ class WechatPublicAccountResource {
         return ResponseEntity.ok(echostr)
     }
 
-
-    @PostMapping("c/io.opencui.channels.WechatPublicAccountChannel/v1/{label}/{lang}",
+    @PostMapping("/IChannel/WechatPublicAccountChannel/v1/{label}/{lang}",
         consumes = [MediaType.TEXT_XML_VALUE], produces = [MediaType.TEXT_XML_VALUE])
     fun postResponse(
         @PathVariable("org") org: String,
@@ -166,22 +162,21 @@ data class WechatPublicAccountChannel(override val info: Configuration) : IMessa
 
     val label = info.label!!
 
-    override fun getProfile(botInfo: BotInfo, id: String): IUserIdentifier? {
+    override fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier {
         // TODO: this is not used yet, but ideally this only pick up useful inform from
         // channel so that session can make use of it.
         val accessToken = getAccessTokenLocal(botInfo)
-        if (accessToken != "") {
-            val target = client.get()
-                .uri("/user/info?access_token=$accessToken&openid=$id&lang=zh_CN")
+        val target = client.get()
+            .uri("/user/info?access_token=${accessToken!!}&openid=$id&lang=zh_CN")
 
-            val res = target.retrieve().bodyToMono(JsonObject::class.java).block()?: return null
-            logger.info(res.toString())
-            val name = res["nickname"].asText()
-            return UserInfo("wechatpa", id, label).apply {
-                this.name = name
-            }
+        val res = target.retrieve().bodyToMono(JsonObject::class.java).block()!!
+        logger.info(res.toString())
+        val name = res["nickname"].asText()
+        return UserInfo("wechatpa", id, label, true).apply {
+            this.name = PersonName(name)
+            // TODO, we need to get either the phone or email next.
         }
-        return null
+
     }
 
     override fun sendRawPayload(uid: String, rawMessage: JsonObject, botInfo: BotInfo, source: IUserIdentifier?): IChannel.Status {
