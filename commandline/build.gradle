@@ -47,6 +47,7 @@ repositories {
 dependencies {
     implementation project(":googlecalendar")
     implementation project(":meta")
+    implementation("io.framely:framely")
     implementation('io.opencui:core') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }

@@ -122,7 +122,7 @@ data class ReservationProvider(
         date: LocalDate?,
         time: LocalTime?,
         title: String?,
-        userName: Person?,
+        userName: PersonName?,
     ): Reservation? {
         val timeZone = presource.timezone!!
         val resource = getCalendarResource(presource.id!!)!!
