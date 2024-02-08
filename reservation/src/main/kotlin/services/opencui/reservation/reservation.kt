@@ -264,7 +264,7 @@ public interface IReservation : IService {
       date: LocalDate?,
       time: LocalTime?,
       title: String?,
-      userName: Person?,
+      userName: PersonName?,
   ): Reservation?
 
   @JsonIgnore
