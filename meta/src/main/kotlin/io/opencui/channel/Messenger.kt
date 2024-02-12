@@ -57,7 +57,7 @@ class MessengerChannel(override val info: Configuration) : IMessageChannel {
       .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
       .build()
 
-    inline fun <reified T> post(payload: T): String? {
+    inline fun <reified T: Any> post(payload: T): String? {
         val response = client.post()
             .uri("""/v11.0/me/messages?access_token=${info[PAGEACCESSTOKEN]}""")
             .body(Mono.just(payload), T::class.java)
@@ -66,13 +66,13 @@ class MessengerChannel(override val info: Configuration) : IMessageChannel {
         return response.block()
     }
 
-    override fun getIdentifier(botInfo: BotInfo, psid: String): IUserIdentifier {
+    override fun getIdentifier(botInfo: BotInfo, psid: String): IUserIdentifier? {
         val response = client.get()
             .uri("/${psid}?fields=name,email,profile_pic&access_token=${info[PAGEACCESSTOKEN]}")
             .retrieve()
             .bodyToMono<JsonObject>()
 
-        val res = response.block()!!
+        val res = response.block() ?: return null
         return UserInfo(ChannelType, psid, channelLabel, true).apply {
             this.name = PersonName(res["name"].textValue())
             this.email = Email(res["email"]?.textValue() ?: "$psid@${info.label}.messenger")
@@ -283,7 +283,7 @@ class MessengerResources() {
                     // always forward to dispatcher so that they can decide what to do.
                     if (message.containsKey(TEXT)) {
                         val txt = message.getPrimitive(TEXT).content()
-                        val userInfo = UserInfo(MESSENGER, psid, channelId, true)
+                        val userInfo = UserInfo(CHANNELTYPE, psid, channelId, true)
                         Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
                     }
                 }
@@ -295,7 +295,7 @@ class MessengerResources() {
 	}
 
     companion object {
-        const val CHANNELTYPE = "messenger"
+        const val CHANNELTYPE = "MessengerChannel"
         const val DEFAULTCHANNEL = "restful"
         const val VERIFYTOKEN = "verify_token"
         const val SENDER = "sender"
@@ -304,7 +304,6 @@ class MessengerResources() {
         const val MESSAGE = "message"
         const val TEXT = "text"
         val logger: Logger = LoggerFactory.getLogger(MessengerResources::class.java)
-	    const val MESSENGER = "messenger"
     }
 }
 
