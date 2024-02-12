@@ -110,6 +110,8 @@ class WhatsappResources() {
             // We only process the first message.
             for (change in it.changes) {
                 if (change.value?.messages == null) continue
+
+                
                 for (message in change.value!!.messages!!) {
 
                     // For now, we only handle the text input message. Down the road
@@ -132,14 +134,8 @@ class WhatsappResources() {
         return ResponseEntity.ok("ok")
 	}
 
-
     companion object {
-        const val CHANNELTYPE = "whatsapp"
         const val VERIFYTOKEN = "verify_token"
-        const val SENDER = "sender"
-        const val ID = "id"
-        const val MESSAGE = "message"
-        const val TEXT = "text"
         val logger: Logger = LoggerFactory.getLogger(WhatsappResources::class.java)
 	    const val whatsapp = "whatsapp"
     }
@@ -157,7 +153,7 @@ class WhatsappChannel(override val info: Configuration) : IMessageChannel {
     fun text(text: String) : Map<String, String> {
         return mapOf("text" to text)
     }
-    inline fun <reified T> post(payload: T): String? {
+    inline fun <reified T : Any> post(payload: T): String? {
         val request = client.post()
             .uri("/v14.0/$botId/messages")
             .header("Authorization", "Bearer ${info[ACCESSTOKEN]}")
@@ -170,21 +166,8 @@ class WhatsappChannel(override val info: Configuration) : IMessageChannel {
             ?.block()
     }
 
-    override fun getIdentifier(botInfo: BotInfo, psid: String): IUserIdentifier {
-        val request = client.get()
-            .uri("/${psid}?fields=name,email,profile_pic&access_token=${info[ACCESSTOKEN]}")
-
-        logger.info("send request: ${request.toString()}")
-
-        val rres = request.retrieve()
-            .bodyToMono(JsonObject::class.java)
-
-        val res = rres.block()!!
-        return UserInfo(ChannelType, psid, channelLabel, true).apply {
-            this.name = PersonName(res["name"].textValue())
-            this.email = Email(res["email"]?.textValue() ?: "$psid@${info.label}.whatsapp")
-            this.phone = null
-        }
+    override fun getIdentifier(botInfo: BotInfo, psid: String): IUserIdentifier? {
+        return null
     }
 
     override fun sendSimpleText(
