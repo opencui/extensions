@@ -75,7 +75,8 @@ class MessengerChannel(override val info: Configuration) : IMessageChannel {
         val res = response.block() ?: return null
         return UserInfo(ChannelType, psid, channelLabel, true).apply {
             this.name = PersonName(res["name"].textValue())
-            this.email = Email(res["email"]?.textValue() ?: "$psid@${info.label}.messenger")
+            this.email = if (res["email"] != null) Email(res["email"]!!.textValue()) else null
+            // We actually can not get this number?
             this.phone = if (res["phone"] != null) PhoneNumber(res["phone"]!!.textValue()) else null
         }
     }
