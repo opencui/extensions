@@ -111,6 +111,7 @@ class WhatsappResources() {
             for (change in it.changes) {
                 if (change.value?.messages == null) continue
 
+                val userName = change.value?.contacts?.get(0)?.profile?.name ?: null
                 
                 for (message in change.value!!.messages!!) {
 
@@ -127,6 +128,10 @@ class WhatsappResources() {
                     val msgId = message.id
 
                     val userInfo = UserInfo(whatsapp, from, channelId, true)
+                    if (userName != null) {
+                        userInfo.name = PersonName(userName)
+                    }
+
                     Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
                 }
             }
