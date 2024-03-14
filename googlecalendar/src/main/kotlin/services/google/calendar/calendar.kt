@@ -31,6 +31,7 @@ import java.time.format.DateTimeFormatter
  * We need to convert local data time to Google DateTime, and we assume
  * Datetime is always timeZoned. but local data and time are always related
  * to that timeZone, which controlled by what is on location and resource.
+ * For Google calendar provider, we assume the userId will be user email.
  */
 fun LocalDateTime.toDateTime(zoneId: ZoneId): DateTime {
     val dateTime = ZonedDateTime.of(this, zoneId)
@@ -116,7 +117,6 @@ data class ReservationProvider(
      * */
     override fun makeReservation(
         userId: String,
-        userEmail: Email,
         duration: Int,
         presource: Resource,
         date: LocalDate?,
@@ -143,8 +143,9 @@ data class ReservationProvider(
                 .setDisplayName(resource.resourceName)
                 .setId(resource.resourceId),
             EventAttendee()   // this is for end user.
-                .setEmail(userEmail.toString())
-                .setDisplayName(userName?.toString() ?: userId)
+                .setEmail(userId)
+                .setDisplayName(userName?.toString())
+                .setId(userId)
         )
 
         val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute() ?: return null

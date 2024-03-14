@@ -258,7 +258,6 @@ public interface IReservation : IService {
   @JsonIgnore
   public fun makeReservation(
       userId: String,
-      userEmail: Email,
       duration: Int,
       resource: Resource,
       date: LocalDate?,
