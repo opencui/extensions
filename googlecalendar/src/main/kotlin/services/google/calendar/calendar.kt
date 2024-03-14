@@ -135,6 +135,7 @@ data class ReservationProvider(
         event.start = EventDateTime().setDateTime(startTime)
         event.end = EventDateTime().setDateTime(endTime)
 
+
         //https://developers.google.com/calendar/api/concepts/sharing
         event.attendees = listOf(
             EventAttendee()  // This is for resource.
@@ -148,7 +149,12 @@ data class ReservationProvider(
                 .setId(userId)
         )
 
-        val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute() ?: return null
+        val createdEvent = calendar?.events()?.insert(delegatedUser, event)?.execute()
+
+        if (createdEvent == null) {
+            logger.info("Could not create event!!!")
+            return null
+        }
 
         val reservation = Reservation(null)
         reservation.id = createdEvent.id
