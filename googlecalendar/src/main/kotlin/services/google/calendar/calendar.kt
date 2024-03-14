@@ -144,7 +144,8 @@ data class ReservationProvider(
                 .setId(resource.resourceId),
             EventAttendee()   // this is for end user.
                 .setEmail(userEmail.toString())
-                .setDisplayName(userName?.toString() ?: userId)
+                .setDisplayName(userName?.toString())
+                .setId(userId)
         )
 
         val createdEvent = calendar?.events()?.insert(resource.resourceEmail, event)?.execute() ?: return null
