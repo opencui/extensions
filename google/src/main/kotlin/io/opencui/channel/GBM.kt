@@ -259,11 +259,20 @@ data class GBMChannel(override val info: Configuration) : IMessageChannel {
     }
 
     override fun typing(uid: String, botInfo: BotInfo) {
-        // sendIsTypingMessage(id)
+        // Send typing indicator
+        val event = BusinessMessagesEvent().setEventType(TYPING)
+
+        val request = builder!!.build().conversations().events().create("conversations/" + uid, event);
+
+        request.setEventId(UUID.randomUUID().toString());
+        request.execute();
+
+        logger.info("typing for $uid");
     }
 
-    override fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier {
-        TODO("Not yet implemented")
+    override fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier? {
+        // This channel does not give the user info.
+        return null
     }
 
     /**
@@ -363,7 +372,7 @@ data class GBMChannel(override val info: Configuration) : IMessageChannel {
         private const val EXCEPTION_WAS_THROWN = "an exception was thrown"
         private const val CLIETTOKEN = "client_token"
         private const val CREDENTIAL = "credential"
-
+        private const val TYPING = "Typing"
         val channelType = "gbm"
 
         override fun invoke(config: Configuration): IChannel {
