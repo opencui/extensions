@@ -196,6 +196,16 @@ public data class ValidationResult(
     @JsonInclude(NON_NULL)
     public override var session: UserSession? = null
 ) : IFrame {
+    constructor(flag: Boolean) : this() {
+        success = flag
+    }
+
+    constructor(flag: Boolean, msg: String) : this() {
+        success = flag
+        message = msg
+    }
+
+
     @JsonProperty
     public var success: Boolean? = null
 
