@@ -331,11 +331,11 @@ data class ReservationProvider(
         val resources = admin?.resources()?.calendars()?.list(businessName)?.execute()?.items
         val event = client?.Events()?.get(getCalendarResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         if (event.isNullOrEmpty()) {
-            validationResult.message = "cannot update"
+            validationResult.message = NotAvailable
             validationResult.success = false
         }
         if (resources.isNullOrEmpty()) {
-            validationResult.message = "cannot update"
+            validationResult.message = NotAvailable
             validationResult.success = false
         } else {
             resources.forEach {
@@ -346,7 +346,7 @@ data class ReservationProvider(
                 }
             }
             if (listResources.isEmpty()) {
-                validationResult.message = "cannot update"
+                validationResult.message = NotAvailable
                 validationResult.success = false
             } else {
                 val calendar = client
@@ -354,10 +354,11 @@ data class ReservationProvider(
                 e.summary = event?.summary
                 e.description = event?.description
                 e.start = event?.start
+                e.end = event?.end
                 e.attendees = event?.attendees
                 calendar?.events()?.insert(listResources[0].resourceEmail, event)?.execute()
                 validationResult.success = true
-                validationResult.message = "updated resource"
+                validationResult.message = ResourceUpdated
             }
         }
         return validationResult
@@ -367,15 +368,9 @@ data class ReservationProvider(
         val now = Instant.now()
         val event = client?.Events()?.get(getCalendarResource(reservation.resourceId!!)?.resourceEmail, reservation.id)?.execute()
         return if (now.isAfter(Instant.parse(event?.start?.dateTime.toString()))) {
-            val result = ValidationResult()
-            result.success = false
-            result.message = "Cannot cancel event"
-            result
+            ValidationResult(false)
         } else {
-            val result = ValidationResult()
-            result.success = true
-            result.message = "Reservation can be cancelled"
-            result
+            ValidationResult(true)
         }
     }
 
@@ -598,6 +593,7 @@ data class ReservationProvider(
         const val DELEGATED_USER = "delegated_user"
         const val CUSTOMERNAME = "customer_name"   // This is for business (customer for platform), not end user.
         const val NotAvailable = "Resource Not Available"
+        const val ResourceUpdated = "Resource updated"
         const val TimePassed = "Time Passed"
         const val Available = "Resource Available"
         override fun invoke(config: Configuration): IReservation {
