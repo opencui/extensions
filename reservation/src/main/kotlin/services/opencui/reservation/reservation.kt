@@ -200,6 +200,12 @@ public data class ValidationResult(
         success = flag
     }
 
+    constructor(flag: Boolean, msg: String) : this() {
+        success = flag
+        message = msg
+    }
+
+
     @JsonProperty
     public var success: Boolean? = null
 
