@@ -45,8 +45,8 @@ class CMDDispatcher {
 		@JvmStatic
 		fun main(args: Array<String>) {
 			// val botInfo = botInfo("me.test", "frameVR_0222")
-			val botInfo = botInfo("me.test", "foodOrderingAppListOf")
-			//val botInfo = botInfo("me.restaurant", "tableReservationApp")
+			// val botInfo = botInfo("me.test", "foodOrderingAppListOf")
+			val botInfo = botInfo("me.test", "tableReservationBot")
 
 			init(botInfo.fullName)
 			val userInfo = UserInfo("test_channel", "test_user", null)
