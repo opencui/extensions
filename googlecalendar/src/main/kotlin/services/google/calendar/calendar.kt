@@ -75,7 +75,7 @@ data class ReservationProvider(
     private val HTTP_TRANSPORT: NetHttpTransport = GoogleNetHttpTransport.newTrustedTransport()
     private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
-    private val delegatedUser = config[DELEGATED_USER] as String
+    private val delegatedUser = (config[DELEGATED_USER] as String?) ?: "primary"
     private val client = buildClient()
     private val admin = buildAdmin()
 
@@ -211,7 +211,7 @@ data class ReservationProvider(
         return if (calendarResource != null) {
             reservation.session = null
             logger.debug("cancel Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
-            client?.events()?.delete(calendarResource.resourceEmail, reservation.id)?.execute()
+            client?.events()?.delete(delegatedUser, reservation.id)?.execute()
             val botStore = Dispatcher.sessionManager.botStore!!
             botStore.lrem(getReservationKey(reservation.userId!!), Json.encodeToString(reservation))
             
