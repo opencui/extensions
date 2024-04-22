@@ -42,6 +42,9 @@ repositories {
     maven { url 'https://repository.jboss.org/nexus/content/groups/public/' }
     mavenLocal()
     mavenCentral()
+    flatDir {
+        dirs '../../core/libs'
+    }
 }
 
 dependencies {
