@@ -38,6 +38,9 @@ compileTestKotlin {
 repositories {
     mavenLocal()
     mavenCentral()
+    flatDir {
+        dirs '../../core/libs'
+    }
 }
 
 jar.enabled = true
