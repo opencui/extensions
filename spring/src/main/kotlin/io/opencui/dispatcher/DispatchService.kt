@@ -20,7 +20,6 @@ import io.opencui.du.ClojureInitializer
 @Configuration
 @SpringBootApplication(scanBasePackages = ["io.opencui"])
 class DispatchService(
-	@Value("\${du.duckling}") val duDuckling: String,
 	@Value("\${du.host}") val duHost: String,
 	@Value("\${du.port}") val duPort: String,
 	@Value("\${du.protocol}") val duProtocol: String,
@@ -30,7 +29,6 @@ class DispatchService(
 	fun init() {
 		ObjectMapper().registerModule(KotlinModule())
 
-		RuntimeConfig.put(DucklingRecognizer::class, duDuckling)
 		// Use the same the format for new nlu service.
 		RuntimeConfig.put(RestNluService::class, "$duProtocol://${duHost}:${duPort}")
 
