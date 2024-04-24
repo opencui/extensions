@@ -14,6 +14,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.runApplication
 import org.springframework.context.event.EventListener
 import java.io.File
+import io.opencui.du.ClojureInitializer
 
 
 @Configuration
@@ -41,6 +42,8 @@ class DispatchService(
 		Dispatcher.botPrefix = botPrefix
 		ChatbotLoader.init(File("./jardir/"), botPrefix)
 		Dispatcher.logger.info("finish the builder initialization.")
+
+		ClojureInitializer.init()
 	}
 
 	companion object {
