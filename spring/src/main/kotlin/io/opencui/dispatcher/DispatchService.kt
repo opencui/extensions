@@ -40,14 +40,13 @@ class DispatchService(
 		Dispatcher.botPrefix = botPrefix
 		ChatbotLoader.init(File("./jardir/"), botPrefix)
 		Dispatcher.logger.info("finish the builder initialization.")
-
-		ClojureInitializer.init()
 	}
 
 	companion object {
 		@JvmStatic
 		fun main(args: Array<String>) {
 			println("******************************** starting from spring...")
+			ClojureInitializer.init()
 			runApplication<DispatchService>(*args)
 		}
 	}
