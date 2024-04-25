@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.opencui.core.*
 import io.opencui.core.Dispatcher
-import io.opencui.du.DucklingRecognizer
 import io.opencui.du.RestNluService
 import io.opencui.sessionmanager.*
 import org.springframework.beans.factory.annotation.Value
@@ -20,6 +19,7 @@ import io.opencui.du.ClojureInitializer
 @Configuration
 @SpringBootApplication(scanBasePackages = ["io.opencui"])
 class DispatchService(
+	@Value("\${du.duckling}") val duDuckling: String,
 	@Value("\${du.host}") val duHost: String,
 	@Value("\${du.port}") val duPort: String,
 	@Value("\${du.protocol}") val duProtocol: String,
@@ -31,6 +31,8 @@ class DispatchService(
 
 		// Use the same the format for new nlu service.
 		RuntimeConfig.put(RestNluService::class, "$duProtocol://${duHost}:${duPort}")
+
+		ClojureInitializer.init(listOf(duDuckling))
 
 		Dispatcher.memoryBased = false
 		Dispatcher.botPrefix = botPrefix
@@ -46,7 +48,6 @@ class DispatchService(
 		@JvmStatic
 		fun main(args: Array<String>) {
 			println("******************************** starting from spring...")
-			ClojureInitializer.init()
 			runApplication<DispatchService>(*args)
 		}
 	}
