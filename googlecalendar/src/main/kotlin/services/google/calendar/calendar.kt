@@ -18,6 +18,9 @@ import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
 import org.slf4j.LoggerFactory
+import services.opencui.hours.BusinessHours
+import services.opencui.hours.IHours
+import services.opencui.hours.TimeInterval
 import services.opencui.reservation.*
 import java.time.*
 import kotlin.String
@@ -65,7 +68,7 @@ fun Resource.update(presource: CalendarResource) {
 data class ReservationProvider(
     val config: Configuration,
     override var session: UserSession? = null,
-) : IReservation, IProvider {
+) : IReservation, IHours, IProvider {
 
     private val secrets_json = config[CLIENT_SECRET] as String
 
@@ -76,8 +79,12 @@ data class ReservationProvider(
     private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
     private val delegatedUser = (config[DELEGATED_USER] as String?) ?: "primary"
+    private val freeBusyUser = (config[DELEGATED_USER] as String?)!!
     private val client = buildClient()
     private val admin = buildAdmin()
+
+
+
 
     override fun cloneForSession(userSession: UserSession): IExtension {
         return this.copy(session = userSession)
@@ -126,7 +133,7 @@ data class ReservationProvider(
     ): Reservation? {
         val timeZone = presource.timezone!!
         val resource = getCalendarResource(presource.id!!)!!
-        val calendar = client
+        val service = client
         val event = Event()
         event.summary = title ?: "$userName and $businessName"
         event.description = "${resource.resourceName} is booked at $businessName"
@@ -134,7 +141,6 @@ data class ReservationProvider(
         val endTime = date.atTime(time).plusSeconds(duration.toLong()).toDateTime(timeZone)
         event.start = EventDateTime().setDateTime(startTime)
         event.end = EventDateTime().setDateTime(endTime)
-
 
         //https://developers.google.com/calendar/api/concepts/sharing
         event.attendees = listOf(
@@ -149,7 +155,7 @@ data class ReservationProvider(
                 .setId(userId)
         )
 
-        val createdEvent = calendar?.events()?.insert(delegatedUser, event)?.execute()
+        val createdEvent = service?.events()?.insert(delegatedUser, event)?.execute()
 
         if (createdEvent == null) {
             logger.info("Could not create event!!!")
@@ -466,6 +472,37 @@ data class ReservationProvider(
      * is today and not returning any free time slots if the search date is in the past
      * https://developers.google.com/calendar/api/v3/reference/freebusy
      * */
+    private fun requestFreeBusy(timeMinimum: DateTime, timeMaximum: DateTime, zoneId: ZoneId, calendarId: String): List<Pair<LocalDateTime, LocalDateTime>> {
+        val freeBusyRequest = FreeBusyRequest().apply {
+            timeMin = timeMinimum
+            timeMax = timeMaximum
+            timeZone = zoneId.id
+            items = listOf(FreeBusyRequestItem().apply {
+                id = calendarId
+            })
+        }
+
+        val response = client?.freebusy()?.query(freeBusyRequest)?.execute()
+        var currentStart = timeMinimum
+        val busyIntervals = response?.calendars?.get(calendarId)!!.busy
+        logger.debug("Free busy request for $calendarId is $freeBusyRequest")
+        logger.debug("busyInterval is: $busyIntervals")
+        var freeIntervals = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
+        busyIntervals.forEach {
+            if (it.start.toLocalDateTime().isAfter(currentStart.toLocalDateTime())) {
+                freeIntervals.add(Pair(currentStart.toLocalDateTime(), it.start.toLocalDateTime()))
+                currentStart = it.end
+            }
+            if (currentStart.toLocalDateTime().isBefore(it.end.toLocalDateTime())) {
+                currentStart = it.end
+            }
+        }
+        if (currentStart.toLocalTime().isBefore(timeMaximum.toLocalTime())) {
+            freeIntervals.add(Pair(currentStart.toLocalDateTime(), timeMaximum.toLocalDateTime()))
+        }
+        return freeIntervals
+    }
+
     private fun makeFreeBusyRequest(zoneId: ZoneId, date: LocalDate, calendarId: String): List<LocalTime> {
         var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
         var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
@@ -481,34 +518,71 @@ data class ReservationProvider(
             return emptyList()
         }
 
-        val freeBusyRequest = FreeBusyRequest().apply {
-            timeMin = timeMinimum
-            timeMax = timeMaximum
-            timeZone = zoneId.id
-            items = listOf(FreeBusyRequestItem().apply {
-                id = calendarId
-            })
+        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, calendarId)
+        return freeIntervals.map{ it.first.toLocalTime() }
+    }
+
+
+    override fun getHoursByDay(date: LocalDate): BusinessHours {
+        val calendar = client!!.calendars().get(freeBusyUser).execute()
+        val timeZone = calendar.timeZone
+        val zoneId = ZoneId.of(timeZone)
+
+        var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
+        var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
+
+        // We should always use LocalDateTime.now(ZoneId.of(timeZone)
+        val now = LocalDateTime.now(zoneId)
+        if (date == LocalDate.now(zoneId)) {
+            // For today, we always start from now.
+            timeMinimum = now.toDateTime(zoneId)
+        }
+        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, freeBusyUser)
+        val timeIntervals = freeIntervals.map{
+            TimeInterval().apply {
+                startTime = it.first.toLocalTime()
+                endTime = it.second.toLocalTime()
+            }
+        }
+        return BusinessHours().apply {
+            this.date = date
+            this.opennings = timeIntervals.toMutableList()
+        }
+    }
+
+
+    override fun getHoursByWeek(): List<BusinessHours> {
+        val calendar = client!!.calendars().get(freeBusyUser).execute()
+        val timeZone = calendar.timeZone
+        val zoneId = ZoneId.of(timeZone)
+        val date = LocalDate.now(zoneId)
+        var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
+        val timeMaximum = date.plusDays(7).atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
+
+        val now = LocalDateTime.now(zoneId)
+        if (date == LocalDate.now(zoneId)) {
+            // For today, we always start from now.
+            timeMinimum = now.toDateTime(zoneId)
         }
 
-        val response = client?.freebusy()?.query(freeBusyRequest)?.execute()
-        var currentStart = timeMinimum
-        val busyIntervals = response?.calendars?.get(calendarId)!!.busy
-        logger.debug("Free busy request for $calendarId is $freeBusyRequest")
-        logger.debug("busyInterval is: $busyIntervals")
-        var freeIntervals = mutableListOf<Pair<LocalTime, LocalTime>>()
-        busyIntervals.forEach {
-            if (it.start.toLocalTime().isAfter(currentStart.toLocalTime())) {
-                freeIntervals.add(Pair(currentStart.toLocalTime(), it.start.toLocalTime()))
-                currentStart = it.end
-            }
-            if (currentStart.toLocalDateTime().isBefore(it.end.toLocalDateTime())) {
-                currentStart = it.end
-            }
+        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, freeBusyUser)
+        val freeIntervalMap = freeIntervals.groupBy{ it.first.toLocalDate() }
+        val dates = freeIntervalMap.map {it.key}.toList().sorted()
+        val results = mutableListOf<BusinessHours>()
+        for (date in dates) {
+            val timeIntervals = freeIntervalMap[date]?.map {
+                TimeInterval().apply {
+                    startTime = it.first.toLocalTime()
+                    endTime = it.second.toLocalTime()
+                }
+            } ?: emptyList()
+            results.add(
+                BusinessHours().apply {
+                    this.date = date
+                    this.opennings = timeIntervals.toMutableList()
+            })
         }
-        if (currentStart.toLocalTime().isBefore(timeMaximum.toLocalTime())) {
-            freeIntervals.add(Pair(currentStart.toLocalTime(), timeMaximum.toLocalTime()))
-        }
-        return freeIntervals.map{ it.first }
+        return results
     }
 
     override fun listResource(
@@ -591,6 +665,7 @@ data class ReservationProvider(
         val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
         const val DELEGATED_USER = "delegated_user"
+        const val FREEBUSY_USER = "freebusy_id"
         const val CUSTOMERNAME = "customer_name"   // This is for business (customer for platform), not end user.
         const val NotAvailable = "Resource Not Available"
         const val ResourceUpdated = "Resource updated"
