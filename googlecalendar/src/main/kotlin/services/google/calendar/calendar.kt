@@ -66,12 +66,11 @@ fun Resource.update(presource: CalendarResource) {
 }
 
 
-interface IHoursReservation : IReservation, IHours
 
 data class ReservationProvider(
     val config: Configuration,
     override var session: UserSession? = null,
-) : IHoursReservation, IProvider {
+) : IReservation, IProvider {
 
     private val secrets_json = config[CLIENT_SECRET] as String
 
@@ -662,7 +661,7 @@ data class ReservationProvider(
         return events.isNullOrEmpty()
     }
 
-    companion object : ExtensionBuilder<IHoursReservation> {
+    companion object : ExtensionBuilder<IReservation> {
         val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
         const val DELEGATED_USER = "delegated_user"
@@ -672,7 +671,7 @@ data class ReservationProvider(
         const val ResourceUpdated = "Resource updated"
         const val TimePassed = "Time Passed"
         const val Available = "Resource Available"
-        override fun invoke(config: Configuration): IHoursReservation {
+        override fun invoke(config: Configuration): IReservation {
             return ReservationProvider(config)
         }
 
