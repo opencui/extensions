@@ -9,6 +9,7 @@ import io.opencui.core.da.SlotNotifyFailure
 import io.opencui.core.da.SlotRequest
 import io.opencui.core.da.SlotRequestMore
 import io.opencui.serialization.Json
+import services.opencui.hours.IHours
 import java.time.*
 import kotlin.Boolean
 import kotlin.Int
@@ -264,7 +265,7 @@ public data class ValidationResult(
     }
 }
 
-public interface IReservation : IService {
+public interface IReservation : IHours, IService {
   @JsonIgnore
   public fun makeReservation(
       userId: String,
