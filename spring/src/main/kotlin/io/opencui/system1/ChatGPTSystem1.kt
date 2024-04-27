@@ -35,7 +35,7 @@ data class ChatGPTSystem1(val url: String, val prompt: String, val model: String
         return response.block()!!.reply
     }
 
-    companion object : ExtensionBuilder<ISystem1> {
+    companion object : ExtensionBuilder {
         override fun invoke(p1: Configuration): ISystem1 {
             val url = p1[urlKey]!! as String
             val systemPrompt = p1[profileKey] as String?

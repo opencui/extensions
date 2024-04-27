@@ -198,7 +198,7 @@ class MessengerChannel(override val info: Configuration) : IMessageChannel {
         logger.info(res.toString())
     }
 
-    companion object : ExtensionBuilder<IChannel> {
+    companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(MessengerChannel::class.java)
         const val messageType = "RESPONSE"
         const val PAGEACCESSTOKEN = "page_access_token"
@@ -232,7 +232,7 @@ class MessengerResources() {
             @RequestParam("hub.challenge") challenge: String): ResponseEntity<String> {
         logger.info("RECEIVED get request ::$channelId:$token:$challenge")
 		val botInfo = master(lang)
-		val info = Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)
+		val info = Dispatcher.getChatbot(botInfo).getConfiguration(channelId)
 				?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Did not find ::$channelId")
         logger.info("info = $info for ::$channelId:$token:$challenge")
 		if (mode =="subscribe") {
@@ -265,7 +265,7 @@ class MessengerResources() {
 		val bot = Dispatcher.getChatbot(botInfo)
 
         // This make sure that we have this channelId
-        bot.getConfiguration<IChannel>(channelId)
+        bot.getConfiguration(channelId)
             ?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
 
         // Now we need to get the channel.

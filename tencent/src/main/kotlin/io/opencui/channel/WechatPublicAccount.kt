@@ -388,7 +388,7 @@ data class WechatPublicAccountChannel(override val info: Configuration) : IMessa
     }
 
 
-    companion object : ExtensionBuilder<IChannel> {
+    companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(WechatPublicAccountChannel::class.java)
         val mapper: ObjectMapper = ObjectMapper()
 

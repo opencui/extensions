@@ -18,7 +18,7 @@ data class HelloWorldProvider(
     return "hello ${config["name"]}, $str"
   }
 
-  companion object: ExtensionBuilder<IHelloworldService> {
+  companion object: ExtensionBuilder {
     override fun invoke(config: Configuration): IHelloworldService {
       return HelloWorldProvider(config)
     }

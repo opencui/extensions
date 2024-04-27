@@ -81,7 +81,7 @@ data class ReservationProvider(
     private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
     private val delegatedUser = (config[DELEGATED_USER] as String?) ?: "primary"
-    private val freeBusyUser = (config[DELEGATED_USER] as String?)!!
+    private val freeBusyUser = (config[FREEBUSY_USER] as String?)!!
     private val client = buildClient()
     private val admin = buildAdmin()
 
@@ -661,7 +661,7 @@ data class ReservationProvider(
         return events.isNullOrEmpty()
     }
 
-    companion object : ExtensionBuilder<IReservation> {
+    companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
         const val DELEGATED_USER = "delegated_user"

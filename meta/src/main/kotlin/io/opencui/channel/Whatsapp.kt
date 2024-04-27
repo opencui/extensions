@@ -71,7 +71,7 @@ class WhatsappResources() {
             @RequestParam("hub.verify_token") token: String,
             @RequestParam("hub.challenge") challenge: String): ResponseEntity<String> {
 		val botInfo = master(lang)
-		val info = Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)
+		val info = Dispatcher.getChatbot(botInfo).getConfiguration(channelId)
 				?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
         // TODO(sean): remove this to prevent leak.
         logger.info("info = $info for ::$channelId:$token:$challenge:$mode")
@@ -102,7 +102,7 @@ class WhatsappResources() {
 		    @RequestBody body: WhatsappMessage
     ): ResponseEntity<String> {
         val botInfo = master(lang)
-		Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(channelId)?: return ResponseEntity("NotFound", HttpStatus.NOT_FOUND)
+		Dispatcher.getChatbot(botInfo).getConfiguration(channelId)?: return ResponseEntity("NotFound", HttpStatus.NOT_FOUND)
         logger.info(Json.encodeToJsonElement(body).toPrettyString())
 
         // There are a list of change in the message.
@@ -299,7 +299,7 @@ class WhatsappChannel(override val info: Configuration) : IMessageChannel {
         logger.debug("mark seen response: ${res.toString()}")
     }
 
-    companion object : ExtensionBuilder<IChannel> {
+    companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(WhatsappChannel::class.java)
         const val ACCESSTOKEN = "access_token"
         const val MARKSEEN = "mark_seen"
