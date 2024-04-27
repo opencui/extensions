@@ -57,7 +57,7 @@ class GBMResource {
         val body = Json.parseToJsonElement(URLDecoder.decode(bodyStr, Charsets.UTF_8)) as ObjectNode
         val botInfo = master(lang)
         logger.info("got body: $body")
-        val info = Dispatcher.getChatbot(botInfo).getConfiguration<IChannel>(label)
+        val info = Dispatcher.getChatbot(botInfo).getConfiguration(label)
         if (info == null) {
             logger.info("could not find configure for $CHANNELTYPE/$label")
             return ResponseEntity(Json.makePrimitive("No longer active"), HttpStatus.NOT_FOUND)
@@ -367,7 +367,7 @@ data class GBMChannel(override val info: Configuration) : IMessageChannel {
             .setAvatarImage("https://storage.googleapis.com/sample-avatars-for-bm/bot-avatar.jpg");
     }
 
-    companion object : ExtensionBuilder<IChannel> {
+    companion object : ExtensionBuilder {
         private val logger = Logger.getLogger(GBMChannel::class.java.name)
         private const val EXCEPTION_WAS_THROWN = "an exception was thrown"
         private const val CLIETTOKEN = "client_token"

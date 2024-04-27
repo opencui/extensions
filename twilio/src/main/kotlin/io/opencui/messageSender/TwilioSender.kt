@@ -18,7 +18,7 @@ class TwilioSender(val info: Configuration) : IMessageSender {
         Message.creator(to, from, content).create()
     }
 
-    companion object : ExtensionBuilder<IMessageSender> {
+    companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(TwilioSender::class.java)
         const val ACCESSTOKEN = "access_token"
         const val SOURCE = "number"

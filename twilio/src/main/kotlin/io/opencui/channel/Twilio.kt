@@ -140,7 +140,7 @@ data class TwilioChannel(override val info: Configuration) : IMessageChannel {
         TODO("Not yet implemented")
     }
 
-    companion object : ExtensionBuilder<IChannel> {
+    companion object : ExtensionBuilder {
         const val ACCOUNTSID = "account_sid"
         const val AUTHTOKEN = "auth_token"
         const val FROMNUMBER = "from_number"
