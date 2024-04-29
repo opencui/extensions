@@ -19,7 +19,6 @@ import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
 import org.slf4j.LoggerFactory
 import services.opencui.hours.BusinessHours
-import services.opencui.hours.IHours
 import services.opencui.hours.TimeInterval
 import services.opencui.reservation.*
 import java.time.*
@@ -81,7 +80,8 @@ data class ReservationProvider(
     private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
     private val delegatedUser = (config[DELEGATED_USER] as String?) ?: "primary"
-    private val freeBusyUser = (config[FREEBUSY_USER] as String?)!!
+    private val reservationCalendarId = (config[RESERVATION_ID] as String?)!!
+    private val freeBusyCalendarId = (config[FREEBUSY_ID] as String?)!!
     private val client = buildClient()
     private val admin = buildAdmin()
 
@@ -155,7 +155,7 @@ data class ReservationProvider(
                 .setId(userId)
         )
 
-        val createdEvent = service?.events()?.insert(delegatedUser, event)?.execute()
+        val createdEvent = service?.events()?.insert(reservationCalendarId, event)?.execute()
 
         if (createdEvent == null) {
             logger.info("Could not create event!!!")
@@ -217,7 +217,7 @@ data class ReservationProvider(
         return if (calendarResource != null) {
             reservation.session = null
             logger.debug("cancel Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
-            client?.events()?.delete(delegatedUser, reservation.id)?.execute()
+            client?.events()?.delete(reservationCalendarId, reservation.id)?.execute()
             val botStore = Dispatcher.sessionManager.botStore!!
             botStore.lrem(getReservationKey(reservation.userId!!), Json.encodeToString(reservation))
             
@@ -524,7 +524,7 @@ data class ReservationProvider(
 
 
     override fun getHoursByDay(date: LocalDate): BusinessHours {
-        val calendar = client!!.calendars().get(freeBusyUser).execute()
+        val calendar = client!!.calendars().get(freeBusyCalendarId).execute()
         val timeZone = calendar.timeZone
         val zoneId = ZoneId.of(timeZone)
 
@@ -537,7 +537,7 @@ data class ReservationProvider(
             // For today, we always start from now.
             timeMinimum = now.toDateTime(zoneId)
         }
-        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, freeBusyUser)
+        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, freeBusyCalendarId)
         val timeIntervals = freeIntervals.map{
             TimeInterval().apply {
                 startTime = it.first.toLocalTime()
@@ -552,7 +552,7 @@ data class ReservationProvider(
 
 
     override fun getHoursByWeek(): List<BusinessHours> {
-        val calendar = client!!.calendars().get(freeBusyUser).execute()
+        val calendar = client!!.calendars().get(freeBusyCalendarId).execute()
         val timeZone = calendar.timeZone
         val zoneId = ZoneId.of(timeZone)
         val date = LocalDate.now(zoneId)
@@ -565,7 +565,7 @@ data class ReservationProvider(
             timeMinimum = now.toDateTime(zoneId)
         }
 
-        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, freeBusyUser)
+        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, freeBusyCalendarId)
         val freeIntervalMap = freeIntervals.groupBy{ it.first.toLocalDate() }
         val dates = freeIntervalMap.map {it.key}.toList().sorted()
         val results = mutableListOf<BusinessHours>()
@@ -665,7 +665,8 @@ data class ReservationProvider(
         val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
         const val DELEGATED_USER = "delegated_user"
-        const val FREEBUSY_USER = "freebusy_id"
+        const val FREEBUSY_ID = "freebusy_calendar"
+        const val RESERVATION_ID = "reservation_calendar"
         const val CUSTOMERNAME = "customer_name"   // This is for business (customer for platform), not end user.
         const val NotAvailable = "Resource Not Available"
         const val ResourceUpdated = "Resource updated"
