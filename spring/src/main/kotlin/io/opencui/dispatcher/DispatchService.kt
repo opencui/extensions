@@ -32,7 +32,14 @@ class DispatchService(
 		// Use the same the format for new nlu service.
 		RuntimeConfig.put(RestNluService::class, "$duProtocol://${duHost}:${duPort}")
 
-		ClojureInitializer.init(listOf(duDuckling))
+		// We assume the launch directory structure and agent-{lang}.jar
+		val jardir = File("./jardir/")
+		val filePattern = "agent-[a-z][a-z].jar".toRegex()
+		val languages = jardir.listFiles()
+			?.filter { it.isFile }
+			?.filter { filePattern.matchEntire(it.name) != null }!!.map { it.name.substring(6, 8)}
+
+		ClojureInitializer.init(languages, listOf(duDuckling))
 
 		Dispatcher.memoryBased = false
 		Dispatcher.botPrefix = botPrefix
@@ -40,7 +47,7 @@ class DispatchService(
 		// This make sure that we keep the existing index if we have it.
 		Dispatcher.sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
 		Dispatcher.botPrefix = botPrefix
-		ChatbotLoader.init(File("./jardir/"), botPrefix)
+		ChatbotLoader.init(jardir, botPrefix)
 		Dispatcher.logger.info("finish the builder initialization.")
 	}
 
