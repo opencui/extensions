@@ -14,6 +14,9 @@ import org.springframework.boot.runApplication
 import org.springframework.context.event.EventListener
 import java.io.File
 import io.opencui.du.ClojureInitializer
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 
 
 @Configuration
@@ -39,7 +42,10 @@ class DispatchService(
 			?.filter { it.isFile }
 			?.filter { filePattern.matchEntire(it.name) != null }!!.map { it.name.substring(6, 8)}
 
-		ClojureInitializer.init(languages, listOf(duDuckling))
+		val clojureInit =   GlobalScope.async {
+			// Start init in a different thread/coroutine
+			ClojureInitializer.init(languages, listOf(duDuckling))
+		}
 
 		Dispatcher.memoryBased = false
 		Dispatcher.botPrefix = botPrefix
@@ -49,6 +55,10 @@ class DispatchService(
 		Dispatcher.botPrefix = botPrefix
 		ChatbotLoader.init(jardir, botPrefix)
 		Dispatcher.logger.info("finish the builder initialization.")
+		runBlocking {
+			// Wait for the clojure init to be done.
+			clojureInit.join()
+		}
 	}
 
 	companion object {
