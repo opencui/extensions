@@ -6,6 +6,7 @@ import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.core.Dispatcher
 import io.opencui.core.user.UserInfo
+import io.opencui.du.ClojureInitializer
 import io.opencui.du.DucklingRecognizer
 import io.opencui.du.TfRestBertNLUModel
 import io.opencui.sessionmanager.*
@@ -26,8 +27,8 @@ class CMDDispatcher {
 			Dispatcher.botPrefix = botPrefix
 
 			val botInfo = master()
+			ClojureInitializer.init(listOf("en", "zh"), listOf("./core/libs/duckling-0.4.24-standalone.jar"))
 
-			RuntimeConfig.put(DucklingRecognizer::class, duDuckling)
 			RuntimeConfig.put(TfRestBertNLUModel::class, Triple(duHost, duPort, duProtocol))
 			RuntimeConfig.put(ChatbotLoader::class, InMemoryBotStore(botInfo))
 
