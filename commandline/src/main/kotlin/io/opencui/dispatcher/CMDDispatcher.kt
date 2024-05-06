@@ -60,7 +60,7 @@ class CMDDispatcher {
 			while (true) {
 				println(Json.encodeToJsonElement(responses).toPrettyString())
 				print("Enter text: ")
-    			        val line = readLine()
+				val line = readLine()
 				
 				// line is not blank now.
 				if (line.isNullOrEmpty()) {
