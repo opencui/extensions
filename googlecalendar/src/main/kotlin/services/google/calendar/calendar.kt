@@ -190,7 +190,7 @@ data class ReservationProvider(
         return cachedListReservation(userId)
     }
 
-    val cachedListReservation = CachedMethod1(this::listReservationImpl, values)
+    val cachedListReservation = CachedMethod1(this::listReservationImpl)
 
     private fun listReservationImpl(userId: String): List<Reservation> {
         // We suspect the hosted redis instance has some sort of rate limit, so we need to keep this in cache.
@@ -403,6 +403,7 @@ data class ReservationProvider(
         return locations
     }
 
+
     /**
      * This function returns a list of available dates for a given location and resource,
      * based on whether the user has specified a time or not. If a time is specified,
@@ -412,7 +413,7 @@ data class ReservationProvider(
      * and if there are, it will add that date to the list of available dates. The filter parameter
      * is used to filter resources based on specific criteria, if it is not null.
      * */
-    override fun availableDates(
+    fun availableDatesImpl(
         time: LocalTime?,
         duration: Int,
         presource: Resource
@@ -440,6 +441,17 @@ data class ReservationProvider(
         return availableDates
     }
 
+    val cachedAvailableDates = CachedMethod3(this::availableDatesImpl)
+
+    override fun availableDates(
+        time: LocalTime?,
+        duration: Int,
+        presource: Resource
+    ): List<LocalDate> {
+        return cachedAvailableDates(time, duration, presource)
+    }
+
+
     /**
      * This function is used to find available time slots for a specific resource type at a given location
      * on a particular day. It takes in several parameters including the location object, resource type, date,
@@ -452,7 +464,7 @@ data class ReservationProvider(
      * resources and removes any duplicates before returning the sorted list of available times. The returned
      * times are in the LocalTime format.
      * */
-      public override fun availableTimes(
+    fun availableTimesImpl(
         date: LocalDate?,
         duration: Int,
         presource: Resource
@@ -462,6 +474,15 @@ data class ReservationProvider(
           return makeFreeBusyRequest(timeZone, date ?: LocalDate.now(timeZone), resource!!.resourceEmail)
       }
 
+    val cachedAvailableTimes = CachedMethod3(this::availableTimesImpl)
+
+    override fun availableTimes(
+        date: LocalDate?,
+        duration: Int,
+        presource: Resource
+      ): List<LocalTime> {
+        return cachedAvailableTimes(date, duration, presource)
+    }
 
     /**
      * This function takes in a Location, LocalDate, and calendarId and returns a list of free time
@@ -675,8 +696,6 @@ data class ReservationProvider(
         override fun invoke(config: Configuration): IReservation {
             return ReservationProvider(config)
         }
-
-        private val values = mutableMapOf<String, Pair<List<Reservation>, LocalDateTime>>()
     }
 }
 
