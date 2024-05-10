@@ -469,20 +469,20 @@ data class ReservationProvider(
      * */
     fun availableTimesImpl(
         date: LocalDate?,
-        presource: List<Resource>): List<List<Pair<LocalDateTime, LocalDateTime>>> {
-            if (presource.isEmpty()) return emptyList()
-            val timeZone = presource[0].timezone!!
-            val resources = presource.map { getCalendarResource(it.id!!)!!.resourceEmail }
-            return freeBusyRequestByDate(timeZone, date ?: LocalDate.now(timeZone), resources)
-      }
+        presource: List<Resource>): List<Pair<LocalDateTime, LocalDateTime>> {
+        if (presource.isEmpty()) return emptyList()
+        val timeZone = presource[0].timezone!!
+        val resources = presource.map { getCalendarResource(it.id!!)!!.resourceEmail }
+        val freeSlots = freeBusyRequestByDate(timeZone, date ?: LocalDate.now(timeZone), resources)
+        return freeSlots.flatten().toSet().toList().sortedBy { it.first }
+    }
 
     val cachedAvailableTimes = CachedMethod2(this::availableTimesImpl)
 
     override fun availableTimes(
         date: LocalDate?,
-        presources: List<Resource>
-      ): List<Pair<LocalDateTime, LocalDateTime>> {
-        return cachedAvailableTimes(date, presources).flatten()
+        presources: List<Resource>): List<Pair<LocalDateTime, LocalDateTime>> {
+        return cachedAvailableTimes(date, presources)
     }
 
     /**
