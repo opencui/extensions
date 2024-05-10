@@ -269,8 +269,8 @@ data class ReservationProvider(
             }
         }
 
-        var available =  makeFreeBusyRequest(zoneId, date!!, resource!!.resourceEmail)
-        if (available.isNullOrEmpty()) {
+        val available =  freeBusyRequestByDate(zoneId, date!!, listOf(resource!!.resourceEmail))[0]
+        if (available.isEmpty()) {
             return  ValidationResult(session).apply {
                 success = false;
                 message = NotAvailable
@@ -414,43 +414,46 @@ data class ReservationProvider(
      * is used to filter resources based on specific criteria, if it is not null.
      * */
     fun availableDatesImpl(
-        time: LocalTime?,
-        duration: Int,
-        presource: Resource
+        presource: List<Resource>,
+        start: Int = 0,
+        numOfDays: Int = 7
     ): List<LocalDate> {
-        val availableDates = mutableListOf<LocalDate>()
-        val now = LocalDate.now(presource.timezone!!)
-        val resource = getCalendarResource(presource.id!!)!!
-        // TODO: improve this soon.
-        val range = 0..5
+        if (presource.isEmpty()) return emptyList()
 
-        if (time == null) {
-            range.forEach { i ->
-                val events = availableTimes(now.plusDays(i.toLong()), duration, presource)
-                if (events.isNotEmpty() && !availableDates.contains(now.plusDays(i.toLong()))) {
-                    availableDates.add(now.plusDays(i.toLong()))
-                }
-            }
-        } else {
-            range.forEach { i ->
-                val event = checkSlotAvailability(presource.timezone!!, now, time, resource.resourceEmail, duration)
-                if (event) availableDates.add(now.plusDays(i.toLong()))
-            }
+        val timezone = presource[0].timezone!!
+        val today = LocalDate.now(timezone)
+
+        // TODO: improve this soon.
+        val end = start + numOfDays
+        val startDate = today.plusDays(start.toLong())
+        val endDate = today.plusDays(end.toLong())
+
+        var timeMinimum = startDate.atTime(LocalTime.of(0, 0)).toDateTime(timezone)
+        val timeMaximum = endDate.atTime(LocalTime.of(23, 59)).toDateTime(timezone)
+
+        // We should always use LocalDateTime.now(ZoneId.of(timeZone)
+        if (startDate == LocalDate.now(timezone)) {
+            // For today, we always start from now.
+            timeMinimum = LocalDateTime.now(timezone).toDateTime(timezone)
         }
 
-        return availableDates
+        val resources = presource.map { getCalendarResource(it.id!!)!!.resourceEmail }
+        val freeIntervalss = requestFreeBusy(timeMinimum, timeMaximum, timezone, resources)
+
+        val freeIntervals = freeIntervalss.flatten()
+        val freeDates = freeIntervals.map { it.first.toLocalDate() }
+        return freeDates.toSet().toList().sorted()
     }
 
     val cachedAvailableDates = CachedMethod3(this::availableDatesImpl)
 
     override fun availableDates(
-        time: LocalTime?,
-        duration: Int,
-        presource: Resource
+        presource: List<Resource>,
+        startOffset: Int,
+        numOfDays: Int,
     ): List<LocalDate> {
-        return cachedAvailableDates(time, duration, presource)
+        return cachedAvailableDates(presource, startOffset, numOfDays)
     }
-
 
     /**
      * This function is used to find available time slots for a specific resource type at a given location
@@ -466,22 +469,20 @@ data class ReservationProvider(
      * */
     fun availableTimesImpl(
         date: LocalDate?,
-        duration: Int,
-        presource: Resource
-      ): List<LocalTime> {
-          val timeZone = presource.timezone!!
-          val resource = getCalendarResource(presource.id!!)
-          return makeFreeBusyRequest(timeZone, date ?: LocalDate.now(timeZone), resource!!.resourceEmail)
+        presource: List<Resource>): List<List<Pair<LocalDateTime, LocalDateTime>>> {
+            if (presource.isEmpty()) return emptyList()
+            val timeZone = presource[0].timezone!!
+            val resources = presource.map { getCalendarResource(it.id!!)!!.resourceEmail }
+            return freeBusyRequestByDate(timeZone, date ?: LocalDate.now(timeZone), resources)
       }
 
-    val cachedAvailableTimes = CachedMethod3(this::availableTimesImpl)
+    val cachedAvailableTimes = CachedMethod2(this::availableTimesImpl)
 
     override fun availableTimes(
         date: LocalDate?,
-        duration: Int,
-        presource: Resource
-      ): List<LocalTime> {
-        return cachedAvailableTimes(date, duration, presource)
+        presources: List<Resource>
+      ): List<Pair<LocalDateTime, LocalDateTime>> {
+        return cachedAvailableTimes(date, presources).flatten()
     }
 
     /**
@@ -493,38 +494,42 @@ data class ReservationProvider(
      * is today and not returning any free time slots if the search date is in the past
      * https://developers.google.com/calendar/api/v3/reference/freebusy
      * */
-    private fun requestFreeBusy(timeMinimum: DateTime, timeMaximum: DateTime, zoneId: ZoneId, calendarId: String): List<Pair<LocalDateTime, LocalDateTime>> {
+    private fun requestFreeBusy(timeMinimum: DateTime, timeMaximum: DateTime, zoneId: ZoneId, calendarIds: List<String>): List<List<Pair<LocalDateTime, LocalDateTime>>> {
         val freeBusyRequest = FreeBusyRequest().apply {
             timeMin = timeMinimum
             timeMax = timeMaximum
             timeZone = zoneId.id
-            items = listOf(FreeBusyRequestItem().apply {
-                id = calendarId
-            })
+            items = calendarIds.map { FreeBusyRequestItem().apply { id = it } }
         }
 
         val response = client?.freebusy()?.query(freeBusyRequest)?.execute()
         var currentStart = timeMinimum
-        val busyIntervals = response?.calendars?.get(calendarId)!!.busy
-        logger.debug("Free busy request for $calendarId is $freeBusyRequest")
-        logger.debug("busyInterval is: $busyIntervals")
-        var freeIntervals = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
-        busyIntervals.forEach {
-            if (it.start.toLocalDateTime().isAfter(currentStart.toLocalDateTime())) {
-                freeIntervals.add(Pair(currentStart.toLocalDateTime(), it.start.toLocalDateTime()))
-                currentStart = it.end
+        var freeIntervalss = mutableListOf<MutableList<Pair<LocalDateTime, LocalDateTime>>>()
+        for (calendarId in calendarIds) {
+            val freeIntervals = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
+            val busyIntervals = response?.calendars?.get(calendarId)!!.busy
+            logger.debug("Free busy request for $calendarIds is $freeBusyRequest")
+            logger.debug("busyInterval is: $busyIntervals")
+
+            busyIntervals.forEach {
+                if (it.start.toLocalDateTime().isAfter(currentStart.toLocalDateTime())) {
+                    freeIntervals.add(Pair(currentStart.toLocalDateTime(), it.start.toLocalDateTime()))
+                    currentStart = it.end
+                }
+                if (currentStart.toLocalDateTime().isBefore(it.end.toLocalDateTime())) {
+                    currentStart = it.end
+                }
             }
-            if (currentStart.toLocalDateTime().isBefore(it.end.toLocalDateTime())) {
-                currentStart = it.end
+            if (currentStart.toLocalTime().isBefore(timeMaximum.toLocalTime())) {
+                freeIntervals.add(Pair(currentStart.toLocalDateTime(), timeMaximum.toLocalDateTime()))
             }
+            // Now we add result to outer list.
+            freeIntervalss.add(freeIntervals)
         }
-        if (currentStart.toLocalTime().isBefore(timeMaximum.toLocalTime())) {
-            freeIntervals.add(Pair(currentStart.toLocalDateTime(), timeMaximum.toLocalDateTime()))
-        }
-        return freeIntervals
+        return freeIntervalss
     }
 
-    private fun makeFreeBusyRequest(zoneId: ZoneId, date: LocalDate, calendarId: String): List<LocalTime> {
+    private fun freeBusyRequestByDate(zoneId: ZoneId, date: LocalDate, calendarId: List<String>): List<List<Pair<LocalDateTime, LocalDateTime>>> {
         var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
         var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
 
@@ -539,8 +544,8 @@ data class ReservationProvider(
             return emptyList()
         }
 
-        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, calendarId)
-        return freeIntervals.map{ it.first.toLocalTime() }
+        val freeIntervalss = requestFreeBusy(timeMinimum, timeMaximum, zoneId, calendarId)
+        return freeIntervalss
     }
 
 
@@ -558,7 +563,7 @@ data class ReservationProvider(
             // For today, we always start from now.
             timeMinimum = now.toDateTime(zoneId)
         }
-        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, freeBusyCalendarId)
+        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, listOf(freeBusyCalendarId))[0]
         val timeIntervals = freeIntervals.map{
             TimeInterval().apply {
                 startTime = it.first.toLocalTime()
@@ -586,7 +591,7 @@ data class ReservationProvider(
             timeMinimum = now.toDateTime(zoneId)
         }
 
-        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, freeBusyCalendarId)
+        val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, listOf(freeBusyCalendarId))[0]
         val freeIntervalMap = freeIntervals.groupBy{ it.first.toLocalDate() }
         val dates = freeIntervalMap.map {it.key}.toList().sorted()
         val results = mutableListOf<BusinessHours>()
@@ -620,7 +625,7 @@ data class ReservationProvider(
 
         if (date != null) {
             calendarResources = calendarResources.filter {
-                !makeFreeBusyRequest(location.timezone!!, date, it.resourceEmail).isNullOrEmpty()
+                freeBusyRequestByDate(location.timezone!!, date, listOf(it.resourceEmail))[0].isNotEmpty()
             }
         }
         if (time != null) {
