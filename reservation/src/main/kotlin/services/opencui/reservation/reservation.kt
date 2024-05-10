@@ -321,17 +321,16 @@ public interface IReservation : IHours, IService {
 
   @JsonIgnore
   public fun availableDates(
-    time: LocalTime?,
-    duration: Int,
-    resource: Resource
+    resource: List<Resource>,
+    startOffset: Int,
+    numOfDays: Int
   ): List<LocalDate>
 
   @JsonIgnore
   public fun availableTimes(
     date: LocalDate?,
-    duration: Int,
-    resource: Resource
-  ): List<LocalTime>
+    resource: List<Resource>
+  ): List<Pair<LocalDateTime, LocalDateTime>>
 
   @JsonIgnore
   public fun getResourceInfo(resourceId: String): Resource?
