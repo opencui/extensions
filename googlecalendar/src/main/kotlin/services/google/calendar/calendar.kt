@@ -27,6 +27,7 @@ import kotlin.collections.List
 import kotlin.collections.Map
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.util.Date
 
 
 /**
@@ -64,7 +65,12 @@ fun Resource.update(presource: CalendarResource) {
     name = ResourceName(presource.resourceName)
 }
 
-
+fun timeInterval(stt: LocalDateTime, end: LocalDateTime): TimeInterval {
+    val result = TimeInterval()
+    result.startTime = stt.toLocalTime()
+    result.endTime = end.toLocalTime()
+    return result
+}
 
 data class ReservationProvider(
     val config: Configuration,
@@ -417,7 +423,7 @@ data class ReservationProvider(
         presource: List<Resource>,
         start: Int = 0,
         numOfDays: Int = 7
-    ): List<LocalDate> {
+    ): List<DateAvailability> {
         if (presource.isEmpty()) return emptyList()
 
         val timezone = presource[0].timezone!!
@@ -440,9 +446,9 @@ data class ReservationProvider(
         val resources = presource.map { getCalendarResource(it.id!!)!!.resourceEmail }
         val freeIntervalss = requestFreeBusy(timeMinimum, timeMaximum, timezone, resources)
 
-        val freeIntervals = freeIntervalss.flatten()
-        val freeDates = freeIntervals.map { it.first.toLocalDate() }
-        return freeDates.toSet().toList().sorted()
+        val freeIntervals = freeIntervalss.flatten().toSet().toList().sortedBy { it.first }
+        val freeByDates = freeIntervals.groupBy { it.first.toLocalDate() }
+        return freeByDates.map { DateAvailability(it.key, it.value.map { timeInterval(it.first, it.second) })}
     }
 
     val cachedAvailableDates = CachedMethod3(this::availableDatesImpl)
@@ -451,7 +457,7 @@ data class ReservationProvider(
         presource: List<Resource>,
         startOffset: Int,
         numOfDays: Int,
-    ): List<LocalDate> {
+    ): List<DateAvailability> {
         return cachedAvailableDates(presource, startOffset, numOfDays)
     }
 
@@ -469,19 +475,19 @@ data class ReservationProvider(
      * */
     fun availableTimesImpl(
         date: LocalDate?,
-        presource: List<Resource>): List<Pair<LocalDateTime, LocalDateTime>> {
+        presource: List<Resource>): List<TimeInterval> {
         if (presource.isEmpty()) return emptyList()
         val timeZone = presource[0].timezone!!
         val resources = presource.map { getCalendarResource(it.id!!)!!.resourceEmail }
         val freeSlots = freeBusyRequestByDate(timeZone, date ?: LocalDate.now(timeZone), resources)
-        return freeSlots.flatten().toSet().toList().sortedBy { it.first }
+        return freeSlots.flatten().toSet().toList().sortedBy { it.first }.map { timeInterval(it.first, it.second) }
     }
 
     val cachedAvailableTimes = CachedMethod2(this::availableTimesImpl)
 
     override fun availableTimes(
         date: LocalDate?,
-        presources: List<Resource>): List<Pair<LocalDateTime, LocalDateTime>> {
+        presources: List<Resource>): List<TimeInterval> {
         return cachedAvailableTimes(date, presources)
     }
 

@@ -10,6 +10,7 @@ import io.opencui.core.da.SlotRequest
 import io.opencui.core.da.SlotRequestMore
 import io.opencui.serialization.Json
 import services.opencui.hours.IHours
+import services.opencui.hours.TimeInterval
 import java.time.*
 import kotlin.Boolean
 import kotlin.Int
@@ -65,6 +66,11 @@ public data class LocationName(
         public val valueGood: ((String) -> Boolean)? = { true }
     }
 }
+
+
+
+data class DateAvailability(val date: LocalDate, val slots: List<TimeInterval>)
+
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 public interface Resource : IFrame {
@@ -324,13 +330,13 @@ public interface IReservation : IHours, IService {
     resource: List<Resource>,
     startOffset: Int,
     numOfDays: Int
-  ): List<LocalDate>
+  ): List<DateAvailability>
 
   @JsonIgnore
   public fun availableTimes(
     date: LocalDate?,
     resource: List<Resource>
-  ): List<Pair<LocalDateTime, LocalDateTime>>
+  ): List<TimeInterval>
 
   @JsonIgnore
   public fun getResourceInfo(resourceId: String): Resource?
