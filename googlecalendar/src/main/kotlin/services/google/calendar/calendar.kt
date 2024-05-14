@@ -27,7 +27,6 @@ import kotlin.collections.List
 import kotlin.collections.Map
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.Date
 
 
 /**
@@ -454,11 +453,11 @@ data class ReservationProvider(
     val cachedAvailableDates = CachedMethod3(this::availableDatesImpl)
 
     override fun availableDates(
-        presource: List<Resource>,
         startOffset: Int,
         numOfDays: Int,
+        resources: List<Resource>,
     ): List<DateAvailability> {
-        return cachedAvailableDates(presource, startOffset, numOfDays)
+        return cachedAvailableDates(resources, startOffset, numOfDays)
     }
 
     /**
@@ -487,8 +486,8 @@ data class ReservationProvider(
 
     override fun availableTimes(
         date: LocalDate?,
-        presources: List<Resource>): List<TimeInterval> {
-        return cachedAvailableTimes(date, presources)
+        resources: List<Resource>): List<TimeInterval> {
+        return cachedAvailableTimes(date, resources)
     }
 
     /**

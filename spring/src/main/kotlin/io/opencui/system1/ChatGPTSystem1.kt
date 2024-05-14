@@ -19,7 +19,7 @@ data class System1Request(val prompt: String, val turns: List<OpenAIMessage>, va
 
 data class System1Reply(val reply: String)
 
-data class ChatGPTSystem1(val url: String, val prompt: String, val model: String? = null) : ISystem1 {
+data class ChatGPTSystem1(val url: String, val path: String, val prompt: String, val model: String? = null) : ISystem1 {
     val client = WebClient.builder()
       .baseUrl(url)
       .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -28,7 +28,7 @@ data class ChatGPTSystem1(val url: String, val prompt: String, val model: String
     override fun response(msgs: List<CoreMessage>, feedback: Map<String, Any>?): String {
         val request = System1Request(prompt, msgs.convert(), feedback)
         val response = client.post()
-            .uri("query")
+            .uri(path)
             .body(Mono.just(request), System1Request::class.java)
             .retrieve()
             .bodyToMono(System1Reply::class.java)
@@ -38,13 +38,15 @@ data class ChatGPTSystem1(val url: String, val prompt: String, val model: String
     companion object : ExtensionBuilder {
         override fun invoke(p1: Configuration): ISystem1 {
             val url = p1[urlKey]!! as String
+            val path = p1[path]!! as String
             val systemPrompt = p1[profileKey] as String?
             val model : String? = p1[modelKey] as String?
-            return ChatGPTSystem1(url, systemPrompt ?: "", model ?: "gpt-3.5-turbo-0613")
+            return ChatGPTSystem1(url, path,systemPrompt ?: "", model ?: "gpt-3.5-turbo-0613")
         }
 
         const val profileKey = "systemPrompt"
         const val modelKey = "model"
         const val urlKey = "url"
+        const val path = "path"
     }
 }
