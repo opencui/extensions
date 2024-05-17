@@ -123,12 +123,12 @@ public data class Reservation(
     else -> listOf()
   }
 
-  public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+  public override fun createBuilder(): FillBuilder = object :
       FillBuilder {
     public var frame: Reservation? = this@Reservation
 
     public override fun invoke(path: ParamPath): FrameFiller<Reservation> {
-      val filler = FrameFiller({(p as? KMutableProperty0<Reservation?>) ?: ::frame}, path)
+      val filler = FrameFiller({::frame}, path)
       filler.addWithPath(EntityFiller({filler.target.get()!!::id}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
       filler.addWithPath(EntityFiller({filler.target.get()!!::resourceId}, null) {s, t ->
@@ -174,12 +174,12 @@ public data class Location(
     else -> listOf()
   }
 
-  public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+  public override fun createBuilder(): FillBuilder = object :
       FillBuilder {
     public var frame: Location? = this@Location
 
     public override fun invoke(path: ParamPath): FrameFiller<Location> {
-      val filler = FrameFiller({(p as? KMutableProperty0<Location?>) ?: ::frame}, path)
+      val filler = FrameFiller({::frame}, path)
       filler.addWithPath(EntityFiller({filler.target.get()!!::id}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
       filler.addWithPath(EntityFiller({filler.target.get()!!::name}, {s: String? ->
@@ -244,12 +244,12 @@ public data class ValidationResult(
         else -> listOf()
     }
 
-    public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+    public override fun createBuilder(): FillBuilder = object :
         FillBuilder {
         public var frame: ValidationResult? = this@ValidationResult
 
         public override fun invoke(path: ParamPath): FrameFiller<ValidationResult> {
-            val filler = FrameFiller({(p as? KMutableProperty0<ValidationResult?>) ?: ::frame}, path)
+            val filler = FrameFiller({::frame}, path)
             filler.addWithPath(EntityFiller({filler.target.get()!!::success}, null) {s, t ->
                 Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Boolean")!!) as?
                         kotlin.Boolean})
