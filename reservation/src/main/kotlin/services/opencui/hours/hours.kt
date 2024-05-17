@@ -51,12 +51,12 @@ public data class TimeInterval(
     else -> listOf()
   }
 
-  public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+  public override fun createBuilder(): FillBuilder = object :
       FillBuilder {
     public var frame: TimeInterval? = this@TimeInterval
 
     public override fun invoke(path: ParamPath): FrameFiller<TimeInterval> {
-      val filler = FrameFiller({(p as? KMutableProperty0<TimeInterval?>) ?: ::frame}, path)
+      val filler = FrameFiller({::frame}, path)
       filler.addWithPath(EntityFiller({filler.target.get()!!::startTime}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalTime")!!) as?
           java.time.LocalTime})
@@ -106,19 +106,18 @@ public data class BusinessHours(
     else -> listOf()
   }
 
-  public override fun createBuilder(p: KMutableProperty0<out Any?>?): FillBuilder = object :
+  public override fun createBuilder(): FillBuilder = object :
       FillBuilder {
     public var frame: BusinessHours? = this@BusinessHours
 
     public override fun invoke(path: ParamPath): FrameFiller<BusinessHours> {
-      val filler = FrameFiller({(p as? KMutableProperty0<BusinessHours?>) ?: ::frame}, path)
+      val filler = FrameFiller({::frame}, path)
       filler.addWithPath(EntityFiller({filler.target.get()!!::date}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as?
           java.time.LocalDate})
-      filler.addWithPath(MultiValueFiller({filler.target.get()!!::opennings}, fun(p:
-          KMutableProperty0<TimeInterval?>): ICompositeFiller {return p.apply {
-          set(TimeInterval(frame!!.session))
-          }.get()!!.createBuilder(p).invoke(path.join("openings._item", p.get()))}))
+      filler.addWithPath(MultiValueFiller({filler.target.get()!!::opennings},
+          fun(p: KMutableProperty0<TimeInterval?>): ICompositeFiller {
+          return p.apply { set(TimeInterval(frame!!.session)) }.get()!!.createBuilder().invoke(path.join("openings._item", p.get()))}))
       return filler
     }
   }
