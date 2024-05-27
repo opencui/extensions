@@ -188,13 +188,7 @@ data class ReservationProvider(
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
-        return cachedListReservation(userId, location, resourceType)
-    }
-
-    val cachedListReservation = CachedMethod3(this::listReservationImpl)
-
-    private fun listReservationImpl(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
-        logger.debug("list Reservation for ${userId}, $location and $resourceType")
+        logger.debug("ListReservation for ${userId}, $location and $resourceType")
 
         val reservations = mutableListOf<Reservation>()
         val now = DateTime(ZonedDateTime.now(zoneId).toInstant().toEpochMilli())
@@ -205,6 +199,7 @@ data class ReservationProvider(
                 ?.setTimeMin(now)
                 ?.setPageToken(pageToken)
                 ?.setQ("$userId, $location, $resourceType")?.execute()
+
             if (events.isNullOrEmpty()) {
                 pageToken = null
             } else {
@@ -215,6 +210,8 @@ data class ReservationProvider(
                     reservation.resourceId = event.attendees.firstOrNull { it.isResource }!!.id
                     reservation.end = event.end.dateTime.toOffsetDateTime()
                     reservation.start = event.start.dateTime.toOffsetDateTime()
+                    // remember to add the list.
+                    reservations.add(reservation)
                 }
                 pageToken = events.nextPageToken
             }
