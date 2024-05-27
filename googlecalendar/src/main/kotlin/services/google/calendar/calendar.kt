@@ -191,17 +191,24 @@ data class ReservationProvider(
         val reservations = mutableListOf<Reservation>()
         val now = DateTime(ZonedDateTime.now(zoneId).toInstant().toEpochMilli())
         var pageToken: String? = null
+
+        val criteria = mutableListOf<String>()
+        criteria.add(userId)
+        if (location != null) {criteria.add(location.toString())}
+        if (resourceType != null) {criteria.add(resourceType.toString())}
+        val query = criteria.joinToString(",")
+
         // use pagetoken to get all the events.
         do {
             val events = client?.events()?.list(reservationCalendarId)
                 ?.setTimeMin(now)
                 ?.setPageToken(pageToken)
-                ?.setQ("$userId, $location, $resourceType")?.execute()
+                ?.setQ(query)?.execute()
 
             if (events.isNullOrEmpty()) {
                 pageToken = null
             } else {
-                logger.info("got ${events.items.size} events...")
+                logger.info("got ${events.items.size} events for $query")
                 for (event in events.items) {
                     val reservation = Reservation()
                     reservation.id = event.id
