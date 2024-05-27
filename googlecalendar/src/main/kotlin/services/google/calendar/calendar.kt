@@ -17,8 +17,6 @@ import com.google.api.services.directory.model.CalendarResource
 import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
-import org.jetbrains.kotlin.codegen.inline.expandMaskConditionsAndUpdateVariableNodes
-import org.jetbrains.kotlin.codegen.optimization.fixStack.restoreStackWithReturnValue
 import org.slf4j.LoggerFactory
 import services.opencui.hours.BusinessHours
 import services.opencui.hours.TimeInterval
@@ -188,21 +186,29 @@ data class ReservationProvider(
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
-        logger.debug("ListReservation for ${userId}, $location and $resourceType")
+        logger.info("ListReservation for ${userId}, $location and $resourceType")
 
         val reservations = mutableListOf<Reservation>()
         val now = DateTime(ZonedDateTime.now(zoneId).toInstant().toEpochMilli())
         var pageToken: String? = null
+
+        val criteria = mutableListOf<String>()
+        criteria.add(userId)
+        if (location != null) {criteria.add(location.toString())}
+        if (resourceType != null) {criteria.add(resourceType.toString())}
+        val query = criteria.joinToString(",")
+
         // use pagetoken to get all the events.
         do {
             val events = client?.events()?.list(reservationCalendarId)
                 ?.setTimeMin(now)
                 ?.setPageToken(pageToken)
-                ?.setQ("$userId, $location, $resourceType")?.execute()
+                ?.setQ(query)?.execute()
 
             if (events.isNullOrEmpty()) {
                 pageToken = null
             } else {
+                logger.info("got ${events.items.size} events for $query")
                 for (event in events.items) {
                     val reservation = Reservation()
                     reservation.id = event.id
