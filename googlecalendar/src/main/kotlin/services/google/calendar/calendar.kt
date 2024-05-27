@@ -216,7 +216,7 @@ data class ReservationProvider(
                 }
                 pageToken = events.nextPageToken
             }
-        } while(pageToken == null)
+        } while(pageToken != null)
 
         reservations.map{ it.session = session }
         return reservations.sortedBy {  it.start }
