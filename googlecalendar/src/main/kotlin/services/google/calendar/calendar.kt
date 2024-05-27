@@ -17,6 +17,8 @@ import com.google.api.services.directory.model.CalendarResource
 import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.sessionmanager.ChatbotLoader
+import org.jetbrains.kotlin.codegen.inline.expandMaskConditionsAndUpdateVariableNodes
+import org.jetbrains.kotlin.codegen.optimization.fixStack.restoreStackWithReturnValue
 import org.slf4j.LoggerFactory
 import services.opencui.hours.BusinessHours
 import services.opencui.hours.TimeInterval
@@ -90,6 +92,8 @@ data class ReservationProvider(
     private val client = buildClient()
     private val admin = buildAdmin()
 
+    private val zoneId: ZoneId
+        get() = ZoneId.of((client!!.calendarList().get("primary").execute() as CalendarListEntry).timeZone)
 
     override fun cloneForSession(userSession: UserSession): IExtension {
         return this.copy(session = userSession)
@@ -173,14 +177,6 @@ data class ReservationProvider(
         reservation.userId = userId
         reservation.resourceId = resource.resourceId
         reservation.start = startTime.toOffsetDateTime()
-
-        // record in the kv store.
-        val botStore = Dispatcher.sessionManager.botStore!!
-        botStore.rpush(getReservationKey(userId), Json.encodeToString(reservation))
-        logger.debug("rpush for $userId and ${Json.encodeToString(reservation)}")
-        
-        // Before we have more automatic solution, manually invalidate cache.
-        cachedListReservation.invalidate(userId)
         
         return reservation
     }
@@ -192,21 +188,38 @@ data class ReservationProvider(
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
-        return cachedListReservation(userId)
+        return cachedListReservation(userId, location, resourceType)
     }
 
-    val cachedListReservation = CachedMethod1(this::listReservationImpl)
+    val cachedListReservation = CachedMethod3(this::listReservationImpl)
 
-    private fun listReservationImpl(userId: String): List<Reservation> {
-        // We suspect the hosted redis instance has some sort of rate limit, so we need to keep this in cache.
-        val botStore = Dispatcher.sessionManager.botStore!!
-        val reservationStrs = botStore.lrange(getReservationKey(userId), 0, -1)
-        // TODO: Implement these when needed.
-        val reservations = reservationStrs.map { Json.decodeFromString<Reservation>(it) }
+    private fun listReservationImpl(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
+        logger.debug("list Reservation for ${userId}, $location and $resourceType")
+
+        val reservations = mutableListOf<Reservation>()
+        val now = DateTime(ZonedDateTime.now(zoneId).toInstant().toEpochMilli())
+        var pageToken: String? = null
+        // use pagetoken to get all the events.
+        do {
+            val events = client?.events()?.list(reservationCalendarId)
+                ?.setTimeMin(now)
+                ?.setPageToken(pageToken)
+                ?.setQ("$userId, $location, $resourceType")?.execute()
+            if (events.isNullOrEmpty()) {
+                pageToken = null
+            } else {
+                for (event in events.items) {
+                    val reservation = Reservation()
+                    reservation.id = event.id
+                    reservation.end = event.end.dateTime.toOffsetDateTime()
+                    reservation.start = event.start.dateTime.toOffsetDateTime()
+                }
+                pageToken = events.nextPageToken
+            }
+        } while(pageToken == null)
+
         reservations.map{ it.session = session }
-        return reservations
-            .sortedBy {  it.start }
-            .filter { it.start!!.isAfter(OffsetDateTime.now(it.start!!.offset.normalized()))!!  }
+        return reservations.sortedBy {  it.start }
     }
 
     /**
@@ -223,12 +236,6 @@ data class ReservationProvider(
             reservation.session = null
             logger.debug("cancel Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
             client?.events()?.delete(reservationCalendarId, reservation.id)?.execute()
-            val botStore = Dispatcher.sessionManager.botStore!!
-            botStore.lrem(getReservationKey(reservation.userId!!), Json.encodeToString(reservation))
-            
-            // We should invalidate cache after cancel as well.
-            cachedListReservation.invalidate(reservation.userId!!)
-            
             ValidationResult().apply { success = true; message = "reservation canceled" }
         } else{
             ValidationResult().apply { success = false; message = "reservation cancellation failed" }
