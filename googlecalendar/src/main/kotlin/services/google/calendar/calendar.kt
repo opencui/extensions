@@ -525,8 +525,8 @@ data class ReservationProvider(
         for (calendarId in calendarIds) {
             val freeIntervals = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
             val busyIntervals = response?.calendars?.get(calendarId)!!.busy
-            logger.debug("Free busy request for $calendarIds is $freeBusyRequest")
-            logger.debug("busyInterval is: $busyIntervals")
+            logger.info("Free busy request for $calendarIds is $freeBusyRequest")
+            logger.info("busyInterval is: $busyIntervals")
 
             busyIntervals.forEach {
                 if (it.start.toLocalDateTime().isAfter(currentStart.toLocalDateTime())) {
@@ -602,26 +602,26 @@ data class ReservationProvider(
         var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
         val timeMaximum = date.plusDays(7).atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
 
-        val now = LocalDateTime.now(zoneId)
         if (date == LocalDate.now(zoneId)) {
             // For today, we always start from now.
-            timeMinimum = now.toDateTime(zoneId)
+            timeMinimum = LocalDateTime.now(zoneId).toDateTime(zoneId)
         }
 
         val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, listOf(freeBusyCalendarId))[0]
         val freeIntervalMap = freeIntervals.groupBy{ it.first.toLocalDate() }
         val dates = freeIntervalMap.map {it.key}.toList().sorted()
         val results = mutableListOf<BusinessHours>()
-        for (date in dates) {
-            val timeIntervals = freeIntervalMap[date]?.map {
+        for (date_ in dates) {
+            val timeIntervals = freeIntervalMap[date_]?.map {
                 TimeInterval().apply {
                     startTime = it.first.toLocalTime()
                     endTime = it.second.toLocalTime()
                 }
             } ?: emptyList()
+
             results.add(
                 BusinessHours().apply {
-                    this.date = date
+                    this.date = date_
                     this.opennings = timeIntervals.toMutableList()
             })
         }
