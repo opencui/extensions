@@ -89,6 +89,7 @@ data class ReservationProvider(
     private val freeBusyCalendarId = (config[FREEBUSY_ID] as String?)!!
     private val client = buildClient()
     private val admin = buildAdmin()
+    private val useNowInGettingHours: Boolean = false
 
     private val zoneId: ZoneId
         get() = ZoneId.of((client!!.calendarList().get("primary").execute() as CalendarListEntry).timeZone)
@@ -551,13 +552,12 @@ data class ReservationProvider(
         var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
 
         // We should always use LocalDateTime.now(ZoneId.of(timeZone)
-        val now = LocalDateTime.now(zoneId)
         if (date == LocalDate.now(zoneId)) {
             // For today, we always start from now.
-            timeMinimum = now.toDateTime(zoneId)
+            timeMinimum = LocalDateTime.now(zoneId).toDateTime(zoneId)
         }
 
-        if (date.atTime(timeMaximum.toLocalTime()).isBefore(now)) {
+        if (date.atTime(timeMaximum.toLocalTime()).isBefore(LocalDateTime.now(zoneId))) {
             return emptyList()
         }
 
@@ -571,15 +571,9 @@ data class ReservationProvider(
         val timeZone = calendar.timeZone
         val zoneId = ZoneId.of(timeZone)
 
-        var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
-        var timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
+        val timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
+        val timeMaximum = date.atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
 
-        // We should always use LocalDateTime.now(ZoneId.of(timeZone)
-        val now = LocalDateTime.now(zoneId)
-        if (date == LocalDate.now(zoneId)) {
-            // For today, we always start from now.
-            timeMinimum = now.toDateTime(zoneId)
-        }
         val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, listOf(freeBusyCalendarId))[0]
         val timeIntervals = freeIntervals.map{
             TimeInterval().apply {
@@ -599,13 +593,9 @@ data class ReservationProvider(
         val timeZone = calendar.timeZone
         val zoneId = ZoneId.of(timeZone)
         val date = LocalDate.now(zoneId)
-        var timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
+        
+        val timeMinimum = date.atTime(LocalTime.of(0, 0)).toDateTime(zoneId)
         val timeMaximum = date.plusDays(7).atTime(LocalTime.of(23, 59)).toDateTime(zoneId)
-
-        if (date == LocalDate.now(zoneId)) {
-            // For today, we always start from now.
-            timeMinimum = LocalDateTime.now(zoneId).toDateTime(zoneId)
-        }
 
         val freeIntervals = requestFreeBusy(timeMinimum, timeMaximum, zoneId, listOf(freeBusyCalendarId))[0]
         val freeIntervalMap = freeIntervals.groupBy{ it.first.toLocalDate() }
