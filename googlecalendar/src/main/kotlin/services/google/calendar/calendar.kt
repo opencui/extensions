@@ -213,7 +213,7 @@ data class ReservationProvider(
                     val reservation = Reservation()
                     reservation.id = event.id
                     reservation.userId = userId
-                    reservation.resourceId = event.attendees.firstOrNull { it.isResource }!!.id
+                    reservation.resourceName = event.attendees.firstOrNull { it.isResource }!!.displayName
                     reservation.end = event.end.dateTime.toOffsetDateTime()
                     reservation.start = event.start.dateTime.toOffsetDateTime()
                     // remember to add the list.

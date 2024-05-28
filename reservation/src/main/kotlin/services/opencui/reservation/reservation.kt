@@ -85,16 +85,18 @@ public interface Resource : IFrame {
     public var timezone: ZoneId?
 }
 
-// We need to figure out code gen.
 public data class Reservation(
-  @JsonSetter(contentNulls = Nulls.SKIP)
-  public override var session: UserSession? = null
+  @JsonSetter(contentNulls=Nulls.SKIP)
+  public override var session: UserSession? = null,
 ) : IFrame {
   @JsonProperty
   public var id: String? = null
 
   @JsonProperty
   public var resourceId: String? = null
+
+  @JsonProperty
+  public var resourceName: String? = null
 
   @JsonProperty
   public var userId: String? = null
@@ -105,9 +107,14 @@ public data class Reservation(
   @JsonProperty
   public var end: OffsetDateTime? = null
 
+  @JsonProperty
+  public var offset: Int? = null
+
   @get:JsonIgnore
-  public val reservationService: IReservation
-    public get() = session!!.getExtension<IReservation>()!!
+  public val reservationService: IReservation by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {
+    session!!.getExtension<IReservation>()!!
+  }
+
 
   @JsonIgnore
   public fun getResourceInfo(): Resource? {
@@ -117,14 +124,15 @@ public data class Reservation(
   public override fun annotations(path: String): List<Annotation> = when (path) {
     "id" -> listOf(NeverAsk())
     "resourceId" -> listOf(NeverAsk())
+    "resourceName" -> listOf(NeverAsk())
     "userId" -> listOf(NeverAsk())
     "start" -> listOf(NeverAsk())
     "end" -> listOf(NeverAsk())
+    "offset" -> listOf(NeverAsk())
     else -> listOf()
   }
 
-  public override fun createBuilder(): FillBuilder = object :
-      FillBuilder {
+  public override fun createBuilder(): FillBuilder = object : FillBuilder {
     public var frame: Reservation? = this@Reservation
 
     public override fun invoke(path: ParamPath): FrameFiller<Reservation> {
@@ -132,6 +140,8 @@ public data class Reservation(
       filler.addWithPath(EntityFiller({filler.target.get()!!::id}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
       filler.addWithPath(EntityFiller({filler.target.get()!!::resourceId}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::resourceName}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
       filler.addWithPath(EntityFiller({filler.target.get()!!::userId}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.String")!!) as? kotlin.String})
@@ -141,12 +151,15 @@ public data class Reservation(
       filler.addWithPath(EntityFiller({filler.target.get()!!::end}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.OffsetDateTime")!!) as?
           java.time.OffsetDateTime})
+      filler.addWithPath(EntityFiller({filler.target.get()!!::offset}, null) {s, t ->
+          Json.decodeFromString(s, session!!.findKClass(t ?: "kotlin.Int")!!) as? kotlin.Int})
       return filler
     }
   }
 
   public companion object {
-    public val mappings: Map<String, Map<String, String>> = mutableMapOf<String, Map<String, String>>()
+    public val mappings: Map<String, Map<String, String>> = mutableMapOf<String,
+        Map<String, String>>()
 
     public inline fun <reified S : IFrame> from(s: S): Reservation = Json.mappingConvert(s)
   }
