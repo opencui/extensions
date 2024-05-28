@@ -83,24 +83,24 @@ public data class BusinessHours(
   public var date: LocalDate? = null
 
   @JsonProperty
-  public var opennings: MutableList<TimeInterval>? = null
+  public var openings: MutableList<TimeInterval>? = null
 
   public override fun annotations(path: String): List<Annotation> = when (path) {
     "date" -> listOf(NeverAsk())
     "openings" ->
-        listOf(SlotConditionalPromptAnnotation(listOf(LazyAction({if(opennings.isNullOrEmpty())
+        listOf(SlotConditionalPromptAnnotation(listOf(LazyAction({if(openings.isNullOrEmpty())
         LazyAction({SlotRequestMore("openings", "services.opencui.hours.TimeInterval", listOf(this),
         templateOf("restful" to Prompts()))}) else LazyAction({SlotRequestMore("openings",
         "services.opencui.hours.TimeInterval", listOf(this), templateOf("restful" to
-        Prompts()))})}))), MinMaxAnnotation(1, {SlotNotifyFailure(opennings, "openings",
+        Prompts()))})}))), MinMaxAnnotation(1, {SlotNotifyFailure(openings, "openings",
         "services.opencui.hours.TimeInterval", io.opencui.core.da.FailType.MIN, listOf(this),
-        templateOf("restful" to Prompts()))}, 99, {SlotNotifyFailure(opennings, "openings",
+        templateOf("restful" to Prompts()))}, 99, {SlotNotifyFailure(openings, "openings",
         "services.opencui.hours.TimeInterval", io.opencui.core.da.FailType.MAX, listOf(this),
         templateOf("restful" to Prompts()))}), ValueCheckAnnotation({MaxValueCheck(session,
-        {opennings}, 99, {SlotNotifyFailure(opennings, "openings",
+        {openings}, 99, {SlotNotifyFailure(openings, "openings",
         "services.opencui.hours.TimeInterval", io.opencui.core.da.FailType.MAX, listOf(this),
-        templateOf("restful" to Prompts()))})}, switch = {opennings != null &&
-        opennings!!.size > 99}), NeverAsk())
+        templateOf("restful" to Prompts()))})}, switch = {openings != null &&
+        openings!!.size > 99}), NeverAsk())
     "openings._item" -> listOf(SlotPromptAnnotation(LazyAction{SlotRequestMore("openings",
         "services.opencui.hours.TimeInterval", listOf(this), templateOf("restful" to Prompts()))}))
     else -> listOf()
@@ -115,7 +115,7 @@ public data class BusinessHours(
       filler.addWithPath(EntityFiller({filler.target.get()!!::date}, null) {s, t ->
           Json.decodeFromString(s, session!!.findKClass(t ?: "java.time.LocalDate")!!) as?
           java.time.LocalDate})
-      filler.addWithPath(MultiValueFiller({filler.target.get()!!::opennings},
+      filler.addWithPath(MultiValueFiller({filler.target.get()!!::openings},
           fun(p: KMutableProperty0<TimeInterval?>): ICompositeFiller {
           return p.apply { set(TimeInterval(frame!!.session)) }.get()!!.createBuilder().invoke(path.join("openings._item", p.get()))}))
       return filler

@@ -589,7 +589,7 @@ data class ReservationProvider(
         }
         return BusinessHours().apply {
             this.date = date
-            this.opennings = timeIntervals.toMutableList()
+            this.openings = timeIntervals.toMutableList()
         }
     }
 
@@ -622,7 +622,7 @@ data class ReservationProvider(
             results.add(
                 BusinessHours().apply {
                     this.date = date_
-                    this.opennings = timeIntervals.toMutableList()
+                    this.openings = timeIntervals.toMutableList()
             })
         }
         return results
