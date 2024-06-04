@@ -187,6 +187,13 @@ data class ReservationProvider(
     // For assume the caching is the provider's responsibility. This will simplify
     // how it is used, because implementation knows whether something need to be cached.
     override fun listReservation(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
+        return cachedListReservation(userId, location, resourceType)
+    }
+
+    val cachedListReservation = CachedMethod3(this::listReservationImpl)
+
+
+    fun listReservationImpl(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
         logger.info("ListReservation for ${userId}, $location and $resourceType")
 
         val reservations = mutableListOf<Reservation>()
