@@ -224,6 +224,7 @@ data class ReservationProvider(
                     reservation.resourceName = event.attendees.firstOrNull { it.isResource }!!.displayName
                     reservation.end = event.end.dateTime.toOffsetDateTime()
                     reservation.start = event.start.dateTime.toOffsetDateTime()
+                    reservation.resourceId = event.attendees.firstOrNull { it.isResource }!!.id
                     // remember to add the list.
                     reservations.add(reservation)
                 }
@@ -244,15 +245,9 @@ data class ReservationProvider(
      * https://developers.google.com/calendar/api/v3/reference/events/delete?hl=en
      * */
     override fun cancelReservation(reservation: Reservation): ValidationResult {
-        val calendarResource = getCalendarResource(reservation.resourceId!!)
-        return if (calendarResource != null) {
-            reservation.session = null
-            logger.debug("cancel Reservation for ${calendarResource.resourceEmail} and ${Json.encodeToString(reservation)}")
-            client?.events()?.delete(reservationCalendarId, reservation.id)?.execute()
-            ValidationResult().apply { success = true; message = "reservation canceled" }
-        } else{
-            ValidationResult().apply { success = false; message = "reservation cancellation failed" }
-        }
+        reservation.session = null
+        client?.events()?.delete(reservationCalendarId, reservation.id)?.execute()
+        return ValidationResult().apply { success = true; message = "reservation canceled" }
     }
 
     /**
