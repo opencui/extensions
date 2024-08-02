@@ -224,7 +224,7 @@ data class ReservationProvider(
                     reservation.resourceName = event.attendees.firstOrNull { it.isResource }!!.displayName
                     reservation.end = event.end.dateTime.toOffsetDateTime()
                     reservation.start = event.start.dateTime.toOffsetDateTime()
-                    reservation.id = event.attendees.firstOrNull { it.isResource }!!.id
+                    reservation.resourceId = event.attendees.firstOrNull { it.isResource }!!.id
                     // remember to add the list.
                     reservations.add(reservation)
                 }
