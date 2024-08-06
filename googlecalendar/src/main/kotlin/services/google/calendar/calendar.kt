@@ -81,7 +81,7 @@ data class ReservationProvider(
     // This for the business
     private val businessName = config[CUSTOMERNAME]!! as String
 
-    private val HTTP_TRANSPORT: NetHttpTransport = GoogleNetHttpTransport.newTrustedTransport()
+    @Transient private val HTTP_TRANSPORT: NetHttpTransport = GoogleNetHttpTransport.newTrustedTransport()
     private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
     private val delegatedUser = (config[DELEGATED_USER] as String?) ?: "primary"
