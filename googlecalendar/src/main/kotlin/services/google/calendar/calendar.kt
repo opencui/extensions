@@ -87,8 +87,8 @@ data class ReservationProvider(
     private val delegatedUser = (config[DELEGATED_USER] as String?) ?: "primary"
     private val reservationCalendarId = (config[RESERVATION_ID] as String?)!!
     private val freeBusyCalendarId = (config[FREEBUSY_ID] as String?)!!
-    private val client = buildClient()
-    private val admin = buildAdmin()
+    @Transient private val client = buildClient()
+    @Transient val admin = buildAdmin()
     private val useNowInGettingHours: Boolean = false
 
     private val zoneId: ZoneId
