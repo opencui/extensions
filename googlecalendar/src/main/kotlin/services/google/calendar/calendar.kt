@@ -190,7 +190,7 @@ data class ReservationProvider(
         return cachedListReservation(userId, location, resourceType)
     }
 
-    val cachedListReservation = CachedMethod3(this::listReservationImpl)
+    @Transient val cachedListReservation = CachedMethod3(this::listReservationImpl)
 
 
     fun listReservationImpl(userId: String, location: Location?, resourceType: ResourceType?): List<Reservation> {
@@ -465,7 +465,7 @@ data class ReservationProvider(
         return freeByDates.map { DateAvailability(it.key, it.value.map { timeInterval(it.first, it.second) })}
     }
 
-    val cachedAvailableDates = CachedMethod3(this::availableDatesImpl)
+    @Transient val cachedAvailableDates = CachedMethod3(this::availableDatesImpl)
 
     override fun availableDates(
         startOffset: Int,
@@ -497,7 +497,7 @@ data class ReservationProvider(
         return freeSlots.flatten().toSet().toList().sortedBy { it.first }.map { timeInterval(it.first, it.second) }
     }
 
-    val cachedAvailableTimes = CachedMethod2(this::availableTimesImpl)
+    @Transient val cachedAvailableTimes = CachedMethod2(this::availableTimesImpl)
 
     override fun availableTimes(
         date: LocalDate?,
