@@ -104,6 +104,9 @@ data class ReservationProvider(
     }
 
     private fun getCredential() : GoogleCredential {
+        // We support two different authentication now.
+        // 1. secrets_json
+        // 2. client id, secret, access refresh token.
         val accessToken = config[ACCESSTOKEN]
         return if (accessToken == null) {
             GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
