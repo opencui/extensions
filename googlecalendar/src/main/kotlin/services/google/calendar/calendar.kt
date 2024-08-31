@@ -7,6 +7,7 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.JsonFactory
 import com.google.api.client.json.gson.GsonFactory
+import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.calendar.Calendar
@@ -102,14 +103,31 @@ data class ReservationProvider(
         return this.copy(session = userSession)
     }
 
+    private fun getCredential() : GoogleCredential {
+        val accessToken = config[ACCESSTOKEN]
+        return if (accessToken == null) {
+            GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
+                .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
+                .createDelegated(delegatedUser)
+        } else {
+            val refreshToken = config[REFRESHTOKEN]!! as String
+            val clientId = config[CLIENTID] !! as String
+            GoogleCredential.Builder()
+                .setClientSecrets(clientId, secrets_json)
+                .setTransport(GoogleNetHttpTransport.newTrustedTransport())
+                .setJsonFactory(JacksonFactory.getDefaultInstance())
+                .build()
+                .setAccessToken(accessToken as String)
+                .setRefreshToken(refreshToken)
+        }
+    }
+
     /**
      *This function returns a Calendar API client object that is authorized to make requests on behalf
      *  of the delegated user.
      * */
     private fun buildClient(): Calendar? {
-        val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
-            .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
-            .createDelegated(delegatedUser)
+        val credential = getCredential()
         return Calendar.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Calendar API").build()
     }
 
@@ -119,9 +137,7 @@ data class ReservationProvider(
      * https://developers.google.com/admin-sdk/directory/v1/api-lib/java
      * */
     private fun buildAdmin(): Directory? {
-        val credential = GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
-            .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
-            .createDelegated(delegatedUser)          
+        val credential = getCredential()
         return Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName("Calendar API").build()
     }
 
@@ -783,6 +799,10 @@ data class ReservationProvider(
         const val CANCELLED = "cancelled"
         const val SYNCTOKEN = "google_calendar_synctoken"
         const val RESOURCES = "resourses"  // comma separated resource ids.
+
+        const val CLIENTID = "client_id"
+        const val ACCESSTOKEN = "access_token"
+        const val REFRESHTOKEN = "refresh_token"
 
         const val InsertOpeningModuleName = "InsertOpeningModuleName"
         const val InsertOpeningFuncName = "InsertOpeningFuncName"
