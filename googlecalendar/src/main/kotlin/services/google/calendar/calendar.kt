@@ -96,6 +96,10 @@ data class ReservationProvider(
     @Transient val admin = buildAdmin()
     private val useNowInGettingHours: Boolean = false
 
+    init {
+        logger.info(config.toString())
+    }
+    
     private val zoneId: ZoneId
         get() = ZoneId.of((client!!.calendarList().get("primary").execute() as CalendarListEntry).timeZone)
 
@@ -107,8 +111,8 @@ data class ReservationProvider(
         // We support two different authentication now.
         // 1. secrets_json
         // 2. client id, secret, access refresh token.
-        val accessToken = config[ACCESSTOKEN]
-        return if (accessToken == null) {
+        val accessToken = config[ACCESSTOKEN] as String?
+        return if (accessToken == null || accessToken == "") {
             GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
                 .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
                 .createDelegated(delegatedUser)
