@@ -90,15 +90,10 @@ data class ReservationProvider(
     @Transient private val JSON_FACTORY: JsonFactory = GsonFactory.getDefaultInstance()
 
     private val delegatedUser = (config[DELEGATED_USER] as String?) ?: "primary"
-    public val reservationCalendarId = (config[RESERVATION_ID] as String?)!!
+    val reservationCalendarId = (config[RESERVATION_ID] as String?)!!
     private val freeBusyCalendarId = (config[FREEBUSY_ID] as String?)!!
     @Transient private val client = buildClient()
     @Transient val admin = buildAdmin()
-    private val useNowInGettingHours: Boolean = false
-
-    init {
-        logger.info(config.toString())
-    }
     
     private val zoneId: ZoneId
         get() = ZoneId.of((client!!.calendarList().get("primary").execute() as CalendarListEntry).timeZone)
@@ -120,7 +115,6 @@ data class ReservationProvider(
             val refreshToken = config[REFRESHTOKEN]!! as String
             val clientId = config[CLIENTID] !! as String
             GoogleCredential.Builder()
-                .setClientSecrets(clientId, secrets_json)
                 .setTransport(GoogleNetHttpTransport.newTrustedTransport())
                 .setJsonFactory(JacksonFactory.getDefaultInstance())
                 .build()
