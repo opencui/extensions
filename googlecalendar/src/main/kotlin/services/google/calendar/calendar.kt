@@ -115,6 +115,7 @@ data class ReservationProvider(
             val refreshToken = config[REFRESHTOKEN]!! as String
             val clientId = config[CLIENTID] !! as String
             GoogleCredential.Builder()
+                .setClientSecrets(clientId, secrets_json)
                 .setTransport(GoogleNetHttpTransport.newTrustedTransport())
                 .setJsonFactory(JacksonFactory.getDefaultInstance())
                 .build()
