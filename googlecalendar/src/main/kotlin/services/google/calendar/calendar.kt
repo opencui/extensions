@@ -17,6 +17,7 @@ import com.google.api.services.directory.DirectoryScopes
 import com.google.api.services.directory.model.CalendarResource
 import io.opencui.core.*
 import io.opencui.serialization.Json
+import io.opencui.serialization.JsonObject
 import io.opencui.sessionmanager.ChatbotLoader
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -113,9 +114,12 @@ data class ReservationProvider(
                 .createDelegated(delegatedUser)
         } else {
             val refreshToken = config[REFRESHTOKEN]!! as String
-            val clientId = config[CLIENTID] !! as String
+            val oauth_client_secret_str = config[OAUTH_CLIENT_SECRET]!! as String
+            val oauth_client_secret_json = Json.parseToJsonElement(oauth_client_secret_str) as JsonObject
+            val clientId = oauth_client_secret_json.get(CLIENTID).textValue()
+            val clientSecret = oauth_client_secret_json.get(CLIENT_SECRET).textValue()
             GoogleCredential.Builder()
-                .setClientSecrets(clientId, secrets_json)
+                .setClientSecrets(clientId, clientSecret)
                 .setTransport(GoogleNetHttpTransport.newTrustedTransport())
                 .setJsonFactory(JacksonFactory.getDefaultInstance())
                 .build()
@@ -805,6 +809,7 @@ data class ReservationProvider(
         const val CLIENTID = "client_id"
         const val ACCESSTOKEN = "access_token"
         const val REFRESHTOKEN = "refresh_token"
+        const val OAUTH_CLIENT_SECRET = "oauth_client_secret"
 
         const val InsertOpeningModuleName = "InsertOpeningModuleName"
         const val InsertOpeningFuncName = "InsertOpeningFuncName"
