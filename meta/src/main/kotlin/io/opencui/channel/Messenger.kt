@@ -298,7 +298,6 @@ class MessengerResources() {
 
     companion object {
         const val CHANNELTYPE = "MessengerChannel"
-        const val DEFAULTCHANNEL = "restful"
         const val VERIFYTOKEN = "verify_token"
         const val SENDER = "sender"
         const val ID = "id"
