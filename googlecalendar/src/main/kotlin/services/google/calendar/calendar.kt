@@ -81,7 +81,7 @@ data class ReservationProvider(
     override var session: UserSession? = null,
 ) : IReservation, IProvider {
 
-    private val secrets_json = config[CLIENT_SECRET] as String
+
 
     // This for the business
     private val businessName = config[CUSTOMERNAME]!! as String
@@ -108,6 +108,7 @@ data class ReservationProvider(
         // 2. client id, secret, access refresh token.
         val accessToken = config[ACCESSTOKEN] as String?
         return if (accessToken == null || accessToken == "") {
+            val secrets_json = config[CLIENT_SECRET] as String
             GoogleCredential.fromStream(secrets_json.byteInputStream(), HTTP_TRANSPORT, JSON_FACTORY)
                 .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
                 .createDelegated(delegatedUser)
