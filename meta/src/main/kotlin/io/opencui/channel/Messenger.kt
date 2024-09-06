@@ -58,6 +58,7 @@ class MessengerChannel(override val info: Configuration) : IMessageChannel {
       .build()
 
     inline fun <reified T: Any> post(payload: T): String? {
+        logger.info(Json.encodeToString(payload))
         val response = client.post()
             .uri("""/v11.0/me/messages?access_token=${info[PAGEACCESSTOKEN]}""")
             .body(Mono.just(payload), T::class.java)
