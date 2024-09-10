@@ -116,13 +116,18 @@ data class ReservationProvider(
             val refreshToken = config[REFRESHTOKEN]!! as String
             val rootClientSecret = config[ROOT_CLIENT_SECRET]!! as String
             val rootClientId = config[ROOT_CLIENT_ID]!! as String
-            GoogleCredential.Builder()
+            val credentials = GoogleCredential.Builder()
                 .setClientSecrets(rootClientId, rootClientSecret)
                 .setTransport(GoogleNetHttpTransport.newTrustedTransport())
                 .setJsonFactory(JacksonFactory.getDefaultInstance())
                 .build()
                 .setAccessToken(accessToken as String)
                 .setRefreshToken(refreshToken)
+
+            // Forget refresh token.
+            credentials.refreshToken()
+
+            credentials
         }
     }
 
