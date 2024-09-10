@@ -121,6 +121,7 @@ data class ReservationProvider(
                 .setTransport(GoogleNetHttpTransport.newTrustedTransport())
                 .setJsonFactory(JacksonFactory.getDefaultInstance())
                 .build()
+                .createScoped(listOf(DirectoryScopes.ADMIN_DIRECTORY_RESOURCE_CALENDAR, CalendarScopes.CALENDAR))
                 .setAccessToken(accessToken as String)
                 .setRefreshToken(refreshToken)
 
