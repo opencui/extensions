@@ -80,8 +80,6 @@ public interface Resource : IFrame {
 
     public var name: ResourceName?
 
-    public var durations: MutableList<Int>?
-
     public var timezone: ZoneId?
 }
 
