@@ -731,70 +731,6 @@ data class ReservationProvider(
         return true
     }
 
-    /**
-     * This function will be triggered by google calendar. The goal of this function should be updating
-     * Opening table, and ScheduledNotification table. Both of these can be done by restful.
-     */
-    public fun handleOpening() {
-        // We only care about cancelled event for now.
-        val botStore = Dispatcher.sessionManager.botStore!!
-
-        val syncToken = botStore.get(SYNCTOKEN)
-        val changes = client?.events()?.list(reservationCalendarId)?.setSyncToken(syncToken)?.execute() ?: return
-
-        botStore.set(SYNCTOKEN, changes.nextPageToken)
-
-        val moduleName = config[InsertOpeningModuleName] as String?
-        if (moduleName == null) {
-            Dispatcher.logger.error("Missing value for $InsertOpeningModuleName")
-            return
-        }
-
-        val funcName = config[InsertOpeningFuncName] as String?
-        if (funcName == null) {
-            Dispatcher.logger.error("Missing value for $InsertOpeningFuncName")
-            return
-        }
-
-        // Only if we have created baseline.
-        if (syncToken != null) {
-            for (item in changes.items) {
-                if (item.status != CANCELLED) continue
-
-                // if it is canceled, we need to set up openings and notification.
-                val event_id = item.id
-                val event = client?.events().get(reservationCalendarId, event_id).execute() ?: continue
-
-                // now we need to push into openings and notifications.
-                val email = event.attendees.firstOrNull { it.isResource }?.email
-                if (email == null) {
-                    logger.info("Can not find resource email for event $event")
-                    continue
-                }
-
-                val resources = admin?.resources()?.calendars()?.list(email)?.execute()
-                if (resources == null || resources.items.isEmpty()) {
-                    logger.info("Can not find resource using email $email")
-                    continue
-                }
-
-                val parameters = mapOf(
-                    "start" to event.start.dateTime.toLocalDateTime(),
-                    "end" to event.end.dateTime.toLocalDateTime(),
-                    "resourceName" to resources.items[0].resourceName,
-                    "resourceType" to resources.items[0].resourceType,
-                    "resourceId" to resources.items[0].resourceId,
-                    "resourceDescription" to Json.parseToJsonElement(resources.items[0].resourceDescription)
-                )
-
-                val sessionManager = Dispatcher.sessionManager
-		        val botInfo = master()
-		        val bot = sessionManager.getAgent(botInfo)
-                bot.executeByName(moduleName, funcName, parameters)
-            }
-        }
-    }
-
     companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(ReservationProvider::class.java)
         const val CLIENT_SECRET = "client_secret"
@@ -824,37 +760,3 @@ data class ReservationProvider(
         }
     }
 }
-
-
-/**
- * Instead of create provider specific endpoint, here we create a provider independent endpoint
- * for triggering function.
- * So we specify module qualified name in the path, and
- */
-@RestController
-class GoogleCalendarEventWatcher() {
-	@PostMapping("/v1/google_calendar/listen")
-	fun trigger(
-        @RequestHeader("X-Goog-Channel-Id") channelId: String
-	): String {
-		// clear thread local logs
-        logger.debug("Event watcher got triggered for $channelId.")
-        // To get pull events, we need to figure out calendar id.
-        val botInfo = master()
-        val chatbot = Dispatcher.getChatbot(botInfo)
-
-        val extension = chatbot.getExtension<ReservationProvider>() ?: return "Bad, can not find google calendar extension."
-        if (extension.isWatched(channelId)) {
-            extension.handleOpening()
-        } else {
-            logger.info("wrong watch events for $channelId.")
-        }
-
-		return "Ok"
-	}
-
-	companion object {
-		val logger: Logger = LoggerFactory.getLogger(GoogleCalendarEventWatcher::class.java)
-	}
-}
-
