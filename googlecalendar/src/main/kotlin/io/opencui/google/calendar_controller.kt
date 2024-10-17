@@ -22,7 +22,7 @@ class GoogleCalendarEventWatcher() {
 		@RequestHeader("X-Goog-Channel-Id") channelId: String
 	): String {
 		// clear thread local logs
-		logger.info("Event watcher got triggered for $channelId.")
+		logger.info("Event watcher got triggered with channel: $channelId.")
 		// To get pull events, we need to figure out calendar id.
 		val botInfo = master()
 		val chatbot = Dispatcher.getChatbot(botInfo)
