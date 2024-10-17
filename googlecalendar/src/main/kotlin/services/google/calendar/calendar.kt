@@ -766,13 +766,12 @@ data class ReservationProvider(
             logger.error("Missing value for $InsertOpeningFuncName")
             return
         }
-
-        logger.info("Should forward to $moduleName:$funcName")
-
-        // Only if we have created baseline.
-        if (oldSyncToken != null) {
+        
+        // Only if we have created baseline. For now, always handle changes.
+        if (changes?.items != null) {
+            logger.info("Should forward to $moduleName:$funcName")
             val cancelled = mutableListOf<JsonObject>()
-            for (item in changes!!.items) {
+            for (item in changes.items) {
                 if (item.status != CANCELLED) continue
 
                 // if it is canceled, we need to set up openings and notification.
