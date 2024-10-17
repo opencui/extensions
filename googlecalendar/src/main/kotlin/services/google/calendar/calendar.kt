@@ -744,7 +744,7 @@ data class ReservationProvider(
             oldSyncToken = null
         }
 
-        logger.info("There are ${changes.items.size} changes for sync token $oldSyncToken")
+        logger.info("There are ${changes?.items?.size} changes for sync token $oldSyncToken")
 
         // this save the synctoken.
         botStore.set(SYNCTOKEN, newSyncToken!!)
@@ -766,12 +766,12 @@ data class ReservationProvider(
         // Only if we have created baseline.
         if (oldSyncToken != null) {
             val cancelled = mutableListOf<JsonObject>()
-            for (item in changes.items) {
+            for (item in changes!!.items) {
                 if (item.status != CANCELLED) continue
 
                 // if it is canceled, we need to set up openings and notification.
                 val event_id = item.id
-                val event = client?.events().get(reservationCalendarId, event_id).execute() ?: continue
+                val event = client?.events()?.get(reservationCalendarId, event_id)?.execute() ?: continue
 
                 // now we need to push into openings and notifications.
                 val email = event.attendees.firstOrNull { it.isResource }?.email
