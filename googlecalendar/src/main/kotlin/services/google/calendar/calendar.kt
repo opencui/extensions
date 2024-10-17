@@ -17,6 +17,7 @@ import com.google.api.services.directory.DirectoryScopes
 import com.google.api.services.directory.model.CalendarResource
 import io.opencui.core.*
 import io.opencui.serialization.Json
+import io.opencui.serialization.JsonObject
 import io.opencui.sessionmanager.ChatbotLoader
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -758,7 +759,7 @@ data class ReservationProvider(
 
         // Only if we have created baseline.
         if (syncToken != null) {
-            val cancelled = mutableListOf<Map<String, Any?>>()
+            val cancelled = mutableListOf<JsonObject>()
             for (item in changes.items) {
                 if (item.status != CANCELLED) continue
 
@@ -787,14 +788,14 @@ data class ReservationProvider(
                     "resourceId" to resources.items[0].resourceId,
                     "resourceDescription" to Json.parseToJsonElement(resources.items[0].resourceDescription)
                 )
-                cancelled.add(openslot)
+                cancelled.add(Json.encodeToJsonElement(openslot) as JsonObject)
             }
 
             val sessionManager = Dispatcher.sessionManager
             val botInfo = master()
             val bot = sessionManager.getAgent(botInfo)
 
-            // We expect the function takes a single parameter call slots with List<Map<String, Any?>> type.
+            // We expect the function takes a single parameter call slots with List<JsonObject> type.
             bot.executeByInterface(moduleName, funcName, mapOf("slots" to cancelled))
 
         }
