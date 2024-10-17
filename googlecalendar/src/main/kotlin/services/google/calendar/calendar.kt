@@ -743,19 +743,24 @@ data class ReservationProvider(
         val syncToken = botStore.get(SYNCTOKEN)
         val changes = client?.events()?.list(reservationCalendarId)?.setSyncToken(syncToken)?.execute() ?: return
 
+        logger.debug("There are ${changes.items.size} changes for sync token $syncToken")
+
+        // this save the synctoken.
         botStore.set(SYNCTOKEN, changes.nextPageToken)
 
         val moduleName = config[InsertOpeningModuleName] as String?
         if (moduleName == null) {
-            Dispatcher.logger.error("Missing value for $InsertOpeningModuleName")
+            logger.error("Missing value for $InsertOpeningModuleName")
             return
         }
 
         val funcName = config[InsertOpeningFuncName] as String?
         if (funcName == null) {
-            Dispatcher.logger.error("Missing value for $InsertOpeningFuncName")
+            logger.error("Missing value for $InsertOpeningFuncName")
             return
         }
+
+        logger.debug("Should forward to $moduleName:$funcName")
 
         // Only if we have created baseline.
         if (syncToken != null) {
@@ -797,7 +802,6 @@ data class ReservationProvider(
 
             // We expect the function takes a single parameter call slots with List<JsonObject> type.
             bot.executeByInterface(moduleName, funcName, mapOf("slots" to cancelled))
-
         }
     }
 
