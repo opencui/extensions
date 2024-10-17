@@ -730,27 +730,29 @@ data class ReservationProvider(
      */
     public fun handleCancelled() {
         // We only care about cancelled event for now.
-        // we need to get a initial sync token somehow.
+        // we need to get an initial sync token somehow.
         val botStore = Dispatcher.sessionManager.botStore!!
 
         var oldSyncToken = botStore.get(SYNCTOKEN)
         var newSyncToken : String? = null
         var changes: Events? = null
+
+        logger.info("Existing sync token $oldSyncToken")
         try {
             changes = client?.events()?.list(reservationCalendarId)?.setSyncToken(oldSyncToken)?.execute()
             newSyncToken = changes!!.nextPageToken
-            logger.info("Everything works.")
+            logger.info("Happy path: There are ${changes?.items?.size} changes for sync token $oldSyncToken : $newSyncToken")
         } catch (e: Exception) {
             logger.info(e.printStackTrace().toString())
             logger.info("Had to get new token.")
             changes = client?.events()?.list(reservationCalendarId)?.execute()
             newSyncToken = changes!!.nextPageToken
             oldSyncToken = null
+            logger.info("Unhappy path: There are ${changes?.items?.size} changes for sync token $oldSyncToken : $newSyncToken")
         }
 
-        logger.info("There are ${changes?.items?.size} changes for sync token $oldSyncToken : $newSyncToken")
-
         // this save the synctoken.
+        logger.info("Set new token: $newSyncToken")
         botStore.set(SYNCTOKEN, newSyncToken!!)
 
         val moduleName = config[InsertOpeningModuleName] as String?
