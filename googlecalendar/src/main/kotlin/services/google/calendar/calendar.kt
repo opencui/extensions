@@ -747,7 +747,6 @@ data class ReservationProvider(
             logger.info("Had to get new token.")
             changes = client?.events()?.list(reservationCalendarId)?.execute()
             newSyncToken = changes!!.nextPageToken
-            oldSyncToken = null
             logger.info("Unhappy path: There are ${changes?.items?.size} changes for sync token $oldSyncToken : $newSyncToken")
         }
 
@@ -766,7 +765,7 @@ data class ReservationProvider(
             logger.error("Missing value for $InsertOpeningFuncName")
             return
         }
-        
+
         // Only if we have created baseline. For now, always handle changes.
         if (changes?.items != null) {
             logger.info("Should forward to $moduleName:$funcName")
@@ -807,7 +806,7 @@ data class ReservationProvider(
             val bot = sessionManager.getAgent(botInfo)
 
             // We expect the function takes a single parameter call slots with List<JsonObject> type.
-            bot.executeByInterface(moduleName, funcName, mapOf("slots" to cancelled))
+            bot.executeByInterface(moduleName, funcName, listOf(cancelled))
         }
     }
 
