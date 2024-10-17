@@ -19,11 +19,7 @@ import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import io.opencui.sessionmanager.ChatbotLoader
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestHeader
-import org.springframework.web.bind.annotation.RestController
 import services.opencui.hours.BusinessHours
 import services.opencui.hours.TimeInterval
 import services.opencui.reservation.*
@@ -733,15 +729,25 @@ data class ReservationProvider(
      */
     public fun handleCancelled() {
         // We only care about cancelled event for now.
+        // we need to get a initial sync token somehow.
         val botStore = Dispatcher.sessionManager.botStore!!
 
-        val syncToken = botStore.get(SYNCTOKEN)
-        val changes = client?.events()?.list(reservationCalendarId)?.setSyncToken(syncToken)?.execute() ?: return
+        var oldSyncToken = botStore.get(SYNCTOKEN)
+        var newSyncToken : String? = null
+        var changes: Events? = null
+        try {
+            changes = client?.events()?.list(reservationCalendarId)?.setSyncToken(oldSyncToken)?.execute()
+            newSyncToken = changes!!.nextPageToken
+        } catch (e: Exception) {
+            changes = client?.events()?.list(reservationCalendarId)?.execute()
+            newSyncToken = changes!!.nextPageToken
+            oldSyncToken = null
+        }
 
-        logger.info("There are ${changes.items.size} changes for sync token $syncToken")
+        logger.info("There are ${changes.items.size} changes for sync token $oldSyncToken")
 
         // this save the synctoken.
-        botStore.set(SYNCTOKEN, changes.nextPageToken)
+        botStore.set(SYNCTOKEN, newSyncToken!!)
 
         val moduleName = config[InsertOpeningModuleName] as String?
         if (moduleName == null) {
@@ -755,10 +761,10 @@ data class ReservationProvider(
             return
         }
 
-        logger.debug("Should forward to $moduleName:$funcName")
+        logger.info("Should forward to $moduleName:$funcName")
 
         // Only if we have created baseline.
-        if (syncToken != null) {
+        if (oldSyncToken != null) {
             val cancelled = mutableListOf<JsonObject>()
             for (item in changes.items) {
                 if (item.status != CANCELLED) continue
