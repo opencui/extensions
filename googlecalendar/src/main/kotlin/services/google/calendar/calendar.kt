@@ -727,11 +727,6 @@ data class ReservationProvider(
         return events.isNullOrEmpty()
     }
 
-
-    public fun isWatched(channelId: String): Boolean {
-        return true
-    }
-
     /**
      * This function will be triggered by google calendar. The goal of this function should be updating
      * Opening table, and ScheduledNotification table. Both of these can be done by restful.
@@ -863,6 +858,10 @@ class GoogleCalendarEventWatcher() {
         }
 		return "Ok"
 	}
+
+    init {
+        logger.info("Init the GoogleCalendarEventWatcher...")
+    }
 
 	companion object {
 		val logger: Logger = LoggerFactory.getLogger(GoogleCalendarEventWatcher::class.java)
