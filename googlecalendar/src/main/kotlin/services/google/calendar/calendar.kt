@@ -29,6 +29,7 @@ import kotlin.collections.List
 import kotlin.collections.Map
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.log
 
 
 /**
@@ -738,13 +739,16 @@ data class ReservationProvider(
         try {
             changes = client?.events()?.list(reservationCalendarId)?.setSyncToken(oldSyncToken)?.execute()
             newSyncToken = changes!!.nextPageToken
+            logger.info("Everything works.")
         } catch (e: Exception) {
+            logger.info(e.printStackTrace().toString())
+            logger.info("Had to get new token.")
             changes = client?.events()?.list(reservationCalendarId)?.execute()
             newSyncToken = changes!!.nextPageToken
             oldSyncToken = null
         }
 
-        logger.info("There are ${changes?.items?.size} changes for sync token $oldSyncToken")
+        logger.info("There are ${changes?.items?.size} changes for sync token $oldSyncToken : $newSyncToken")
 
         // this save the synctoken.
         botStore.set(SYNCTOKEN, newSyncToken!!)
