@@ -738,7 +738,7 @@ data class ReservationProvider(
         val syncToken = botStore.get(SYNCTOKEN)
         val changes = client?.events()?.list(reservationCalendarId)?.setSyncToken(syncToken)?.execute() ?: return
 
-        logger.debug("There are ${changes.items.size} changes for sync token $syncToken")
+        logger.info("There are ${changes.items.size} changes for sync token $syncToken")
 
         // this save the synctoken.
         botStore.set(SYNCTOKEN, changes.nextPageToken)
@@ -843,7 +843,7 @@ class GoogleCalendarEventWatcher() {
         @RequestHeader("X-Goog-Channel-Id") channelId: String
 	): String {
 		// clear thread local logs
-        logger.debug("Event watcher got triggered for $channelId.")
+        logger.info("Event watcher got triggered for $channelId.")
         // To get pull events, we need to figure out calendar id.
         val botInfo = master()
         val chatbot = Dispatcher.getChatbot(botInfo)
