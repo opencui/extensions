@@ -19,6 +19,7 @@ import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import io.opencui.sessionmanager.ChatbotLoader
+import org.jetbrains.kotlin.utils.newHashMapWithExpectedSize
 import org.slf4j.LoggerFactory
 import services.opencui.hours.BusinessHours
 import services.opencui.hours.TimeInterval
@@ -29,7 +30,6 @@ import kotlin.collections.List
 import kotlin.collections.Map
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.log
 
 
 /**
@@ -724,6 +724,24 @@ data class ReservationProvider(
         return events.isNullOrEmpty()
     }
 
+    fun pagedThrough(block : () -> Events? ) : Pair<String?, List<Event>> {
+        // this page through all the events.
+        var pageToken: String? = null
+        var newSyncToken: String? = null
+        val allEvents = mutableListOf<Event>()
+
+        do {
+            val events: Events = block() ?: break
+            allEvents.addAll(events.items)
+            pageToken = events.nextPageToken
+            newSyncToken = events.nextSyncToken
+
+        } while (pageToken != null)
+
+        return Pair(newSyncToken, allEvents)
+    }
+
+
     /**
      * This function will be triggered by google calendar. The goal of this function should be updating
      * Opening table, and ScheduledNotification table. Both of these can be done by restful.
@@ -735,19 +753,21 @@ data class ReservationProvider(
 
         var oldSyncToken = botStore.get(SYNCTOKEN)
         var newSyncToken : String? = null
-        var changes: Events? = null
+        var changes: List<Event>? = null
 
         logger.info("Existing sync token $oldSyncToken")
         try {
-            changes = client?.events()?.list(reservationCalendarId)?.setSyncToken(oldSyncToken)?.execute()
-            newSyncToken = changes!!.nextPageToken
-            logger.info("Happy path: There are ${changes?.items?.size} changes for sync token $oldSyncToken : $newSyncToken")
+            val res = pagedThrough {  client?.events()?.list(reservationCalendarId)?.setShowDeleted(true)?.setSyncToken(oldSyncToken)?.execute() }
+            newSyncToken = res.first
+            changes = res.second
+            logger.info("Happy path: There are ${changes.size} changes for sync token $oldSyncToken : $newSyncToken")
         } catch (e: Exception) {
             logger.info(e.toString())
             logger.info("Had to get new token.")
-            changes = client?.events()?.list(reservationCalendarId)?.execute()
-            newSyncToken = changes!!.nextPageToken
-            logger.info("Unhappy path: There are ${changes?.items?.size} changes for sync token $oldSyncToken : $newSyncToken")
+            val res = pagedThrough { client?.events()?.list(reservationCalendarId)?.setShowDeleted(true)?.execute() }
+            newSyncToken = res.first
+            changes = res.second
+            logger.info("Unhappy path: There are ${changes.size} changes for sync token $oldSyncToken : $newSyncToken")
         }
 
         // this save the synctoken.
@@ -767,9 +787,9 @@ data class ReservationProvider(
         }
 
         // Only if we have created baseline. For now, always handle changes.
-        if (changes?.items != null) {
+        if (changes != null) {
             val cancelled = mutableListOf<JsonObject>()
-            for (item in changes.items) {
+            for (item in changes) {
                 logger.info("got event: $item")
                 if (item.status != CANCELLED) continue
 
