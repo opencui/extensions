@@ -768,14 +768,18 @@ data class ReservationProvider(
 
         // Only if we have created baseline. For now, always handle changes.
         if (changes?.items != null) {
-            logger.info("Should forward to $moduleName:$funcName")
             val cancelled = mutableListOf<JsonObject>()
             for (item in changes.items) {
+                logger.info("got event: $item")
                 if (item.status != CANCELLED) continue
 
                 // if it is canceled, we need to set up openings and notification.
                 val event_id = item.id
-                val event = client?.events()?.get(reservationCalendarId, event_id)?.execute() ?: continue
+                val event = client?.events()?.get(reservationCalendarId, event_id)?.execute()
+                if (event == null) {
+                    logger.info("Can not find event for $event_id")
+                    continue
+                }
 
                 // now we need to push into openings and notifications.
                 val email = event.attendees.firstOrNull { it.isResource }?.email
