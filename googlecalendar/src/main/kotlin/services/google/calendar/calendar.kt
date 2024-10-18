@@ -801,13 +801,15 @@ data class ReservationProvider(
                 cancelled.add(Json.encodeToJsonElement(openslot) as JsonObject)
             }
 
-            val sessionManager = Dispatcher.sessionManager
-            val botInfo = master()
-            val bot = sessionManager.getAgent(botInfo)
-
-            // We expect the function takes a single parameter call slots with List<JsonObject> type.
             logger.info("We are ${cancelled.size} events that we will forward.")
-            bot.executeByInterface(moduleName, funcName, listOf(cancelled))
+            if (cancelled.size > 0) {
+                val sessionManager = Dispatcher.sessionManager
+                val botInfo = master()
+                val bot = sessionManager.getAgent(botInfo)
+
+                // We expect the function takes a single parameter call slots with List<JsonObject> type.
+                bot.executeByInterface(moduleName, funcName, listOf(cancelled))
+            }
         }
     }
 
