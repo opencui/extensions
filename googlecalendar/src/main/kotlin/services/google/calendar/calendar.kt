@@ -19,7 +19,6 @@ import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import io.opencui.sessionmanager.ChatbotLoader
-import org.jetbrains.kotlin.utils.newHashMapWithExpectedSize
 import org.slf4j.LoggerFactory
 import services.opencui.hours.BusinessHours
 import services.opencui.hours.TimeInterval
@@ -792,53 +791,52 @@ data class ReservationProvider(
         }
 
         // Only if we have created baseline. For now, always handle changes.
-        if (changes != null) {
-            val cancelled = mutableListOf<JsonObject>()
-            for (item in changes) {
-                logger.info("got event: $item")
-                if (item.status != CANCELLED) continue
+        val cancelled = mutableListOf<JsonObject>()
+        for (item in changes) {
+            if (item.status != CANCELLED) continue
+            logger.info("get cancelled event: ${item.toString()}")
 
-                // if it is canceled, we need to set up openings and notification.
-                val event_id = item.id
-                val event = client?.events()?.get(reservationCalendarId, event_id)?.execute()
-                if (event == null) {
-                    logger.info("Can not find event for $event_id")
-                    continue
-                }
-
-                // now we need to push into openings and notifications.
-                val email = event.attendees.firstOrNull { it.isResource }?.email
-                if (email == null) {
-                    logger.info("Can not find resource email for event $event")
-                    continue
-                }
-
-                val resources = admin?.resources()?.calendars()?.list(businessName)?.setQuery("email='${email}'")?.execute()
-                if (resources == null || resources.items.isEmpty()) {
-                    logger.info("Can not find resource using email $email")
-                    continue
-                }
-
-                val openslot = mapOf(
-                    "start" to event.start.dateTime.toLocalDateTime(),
-                    "end" to event.end.dateTime.toLocalDateTime(),
-                    "resourceName" to resources.items[0].resourceName,
-                    "resourceType" to resources.items[0].resourceType,
-                    "resourceId" to resources.items[0].resourceId,
-                    "resourceDescription" to Json.parseToJsonElement(resources.items[0].resourceDescription)
-                )
-                cancelled.add(Json.encodeToJsonElement(openslot) as JsonObject)
+            // if it is canceled, we need to set up openings and notification.
+            val eventId = item.id
+            val event = client?.events()?.get(reservationCalendarId, eventId)?.execute()
+            if (event == null) {
+                logger.info("Can not find event for $eventId")
+                continue
             }
 
-            logger.info("We are ${cancelled.size} events that we will forward.")
-            if (cancelled.size > 0) {
-                val sessionManager = Dispatcher.sessionManager
-                val botInfo = master()
-                val bot = sessionManager.getAgent(botInfo)
-
-                // We expect the function takes a single parameter call slots with List<JsonObject> type.
-                bot.executeByInterface(moduleName, funcName, listOf(cancelled))
+            // now we need to push into openings and notifications.
+            val email = event.attendees.firstOrNull { it.isResource }?.email
+            if (email == null) {
+                logger.info("Can not find resource email for event $event")
+                continue
             }
+
+            val resources = admin?.resources()?.calendars()?.list(businessName)?.setQuery("email='${email}'")?.execute()
+            logger.info("got resources: $resources")
+            if (resources?.items.isNullOrEmpty()) {
+                logger.info("Can not find resource using email $email")
+                continue
+            }
+
+            val openslot = mapOf(
+                "start" to event.start.dateTime.toLocalDateTime(),
+                "end" to event.end.dateTime.toLocalDateTime(),
+                "resourceName" to resources.items[0].resourceName,
+                "resourceType" to resources.items[0].resourceType,
+                "resourceId" to resources.items[0].resourceId,
+                "resourceDescription" to Json.parseToJsonElement(resources.items[0].resourceDescription)
+            )
+            cancelled.add(Json.encodeToJsonElement(openslot) as JsonObject)
+        }
+
+        logger.info("We are ${cancelled.size} events that we will forward.")
+        if (cancelled.size > 0) {
+            val sessionManager = Dispatcher.sessionManager
+            val botInfo = master()
+            val bot = sessionManager.getAgent(botInfo)
+
+            // We expect the function takes a single parameter call slots with List<JsonObject> type.
+            bot.executeByInterface(moduleName, funcName, listOf(cancelled))
         }
     }
 
