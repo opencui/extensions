@@ -735,7 +735,6 @@ data class ReservationProvider(
             allEvents.addAll(events.items)
             pageToken = events.nextPageToken
             newSyncToken = events.nextSyncToken
-
         } while (pageToken != null)
 
         return Pair(newSyncToken, allEvents)
