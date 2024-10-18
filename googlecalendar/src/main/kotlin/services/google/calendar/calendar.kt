@@ -724,14 +724,14 @@ data class ReservationProvider(
         return events.isNullOrEmpty()
     }
 
-    fun pagedThrough(block : () -> Events? ) : Pair<String?, List<Event>> {
-        // this page through all the events.
+    fun pagedThrough(block : () -> Calendar.Events.List? ) : Pair<String?, List<Event>> {
+        // this page through all the event
         var pageToken: String? = null
         var newSyncToken: String? = null
         val allEvents = mutableListOf<Event>()
 
         do {
-            val events: Events = block() ?: break
+            val events: Events = block()?.setPageToken(pageToken)?.execute() ?: break
             allEvents.addAll(events.items)
             pageToken = events.nextPageToken
             newSyncToken = events.nextSyncToken
@@ -751,24 +751,30 @@ data class ReservationProvider(
         val botStore = Dispatcher.sessionManager.botStore!!
 
         var oldSyncToken = botStore.get(SYNCTOKEN)
-        var newSyncToken : String? = null
-        var changes: List<Event>? = null
 
         logger.info("Existing sync token $oldSyncToken")
-        try {
-            val res = pagedThrough {  client?.events()?.list(reservationCalendarId)?.setShowDeleted(true)?.setSyncToken(oldSyncToken)?.execute() }
-            newSyncToken = res.first
-            changes = res.second
-            logger.info("Happy path: There are ${changes.size} changes for sync token $oldSyncToken : $newSyncToken")
+        val res = try {
+            if (oldSyncToken != null) {
+                val res = pagedThrough {
+                    client?.events()?.list(reservationCalendarId)?.setShowDeleted(true)?.setSyncToken(oldSyncToken)
+                }
+                logger.info("Happy path: There are ${res.second.size} changes for sync token $oldSyncToken : ${res.first}")
+                res
+            } else {
+                val res = pagedThrough { client?.events()?.list(reservationCalendarId)?.setShowDeleted(true) }
+                logger.info("Init path: There are ${res.second.size} changes for sync token $oldSyncToken : ${res.first}")
+                res
+            }
         } catch (e: Exception) {
             logger.info(e.toString())
-            logger.info("Had to get new token.")
-            val res = pagedThrough { client?.events()?.list(reservationCalendarId)?.setShowDeleted(true)?.execute() }
-            newSyncToken = res.first
-            changes = res.second
-            logger.info("Unhappy path: There are ${changes.size} changes for sync token $oldSyncToken : $newSyncToken")
+            val res = pagedThrough { client?.events()?.list(reservationCalendarId)?.setShowDeleted(true) }
+            logger.info("Unhappy path: There are ${res.second.size} changes for sync token $oldSyncToken : ${res.first}")
+            res
         }
 
+        val newSyncToken = res.first
+        val changes = res.second
+        
         // this save the synctoken.
         logger.info("Set new token: $newSyncToken")
         botStore.set(SYNCTOKEN, newSyncToken!!)
