@@ -743,7 +743,7 @@ data class ReservationProvider(
             newSyncToken = changes!!.nextPageToken
             logger.info("Happy path: There are ${changes?.items?.size} changes for sync token $oldSyncToken : $newSyncToken")
         } catch (e: Exception) {
-            logger.info(e.printStackTrace().toString())
+            logger.info(e.toString())
             logger.info("Had to get new token.")
             changes = client?.events()?.list(reservationCalendarId)?.execute()
             newSyncToken = changes!!.nextPageToken
@@ -806,6 +806,7 @@ data class ReservationProvider(
             val bot = sessionManager.getAgent(botInfo)
 
             // We expect the function takes a single parameter call slots with List<JsonObject> type.
+            logger.info("We are ${cancelled.size} events that we will forward.")
             bot.executeByInterface(moduleName, funcName, listOf(cancelled))
         }
     }
