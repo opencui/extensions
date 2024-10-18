@@ -813,7 +813,7 @@ data class ReservationProvider(
                     continue
                 }
 
-                val resources = admin?.resources()?.calendars()?.list(email)?.execute()
+                val resources = admin?.resources()?.calendars()?.list(businessName)?.setQuery("email='${email}'")?.execute()
                 if (resources == null || resources.items.isEmpty()) {
                     logger.info("Can not find resource using email $email")
                     continue
