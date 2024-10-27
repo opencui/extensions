@@ -716,12 +716,25 @@ data class ReservationProvider(
         calendarId: String,
         duration: Int
     ): Boolean {
-        val client = buildClient()
         val timeMin = date.atTime(time).toDateTime(timeZone)
         val timeMax = date.atTime(time).plusSeconds(duration.toLong())!!.toDateTime(timeZone)
 
         val events = client?.events()?.list(calendarId)?.setTimeMin(timeMin)?.setTimeMax(timeMax)?.execute()?.items
-        return events.isNullOrEmpty()
+
+        val latestEvents = events?.groupBy { event -> event.id.split("_").first() }
+            ?.mapValues { (_, versions) ->
+                // If there are multiple versions, take the one with the latest status
+                // Cancelled events are considered "newer" than confirmed ones
+                versions.maxByOrNull { event ->
+                    when (event.status) {
+                        "cancelled" -> 1
+                        else -> 0
+                    }
+                }
+            }?.values?.filterNotNull()
+
+        val activeEvents = latestEvents?.filter { event -> event.status != "cancelled" }
+        return activeEvents.isNullOrEmpty()
     }
 
     fun pagedThrough(block : () -> Calendar.Events.List? ) : Pair<String?, List<Event>> {
