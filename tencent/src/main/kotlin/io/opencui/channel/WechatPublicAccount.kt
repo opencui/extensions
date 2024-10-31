@@ -112,7 +112,7 @@ class WechatPublicAccountResource {
 
             // For now, we assume the language of user session are decided at beginning and
             // not changed after that.
-            Dispatcher.process(userInfo, botInfo(org, agentId, lang, "master"), textMessage(msgText, msgId))
+            Dispatcher.processInbound(userInfo, botInfo(org, agentId, lang, "master"), textMessage(msgText, msgId))
         }
     }
 
