@@ -3,19 +3,14 @@ package io.opencui.channel
 import com.twilio.Twilio
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import javax.inject.Inject
 import com.twilio.type.PhoneNumber
-import io.opencui.channel.IChannel
 import io.opencui.core.BotInfo
 import io.opencui.core.Configuration
 import io.opencui.core.IMessageChannel
-import com.fasterxml.jackson.annotation.JsonProperty
 import io.opencui.core.*
 import io.opencui.core.user.*
 import io.opencui.serialization.*
-import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
-import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.math.BigInteger
@@ -61,7 +56,7 @@ class TwilioResource{
         val txt = body.Body
         val msgTimestemp = "$body.From}:${DateTimeFormatter.ISO_INSTANT.format(Instant.now())}"
         val msgId = BigInteger(1, md.digest(msgTimestemp.toByteArray())).toString(16).padStart(32, '0')
-        Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
+        Dispatcher.processInbound(userInfo, master(lang), textMessage(txt, msgId))
         return ResponseEntity("EVENT_RECEIVED", HttpStatus.OK)
     }
 

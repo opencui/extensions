@@ -286,7 +286,7 @@ class MessengerResources() {
                     if (message.containsKey(TEXT)) {
                         val txt = message.getPrimitive(TEXT).content()
                         val userInfo = UserInfo(CHANNELTYPE, psid, channelId, true)
-                        Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
+                        Dispatcher.processInbound(userInfo, master(lang), textMessage(txt, msgId))
                     }
                 }
 			}

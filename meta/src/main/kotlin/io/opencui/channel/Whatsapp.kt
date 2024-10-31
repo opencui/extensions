@@ -132,7 +132,7 @@ class WhatsappResources() {
                         userInfo.name = PersonName(userName)
                     }
 
-                    Dispatcher.process(userInfo, master(lang), textMessage(txt, msgId))
+                    Dispatcher.processInbound(userInfo, master(lang), textMessage(txt, msgId))
                 }
             }
         }
