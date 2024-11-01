@@ -23,3 +23,4 @@ include 'googlecalendar'
 include 'commandline'
 include 'twilio'
 include "acs"
+include 'vapi'
