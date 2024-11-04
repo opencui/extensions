@@ -103,7 +103,7 @@ class GBMResource {
             if (utterance != null) {
                 // Before we process incoming message, we need to create user session.
                 val userInfo = UserInfo(CHANNELTYPE, conversationId, label, true)
-                Dispatcher.process(userInfo, master(lang), textMessage(utterance, requestId))
+                Dispatcher.processInbound(userInfo, master(lang), textMessage(utterance, requestId))
             } else {
                 logger.info("no utterance found in $body.")
             }

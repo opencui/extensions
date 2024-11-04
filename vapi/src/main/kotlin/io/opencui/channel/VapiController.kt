@@ -1,44 +1,100 @@
 package io.opencui.channel
 
-import io.opencui.channel.IChannel
 import io.opencui.core.*
 import io.opencui.core.user.IUserIdentifier
+import io.opencui.core.user.UserInfo
+import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import org.slf4j.LoggerFactory
-import org.springframework.http.ResponseEntity
 import org.springframework.http.MediaType
-import org.springframework.http.HttpHeaders
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.*
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
-import java.util.*
-
+import kotlinx.coroutines.reactor.asFlux
 
 // https://platform.openai.com/docs/api-reference/making-requests
 
-data class CallInfo(
-    val id: String?,
-    val customer: CustomerInfo?
+data class Message(
+    val role: String,
+    val content: String
 )
 
-data class CustomerInfo(
-    val number: String?
+data class Parameters(
+    val type: String,
+    val properties: Map<String, Any>
 )
 
-data class ChatMessage(val content: String, val role: String)
 
-// There is no reason to have model.
-data class RequestData(val messages: List<ChatMessage>, val call: CallInfo?, val model: String?=null, val stream: Boolean?=null)
+data class Function(
+    val name: String,
+    val description: String,
+    val parameters: Parameters? = null
+)
 
+
+data class Tool(
+    val type: String,
+    val function: Function
+)
+
+data class Customer(
+    val number: String
+)
+
+data class Call(
+    val id: String,
+    val orgId: String,
+    val createdAt: String,
+    val updatedAt: String,
+    val type: String,
+    val status: String,
+    val assistantId: String,
+    val customer: Customer? = null,
+    val phoneNumberId: String? = null,
+    val phoneCallProvider: String? = null,
+    val phoneCallProviderId: String? = null,
+    val phoneCallTransport: String? = null
+)
+
+
+data class PhoneNumber(
+    val id: String,
+    val orgId: String,
+    val number: String,
+    val createdAt: String,
+    val updatedAt: String,
+    val twilioAccountSid: String,
+    val twilioAuthToken: String,
+    val name: String,
+    val provider: String
+)
+
+
+data class ChatRequest(
+    val model: String,
+    val messages: List<Message>,
+    val temperature: Float,
+    val tools: List<Tool>,
+    val stream: Boolean,
+    val maxTokens: Int,
+    val call: Call,
+    val phoneNumber: PhoneNumber? = null,
+    val customer: Customer? = null,
+    val metadata: Map<String, Any>
+)
+
+// For no streaming, not verified.
 data class Usage(
 	val prompt_tokens: Int,
 	val completion_tokens: Int,
 	val total_tokens: Int,
 	val completion_tokens_details: Map<String, Any>)
 
-data class Choice(val index: Int, val messages: List<ChatMessage>, val logprobs: Any?, val finish_reason: String?)
+
+
+data class Choice(val index: Int, val messages: String, val logprobs: Any?, val finish_reason: String?)
 
 data class CompletionResponse(
     val id: String,
@@ -49,122 +105,107 @@ data class CompletionResponse(
     val choices: List<Choice>
 )
 
+// according to: https://www.perplexity.ai/search/how-do-curl-with-post-BQr_SbXnRSCQZQdbIFoWcA
+/*
+{
+  "id": "chatcmpl-123",
+  "object": "chat.completion.chunk",
+  "created": 1694268190,
+  "model": "gpt-4o-mini",
+  "choices": [
+    {
+      "index": 0,
+      "delta": {
+        "content": "partial content"
+      },
+      "finish_reason": null
+    }
+  ]
+}
+ */
+
+// For streaming, not verified.
+data class Delta(val content: String)
+data class StreamChoice(
+    val index: Int,
+    val delta: Delta,
+    val finish_reason: String?)
+
+
 data class ChatCompletionChunk(
-    val chatId: String,
-    val role: String?,
-    val content: String?
+      val id: String,
+    val `object`: String,
+    val created: Long,
+    val model: String,
+    val usage: Usage,
+    val choices: List<StreamChoice>
 )
 
 
+// This is based on this:  https://github.com/VapiAI/advanced-concepts-custom-llm/blob/master/app/main.py
+//  This is for inbound traffic.
 @RestController
 class VapiController {
 
-    fun processMessage(message: String, callId: String, customerPhoneNumber: String, isVoice: Boolean): Flux<ChatCompletionChunk> {
-        // Call the assistant and generate the response in a streaming fashion
-        return Flux.create { emitter ->
-            val chatId = "chatcmpl-${UUID.randomUUID().toString().replace("-", "")}"
+    private val logger = LoggerFactory.getLogger(VapiController::class.java)
 
-            // Emit the role chunk
-            emitter.next(ChatCompletionChunk(chatId, "assistant", null))
+    @PostMapping(
+        value = [
+            "/IChannel/VapiChannel/v1/{label}/{lang}",
+            "/IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}",
+            "/io.opencui.channel.IChannel/VapiChannel/v1/{label}/{lang}",
+            "/io.opencui.channel.IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}" ],
+        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE],
+        produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
+    fun chatCompletions(
+        @PathVariable lang: String,
+        @PathVariable label: String,
+        @RequestBody request: ChatRequest): Flux<String> {
 
-            // Emit the content chunks
-            /*
-            val assistantResponse = getAssistantResponse(message, callId, customerPhoneNumber, isVoice)
-            assistantResponse.forEach { chunk ->
-                emitter.next(chunk)
-            }
-            */
-            // Emit the finish chunk
-            emitter.next(ChatCompletionChunk(chatId, null, "stop"))
-            emitter.complete()
+        val botInfo = master(lang)
+        logger.info("got body: $request")
+        val info = Dispatcher.getChatbot(botInfo).getConfiguration(label)
+        if (info == null) {
+            logger.info("could not find configure for $CHANNELTYPE/$label")
+            return Flux.just("data: {'reason': No longer active}\n\n")
         }
+
+
+        val userId = request.phoneNumber?.number ?: return Flux.just("data: {'reason': No phone number}\n\n")
+
+        val utterance = request.messages.last().content
+
+        // Before we process incoming message, we need to create user session.
+        val userInfo = UserInfo(CHANNELTYPE, userId, label, true)
+
+        val typeSink = TypeSink("io.opencui.channel.VapiChannel")
+
+        val resultFlow : Flow<String> = Dispatcher.processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
+
+        return resultFlow.map {
+            content : String -> VapiController.fakeStreamOutput(content)
+        }.asFlux().concatWith(Flux.just("data: [DONE]\n\n"))
     }
 
+    companion object{
+        const val CHANNELTYPE = "vapi"
 
-
-    @GetMapping(produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    @PostMapping("/vapi/v1/chat/completions")
-    fun chatCompletions(@RequestBody request: RequestData): ResponseEntity<Flux<ChatCompletionChunk>> {
-        val streaming = request.stream ?: false
-
-        val messages = request.messages ?: return ResponseEntity.badRequest()
-            .body(Flux.error(IllegalArgumentException("messages field is required")))
-
-        val lastMessage = messages.last().content
-        val callId = request.call?.id ?: "default-voice-id"
-        val customerPhoneNumber = request.call?.customer?.number?.replace("+1", "") ?: "webCall"
-
-        val response = processMessage(lastMessage, callId, customerPhoneNumber, true)
-
-        return ResponseEntity.ok().body(response)
-    }
-
-
-    @PostMapping("/vapi/v1/chat/completions")
-    fun openaiAdvancedCustomLlmRoute(@RequestBody requestData: RequestData): ResponseEntity<out Any> {
-        val streaming = requestData.stream ?: false
-        val lastMessage = requestData.messages.lastOrNull()?.content
-
-        if (lastMessage == null) {
-
+        fun fakeStreamOutput(content: String) : String {
+            val result = mapOf(
+                "id" to  "chatcmpl-123",   // what do I need.
+                "object" to  "chat.completion.chunk",
+                "created" to 1694268190,
+                "model" to "gpt-4o-mini",
+                "choices" to listOf(
+                    mapOf(
+                        "index" to 0,
+                        "delta" to mapOf("content" to content),
+                        "finish_reason" to null
+                    )
+                )
+            )
+            return "data: {${Json.encodeToString(result)}}\n\n"
         }
-/**
-        val promptTemplate = """
-            Create a prompt which can act as a prompt template where I put the original prompt and it can modify it according to my intentions so that the final modified prompt is more detailed. You can expand certain terms or keywords.
-            ----------
-            PROMPT: ${lastMessage?.content}.
-            MODIFIED PROMPT: 
-        """.trimIndent()
-
-        // Simulate a completion
-        val modifiedPrompt = simulateCompletion(promptTemplate)
-
-        val modifiedMessages = requestData.messages?.dropLast(1)?.plus(ChatMessage(listOf(TextContent(modifiedPrompt)), lastMessage?.role ?: ""))
-
-        if (streaming) {
-            val emitter = SseEmitter()
-            val responseStream = simulateStreamingResponse(modifiedMessages ?: listOf())
-
-            runBlocking {
-                for (jsonData in responseStream) {
-                    emitter.send(SseEmitter.event().data(jsonData))
-                    delay(100)
-                }
-                emitter.complete()
-            }
-
-            return ResponseEntity(emitter, HttpHeaders(), 200)
-        } else {
-            val nonStreamingResponse = simulateNonStreamingResponse(RequestData(modifiedMessages, false.toString()))
-            return ResponseEntity.ok(nonStreamingResponse)
-        }
-        */
-        return ResponseEntity("", HttpHeaders(), 200)
-    }
-
-    private fun simulateStreamingResponse(messages: List<ChatMessage>): List<String> {
-        // Simulate a stream of JSON responses
-        return messages.map { message ->
-            """
-            {
-                "content": "${message.content}"
-            }
-            """.trimIndent()
-        }
-    }
-
-    private fun simulateNonStreamingResponse(requestData: RequestData): String {
-        // Simulate a JSON response for non-streaming
-        return """
-        {
-            "content": "${requestData.messages?.lastOrNull()?.content}"
-        }
-        """.trimIndent()
-    }
-
-    private fun simulateCompletion(prompt: String): String {
-        // Simulate modifying the prompt
-        return "$prompt [expanded details...]"
     }
 }
 
