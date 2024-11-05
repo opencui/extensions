@@ -146,7 +146,13 @@ data class ChatCompletionChunk(
 
 // https://cookbook.openai.com/examples/how_to_stream_completions
 // [Choice(delta=ChoiceDelta(content='', function_call=None, role='assistant', tool_calls=None), finish_reason=None, index=0, logprobs=None)]
-
+/* How do return different status code:
+Method 1: Using switchIfEmpty
+        return userFlux.switchIfEmpty(Flux.error(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                "User not found with id: " + id)
+        ));
+ */
 // This is based on this:  https://github.com/VapiAI/advanced-concepts-custom-llm/blob/master/app/main.py
 //  This is for inbound traffic.
 @RestController
