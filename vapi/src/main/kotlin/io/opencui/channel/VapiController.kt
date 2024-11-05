@@ -196,11 +196,14 @@ class VapiController {
         logger.info("userInfo: $userInfo")
         val typeSink = TypeSink(ChannelType)
 
-        val resultFlow : Flow<String> = Dispatcher.processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
+        val resultFlow = Dispatcher
+            .processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
+            .map { content : String -> fakeStreamOutput(content) }
+            .asFlux()
+            .concatWith(Flux.just(fakeStreamOutput(null, true)))
+            .concatWith(Flux.just("data: [DONE]\n\n"))
 
-        return resultFlow.map {
-            content : String -> fakeStreamOutput(content)
-        }.asFlux().concatWith(Flux.just(fakeStreamOutput(null, true)))
+        return resultFlow
     }
 
     companion object{
