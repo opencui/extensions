@@ -196,7 +196,7 @@ class VapiController {
 
         // Before we process incoming message, we need to create user session.
         val userInfo = UserInfo(ChannelType, userId, label, true)
-
+        logger.info("userInfo: $userInfo")
         val typeSink = TypeSink(ChannelType)
 
         val resultFlow : Flow<String> = Dispatcher.processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
@@ -286,8 +286,9 @@ class VapiChannel(override val info: Configuration, val number: String) : IMessa
         TODO("Not yet implemented")
     }
 
+    //  We do not yet have a channel dependent IUserIdentifier for VapiChannel.
     override fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier? {
-        TODO("Not yet implemented")
+        return null
     }
 
     override fun sendRawPayload(
