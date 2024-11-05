@@ -7,12 +7,11 @@ import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.reactor.asFlux
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
-import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
-import kotlinx.coroutines.reactor.asFlux
 
 // https://platform.openai.com/docs/api-reference/making-requests
 
@@ -168,11 +167,12 @@ class VapiController {
             "/io.opencui.channel.IChannel/VapiChannel/v1/{label}/{lang}",
             "/io.opencui.channel.IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}" ],
         consumes = [MediaType.APPLICATION_JSON_VALUE],
-        produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
+        produces = [MediaType.TEXT_EVENT_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE])
     fun chatCompletions(
         @PathVariable lang: String,
         @PathVariable label: String,
-        @RequestBody request: ChatRequest): Flux<String> {
+        @RequestBody request: ChatRequest,
+        @RequestHeader(value = "Accept", defaultValue = MediaType.TEXT_EVENT_STREAM_VALUE) acceptHeader : String): Flux<String> {
 
         val botInfo = master(lang)
         logger.info("got body: $request")
