@@ -157,6 +157,7 @@ class VapiController {
     @PostMapping(
         value = [
             "/IChannel/VapiChannel/v1/{label}/{lang}",
+            "/IChannel/VapiChannel/v1/{label}/{lang}/chat/completions",
             "/IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}",
             "/io.opencui.channel.IChannel/VapiChannel/v1/{label}/{lang}",
             "/io.opencui.channel.IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}" ],
