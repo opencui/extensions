@@ -167,7 +167,7 @@ class VapiController {
             "/IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}",
             "/io.opencui.channel.IChannel/VapiChannel/v1/{label}/{lang}",
             "/io.opencui.channel.IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}" ],
-        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE],
+        consumes = [MediaType.APPLICATION_JSON_VALUE],
         produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun chatCompletions(
         @PathVariable lang: String,
