@@ -158,9 +158,6 @@ Method 1: Using switchIfEmpty
 //  This is for inbound traffic.
 @RestController
 class VapiController {
-
-    private val logger = LoggerFactory.getLogger(VapiController::class.java)
-
     @PostMapping(
         value = [
             "/IChannel/VapiChannel/v1/{label}/{lang}",
@@ -210,6 +207,8 @@ class VapiController {
         const val ChannelType = "VapiChannel"
         const val WebCallType = "webCall"
 
+        private val logger = LoggerFactory.getLogger(VapiController::class.java)
+
         fun fakeStreamOutput(content: String?, finish: Boolean = false, usage: Usage? = null) : String {
             val result = mapOf(
                 "id" to  "bethere-123",   // what is this used by vapi for?
@@ -225,6 +224,7 @@ class VapiController {
                 ),
                 "usage" to usage
             )
+            logger.info("Emit: {${Json.encodeToString(result)}}")
             return "data: {${Json.encodeToString(result)}}\n\n"
         }
     }
@@ -232,16 +232,11 @@ class VapiController {
 
 
 // This is useful for create the outbound message.
-class VapiChannel(override val info: Configuration, val number: String) : IMessageChannel {
+class VapiChannel(override val info: Configuration, val number: String) : IChannel {
 
     companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(VapiChannel::class.java)
-        const val messageType = "RESPONSE"
-        const val PAGEACCESSTOKEN = "page_access_token"
-        const val MARKSEEN = "mark_seen"
-        const val TYPEON = "typing_on"
         const val NUMBER = "number"
-        const val OK = "ok"
         const val ChannelType = "VapiChannel"
 
         override fun invoke(config: Configuration): IChannel {
@@ -250,45 +245,18 @@ class VapiChannel(override val info: Configuration, val number: String) : IMessa
         }
     }
 
-    override fun sendSimpleText(
-        uid: String,
-        rawMessage: TextPayload,
-        botInfo: BotInfo,
-        source: IUserIdentifier?
-    ): IChannel.Status {
-        TODO("Not yet implemented")
-    }
-
-    override fun sendRichCard(
-        uid: String,
-        rawMessage: RichPayload,
-        botInfo: BotInfo,
-        source: IUserIdentifier?
-    ): IChannel.Status {
-        TODO("Not yet implemented")
-    }
-
-    override fun sendListText(
-        uid: String,
-        rawMessage: ListTextPayload,
-        botInfo: BotInfo,
-        source: IUserIdentifier?
-    ): IChannel.Status {
-        TODO("Not yet implemented")
-    }
-
-    override fun sendListRichCards(
-        uid: String,
-        rawMessage: ListRichPayload,
-        botInfo: BotInfo,
-        source: IUserIdentifier?
-    ): IChannel.Status {
-        TODO("Not yet implemented")
-    }
-
     //  We do not yet have a channel dependent IUserIdentifier for VapiChannel.
     override fun getIdentifier(botInfo: BotInfo, id: String): IUserIdentifier? {
         return null
+    }
+
+    override fun sendWhitePayload(
+        id: String,
+        rawMessage: IWhitePayload,
+        botInfo: BotInfo,
+        source: IUserIdentifier?
+    ): IChannel.Status {
+        TODO("Not yet implemented")
     }
 
     override fun sendRawPayload(
