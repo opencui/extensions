@@ -125,11 +125,14 @@ data class CompletionResponse(
  */
 
 // For streaming, not verified.
-data class Delta(val content: String)
+data class ChoiceDelta(val content: String?=null)
+
 data class StreamChoice(
     val index: Int,
-    val delta: Delta,
-    val finish_reason: String?)
+    val delta: ChoiceDelta,
+    val finish_reason: String? = null,
+    val logprobs: Float? = null
+)
 
 
 data class ChatCompletionChunk(
@@ -141,6 +144,8 @@ data class ChatCompletionChunk(
     val choices: List<StreamChoice>
 )
 
+// https://cookbook.openai.com/examples/how_to_stream_completions
+// [Choice(delta=ChoiceDelta(content='', function_call=None, role='assistant', tool_calls=None), finish_reason=None, index=0, logprobs=None)]
 
 // This is based on this:  https://github.com/VapiAI/advanced-concepts-custom-llm/blob/master/app/main.py
 //  This is for inbound traffic.
@@ -166,43 +171,43 @@ class VapiController {
         logger.info("got body: $request")
         val info = Dispatcher.getChatbot(botInfo).getConfiguration(label)
         if (info == null) {
-            logger.info("could not find configure for $CHANNELTYPE/$label")
+            logger.info("could not find configure for $ChannelType/$label")
             return Flux.just("data: {'reason': No longer active}\n\n")
         }
 
-
-        val userId = request.phoneNumber?.number ?: return Flux.just("data: {'reason': No phone number}\n\n")
+        val userId = request.call.customer?.number ?: return Flux.just("data: {'reason': No phone number}\n\n")
 
         val utterance = request.messages.last().content
 
         // Before we process incoming message, we need to create user session.
-        val userInfo = UserInfo(CHANNELTYPE, userId, label, true)
+        val userInfo = UserInfo(ChannelType, userId, label, true)
 
-        val typeSink = TypeSink("io.opencui.channel.VapiChannel")
+        val typeSink = TypeSink(ChannelType)
 
         val resultFlow : Flow<String> = Dispatcher.processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
 
         return resultFlow.map {
-            content : String -> VapiController.fakeStreamOutput(content)
-        }.asFlux().concatWith(Flux.just("data: [DONE]\n\n"))
+            content : String -> fakeStreamOutput(content)
+        }.asFlux().concatWith(Flux.just(fakeStreamOutput(null, true)))
     }
 
     companion object{
-        const val CHANNELTYPE = "vapi"
+        const val ChannelType = "VapiChannel"
 
-        fun fakeStreamOutput(content: String) : String {
+        fun fakeStreamOutput(content: String?, finish: Boolean = false, usage: Usage? = null) : String {
             val result = mapOf(
-                "id" to  "chatcmpl-123",   // what do I need.
-                "object" to  "chat.completion.chunk",
-                "created" to 1694268190,
-                "model" to "gpt-4o-mini",
+                "id" to  "bethere-123",   // what is this used by vapi for?
+                "object" to  "chat.completion.chunk",  // what is this used by vapi for?
+                "created" to System.currentTimeMillis(), // what is this used by vapi for?
+                "model" to "compound-ai",
                 "choices" to listOf(
                     mapOf(
                         "index" to 0,
                         "delta" to mapOf("content" to content),
-                        "finish_reason" to null
+                        "finish_reason" to if (finish) "stop" else null,
                     )
-                )
+                ),
+                "usage" to usage
             )
             return "data: {${Json.encodeToString(result)}}\n\n"
         }
@@ -211,7 +216,7 @@ class VapiController {
 
 
 // This is useful for create the outbound message.
-class VapiChannel(override val info: Configuration) : IMessageChannel {
+class VapiChannel(override val info: Configuration, val number: String) : IMessageChannel {
 
     companion object : ExtensionBuilder {
         val logger = LoggerFactory.getLogger(VapiChannel::class.java)
@@ -219,11 +224,13 @@ class VapiChannel(override val info: Configuration) : IMessageChannel {
         const val PAGEACCESSTOKEN = "page_access_token"
         const val MARKSEEN = "mark_seen"
         const val TYPEON = "typing_on"
+        const val NUMBER = "number"
         const val OK = "ok"
-        const val ChannelType = "MessengerChannel"
+        const val ChannelType = "VapiChannel"
 
         override fun invoke(config: Configuration): IChannel {
-            return VapiChannel(config)
+            val number: String =  config[NUMBER]!! as String
+            return VapiChannel(config, number)
         }
     }
 
