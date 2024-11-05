@@ -75,13 +75,15 @@ data class ChatRequest(
     val model: String,
     val messages: List<Message>,
     val temperature: Float,
-    val tools: List<Tool>,
+
     val stream: Boolean,
     val maxTokens: Int,
     val call: Call,
+
     val phoneNumber: PhoneNumber? = null,
     val customer: Customer? = null,
-    val metadata: Map<String, Any>
+    val tools: List<Tool>? = null,
+    val metadata: Map<String, Any>? = null
 )
 
 // For no streaming, not verified.
@@ -182,7 +184,13 @@ class VapiController {
             return Flux.just("data: {'reason': No longer active}\n\n")
         }
 
-        val userId = request.call.customer?.number ?: return Flux.just("data: {'reason': No phone number}\n\n")
+        val type = request.call.type
+
+        val userId = if (type == WebCallType) {
+            request.call.id
+        } else {
+            request.call.customer?.number ?: return Flux.just("data: {'reason': No phone number}\n\n")
+        }
 
         val utterance = request.messages.last().content
 
@@ -200,6 +208,7 @@ class VapiController {
 
     companion object{
         const val ChannelType = "VapiChannel"
+        const val WebCallType = "webCall"
 
         fun fakeStreamOutput(content: String?, finish: Boolean = false, usage: Usage? = null) : String {
             val result = mapOf(
