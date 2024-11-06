@@ -201,7 +201,7 @@ class VapiController {
             .map { content : String -> fakeStreamOutput(content) }
             .asFlux()
             .concatWith(Flux.just(fakeStreamOutput(null, true)))
-            .concatWith(Flux.just("data: [DONE]\n\n"))
+            //. concatWith(Flux.just("data: [DONE]\n\n"))
 
         return resultFlow
     }
@@ -228,7 +228,7 @@ class VapiController {
                 "usage" to usage
             )
             logger.info("Emit: {${Json.encodeToString(result)}}")
-            return "data: {${Json.encodeToString(result)}}\n\n"
+            return Json.encodeToString(result)
         }
     }
 }
