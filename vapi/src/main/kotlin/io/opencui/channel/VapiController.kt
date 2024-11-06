@@ -49,7 +49,7 @@ data class Call(
     val updatedAt: String,
     val type: String,
     val status: String,
-    val assistantId: String,
+    val assistantId: String? = null,
     val customer: Customer? = null,
     val phoneNumberId: String? = null,
     val phoneCallProvider: String? = null,
