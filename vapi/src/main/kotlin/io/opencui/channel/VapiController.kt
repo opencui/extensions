@@ -91,7 +91,7 @@ data class Usage(
 	val prompt_tokens: Int,
 	val completion_tokens: Int,
 	val total_tokens: Int,
-	val completion_tokens_details: Map<String, Any>)
+	val completion_tokens_details: Map<String, Any>? = null)
 
 
 
@@ -137,7 +137,7 @@ data class StreamChoice(
 
 
 data class ChatCompletionChunk(
-      val id: String,
+    val id: String,
     val `object`: String,
     val created: Long,
     val model: String,
@@ -201,7 +201,7 @@ class VapiController {
             .map { content : String -> fakeStreamOutput(content) }
             .asFlux()
             .concatWith(Flux.just(fakeStreamOutput(null, true)))
-            //. concatWith(Flux.just("data: [DONE]\n\n"))
+            .concatWith(Flux.just(fakeUsage(Usage(1, 1, 2))))
 
         return resultFlow
     }
@@ -212,7 +212,7 @@ class VapiController {
 
         private val logger = LoggerFactory.getLogger(VapiController::class.java)
 
-        fun fakeStreamOutput(content: String?, finish: Boolean = false, usage: Usage? = null) : String {
+        fun fakeStreamOutput(content: String?, finish: Boolean = false) : String {
             val result = mapOf(
                 "id" to  "bethere-123",   // what is this used by vapi for?
                 "object" to  "chat.completion.chunk",  // what is this used by vapi for?
@@ -225,6 +225,18 @@ class VapiController {
                         "finish_reason" to if (finish) "stop" else null,
                     )
                 ),
+            )
+            logger.info("Emit: {${Json.encodeToString(result)}}")
+            return Json.encodeToString(result)
+        }
+
+        fun fakeUsage(usage: Usage) : String {
+            val result = mapOf(
+                "id" to  "bethere-123",   // what is this used by vapi for?
+                "object" to  "chat.completion.chunk",  // what is this used by vapi for?
+                "created" to System.currentTimeMillis(), // what is this used by vapi for?
+                "model" to "compound-ai",
+                "choices" to emptyList<StreamChoice>(),
                 "usage" to usage
             )
             logger.info("Emit: {${Json.encodeToString(result)}}")
