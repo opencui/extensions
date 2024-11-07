@@ -178,7 +178,7 @@ class VapiController {
         val info = Dispatcher.getChatbot(botInfo).getConfiguration(label)
         if (info == null) {
             logger.info("could not find configure for $ChannelType/$label")
-            return Flux.just("data: {{'reason': 'No longer active'}}\n\n")
+            return convert(Flux.just("{'reason': 'No longer active'}"))
         }
 
         val type = request.call.type
@@ -186,7 +186,7 @@ class VapiController {
         val userId = if (type == WebCallType) {
             request.call.id
         } else {
-            request.call.customer?.number ?: return Flux.just("data: {{'reason': 'No phone number'}}\n\n")
+            request.call.customer?.number ?: return convert(Flux.just("{'reason': 'No phone number'}"))
         }
 
         val utterance = request.messages.last().content
@@ -200,18 +200,31 @@ class VapiController {
             .processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
             .map { content : String -> fakeStreamOutput(content) }
             .asFlux()
-            .concatWith(Flux.just(fakeStreamOutput(null, true)))
+            .concatWith(Flux.just(fakeStreamOutput(null, true)))  // top
             .concatWith(Flux.just(fakeUsage(Usage(1, 1, 2))))
-            .concatWith(Flux.just("data: [DONE]\n\n"))
 
-        return resultFlow
+        return convert(resultFlow)
     }
+
 
     companion object{
         const val ChannelType = "VapiChannel"
         const val WebCallType = "webCall"
-
+        const val useOpenAIRawStream = true
         private val logger = LoggerFactory.getLogger(VapiController::class.java)
+
+        fun convert(stream: Flux<String>) : Flux<String> {
+            return if (useOpenAIRawStream) {
+                return stream.map { input ->
+                    println(input)
+                    input
+                }
+            } else {
+                stream.map { input ->
+                    "data: {$input}\n\n"
+                }.concatWith(Flux.just("data: [DONE]\n\n"))
+            }
+        }
 
         fun fakeStreamOutput(content: String?, finish: Boolean = false) : String {
             val result = mapOf(
@@ -228,7 +241,7 @@ class VapiController {
                 ),
             )
             logger.info("Emit: {${Json.encodeToString(result)}}")
-            return "data: {Json.encodeToString(result)}\n\n"
+            return Json.encodeToString(result)
         }
 
         fun fakeUsage(usage: Usage) : String {
@@ -241,7 +254,7 @@ class VapiController {
                 "usage" to usage
             )
             logger.info("Emit: {${Json.encodeToString(result)}}")
-            return "data: {Json.encodeToString(result)}\n\n"
+            return Json.encodeToString(result)
         }
     }
 }
