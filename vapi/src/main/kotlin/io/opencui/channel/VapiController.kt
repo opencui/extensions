@@ -178,7 +178,7 @@ class VapiController {
         val info = Dispatcher.getChatbot(botInfo).getConfiguration(label)
         if (info == null) {
             logger.info("could not find configure for $ChannelType/$label")
-            return Flux.just("data: {'reason': No longer active}\n\n")
+            return Flux.just("data: {{'reason': 'No longer active'}}\n\n")
         }
 
         val type = request.call.type
@@ -186,7 +186,7 @@ class VapiController {
         val userId = if (type == WebCallType) {
             request.call.id
         } else {
-            request.call.customer?.number ?: return Flux.just("data: {'reason': No phone number}\n\n")
+            request.call.customer?.number ?: return Flux.just("data: {{'reason': 'No phone number'}}\n\n")
         }
 
         val utterance = request.messages.last().content
@@ -227,7 +227,7 @@ class VapiController {
                 ),
             )
             logger.info("Emit: {${Json.encodeToString(result)}}")
-            return Json.encodeToString(result)
+            return "data: {Json.encodeToString(result)}\n\n"
         }
 
         fun fakeUsage(usage: Usage) : String {
@@ -240,7 +240,7 @@ class VapiController {
                 "usage" to usage
             )
             logger.info("Emit: {${Json.encodeToString(result)}}")
-            return Json.encodeToString(result)
+            return "data: {Json.encodeToString(result)}\n\n"
         }
     }
 }
