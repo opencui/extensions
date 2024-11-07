@@ -202,6 +202,7 @@ class VapiController {
             .asFlux()
             .concatWith(Flux.just(fakeStreamOutput(null, true)))
             .concatWith(Flux.just(fakeUsage(Usage(1, 1, 2))))
+            .concatWith(Flux.just("data: [DONE]\n\n"))
 
         return resultFlow
     }
