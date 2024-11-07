@@ -6,9 +6,13 @@ import io.opencui.core.user.UserInfo
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactor.asFlux
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
 
@@ -158,55 +162,70 @@ Method 1: Using switchIfEmpty
 @RestController
 class VapiController {
     @PostMapping(
-        value = [
-            "/IChannel/VapiChannel/v1/{label}/{lang}",
-            "/IChannel/VapiChannel/v1/{label}/{lang}/chat/completions",
-            "/IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}",
-            "/io.opencui.channel.IChannel/VapiChannel/v1/{label}/{lang}",
-            "/io.opencui.channel.IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}" ],
-        consumes = [MediaType.APPLICATION_JSON_VALUE],
-        produces = [MediaType.TEXT_EVENT_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE])
+    value = [
+        "/IChannel/VapiChannel/v1/{label}/{lang}",
+        "/IChannel/VapiChannel/v1/{label}/{lang}/chat/completions",
+        "/IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}",
+        "/io.opencui.channel.IChannel/VapiChannel/v1/{label}/{lang}",
+        "/io.opencui.channel.IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}" ],
+    consumes = [MediaType.APPLICATION_JSON_VALUE],
+    produces = [MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE])
     fun chatCompletions(
         @PathVariable lang: String,
         @PathVariable label: String,
         @RequestBody request: ChatRequest,
-        @RequestHeader(value = "Accept", defaultValue = MediaType.TEXT_EVENT_STREAM_VALUE) acceptHeader : String): Flux<String> {
-
+        @RequestHeader(value = "Accept", defaultValue = MediaType.APPLICATION_JSON_VALUE) acceptHeader: String
+    ): ResponseEntity<*> {
         val botInfo = master(lang)
         logger.info("got body: $request")
         val info = Dispatcher.getChatbot(botInfo).getConfiguration(label)
         if (info == null) {
             logger.info("could not find configure for $ChannelType/$label")
-            return convert(Flux.just("{'reason': 'No longer active'}"))
+            return ResponseEntity.badRequest().body(mapOf("reason" to "No longer active"))
         }
 
+        val stream = request.stream
         val type = request.call.type
-
         val callId = request.call.id
-
         val userId = if (type == WebCallType) {
             request.call.id
         } else {
-            request.call.customer?.number ?: return convert(Flux.just("{'reason': 'No phone number'}"))
+            request.call.customer?.number ?: return ResponseEntity.badRequest().body(mapOf("reason" to "No phone number"))
         }
 
         val utterance = request.messages.last().content
-
-        // Before we process incoming message, we need to create user session.
         val userInfo = UserInfo(ChannelType, userId, label, true)
         logger.info("userInfo: $userInfo")
         val typeSink = TypeSink(ChannelType)
+        val rawFlow = Dispatcher.processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
+        return when {
+            acceptHeader.contains(MediaType.TEXT_EVENT_STREAM_VALUE) -> {
+                logger.info("Despite stream: $stream, client actually accept flow.")
+                val resultFlow = rawFlow
+                    .map { content: String -> fakeStreamOutput(callId, content) }
+                    .asFlux()
+                    .concatWith(Flux.just(fakeStreamOutput(callId, null, true)))
+                    .concatWith(Flux.just(fakeUsage(callId, Usage(1, 1, 2))))
 
-        val resultFlow = Dispatcher
-            .processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
-            .map { content : String -> fakeStreamOutput(callId, content) }
-            .asFlux()
-            .concatWith(Flux.just(fakeStreamOutput(callId,null, true)))  // top
-            .concatWith(Flux.just(fakeUsage(callId, Usage(1, 1, 2))))
-
-        return convert(resultFlow)
+                ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_EVENT_STREAM)
+                    .body(resultFlow)
+            }
+            acceptHeader.contains(MediaType.APPLICATION_JSON_VALUE) -> {
+                // For JSON responses, collect all events into a single response
+                logger.info("Despite stream: $stream, client only accept batch.")
+                val textResponse = runBlocking { rawFlow.toList() }.joinToString("  ")
+                val response = fakeStreamOutput(callId, textResponse, true)
+                ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response)
+            }
+            else -> {
+                ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
+                    .body(mapOf("error" to "Unsupported Accept header"))
+            }
+        }
     }
-
 
     companion object{
         const val ChannelType = "VapiChannel"
@@ -227,12 +246,32 @@ class VapiController {
             }
         }
 
+        fun generateFullOutput(callId: String, content: String?, finish: Boolean = false) : String {
+            val result = mapOf(
+                "id" to  callId,   // what is this used by vapi for?
+                "object" to  "chat.completion.chunk",  // what is this used by vapi for?
+                "created" to System.currentTimeMillis(), // what is this used by vapi for?
+                "model" to "compound-ai",
+                "system_fingerprint" to  null,
+                "choices" to listOf(
+                    mapOf(
+                        "index" to 0,
+                        "delta" to mapOf("content" to content),
+                        "finish_reason" to if (finish) "stop" else null,
+                    )
+                ),
+            )
+            logger.info("Emit: {${Json.encodeToString(result)}}")
+            return Json.encodeToString(result)
+        }
+
         fun fakeStreamOutput(callId: String, content: String?, finish: Boolean = false) : String {
             val result = mapOf(
                 "id" to  callId,   // what is this used by vapi for?
                 "object" to  "chat.completion.chunk",  // what is this used by vapi for?
                 "created" to System.currentTimeMillis(), // what is this used by vapi for?
                 "model" to "compound-ai",
+                "system_fingerprint" to  null,
                 "choices" to listOf(
                     mapOf(
                         "index" to 0,
