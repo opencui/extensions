@@ -5,7 +5,6 @@ import io.opencui.core.user.IUserIdentifier
 import io.opencui.core.user.UserInfo
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactor.asFlux
 import org.slf4j.LoggerFactory
@@ -183,6 +182,8 @@ class VapiController {
 
         val type = request.call.type
 
+        val callId = request.call.id
+
         val userId = if (type == WebCallType) {
             request.call.id
         } else {
@@ -198,10 +199,10 @@ class VapiController {
 
         val resultFlow = Dispatcher
             .processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
-            .map { content : String -> fakeStreamOutput(content) }
+            .map { content : String -> fakeStreamOutput(callId, content) }
             .asFlux()
-            .concatWith(Flux.just(fakeStreamOutput(null, true)))  // top
-            .concatWith(Flux.just(fakeUsage(Usage(1, 1, 2))))
+            .concatWith(Flux.just(fakeStreamOutput(callId,null, true)))  // top
+            .concatWith(Flux.just(fakeUsage(callId, Usage(1, 1, 2))))
 
         return convert(resultFlow)
     }
@@ -226,9 +227,9 @@ class VapiController {
             }
         }
 
-        fun fakeStreamOutput(content: String?, finish: Boolean = false) : String {
+        fun fakeStreamOutput(callId: String, content: String?, finish: Boolean = false) : String {
             val result = mapOf(
-                "id" to  "bethere-123",   // what is this used by vapi for?
+                "id" to  callId,   // what is this used by vapi for?
                 "object" to  "chat.completion.chunk",  // what is this used by vapi for?
                 "created" to System.currentTimeMillis(), // what is this used by vapi for?
                 "model" to "compound-ai",
@@ -244,9 +245,9 @@ class VapiController {
             return Json.encodeToString(result)
         }
 
-        fun fakeUsage(usage: Usage) : String {
+        fun fakeUsage(callId: String, usage: Usage) : String {
             val result = mapOf(
-                "id" to  "bethere-123",   // what is this used by vapi for?
+                "id" to  callId,   // what is this used by vapi for?
                 "object" to  "chat.completion.chunk",  // what is this used by vapi for?
                 "created" to System.currentTimeMillis(), // what is this used by vapi for?
                 "model" to "compound-ai",
