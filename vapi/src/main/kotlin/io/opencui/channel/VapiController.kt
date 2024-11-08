@@ -215,7 +215,8 @@ class VapiController {
                 // For JSON responses, collect all events into a single response
                 logger.info("Despite stream: $stream, client only accept batch.")
                 val textResponse = runBlocking { rawFlow.toList() }.joinToString("  ")
-                val response = fakeStreamOutput(callId, textResponse, true)
+                val usage = Usage(1, 1, 2)
+                val response = fakeBatchOutput(callId, textResponse, usage)
                 ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(response)
@@ -246,20 +247,22 @@ class VapiController {
             }
         }
 
-        fun generateFullOutput(callId: String, content: String?, finish: Boolean = false) : String {
+        fun fakeBatchOutput(callId: String, content: String?, usage: Usage) : String {
             val result = mapOf(
                 "id" to  callId,   // what is this used by vapi for?
-                "object" to  "chat.completion.chunk",  // what is this used by vapi for?
+                "object" to  "chat.completion",  // what is this used by vapi for?
                 "created" to System.currentTimeMillis(), // what is this used by vapi for?
                 "model" to "compound-ai",
-                "system_fingerprint" to  null,
                 "choices" to listOf(
                     mapOf(
                         "index" to 0,
-                        "delta" to mapOf("content" to content),
-                        "finish_reason" to if (finish) "stop" else null,
+                        "message" to mapOf(
+                            "role" to "assistant",
+                            "content" to content),
+                        "finish_reason" to "stop",
                     )
                 ),
+                "usage" to usage
             )
             logger.info("Emit: {${Json.encodeToString(result)}}")
             return Json.encodeToString(result)
