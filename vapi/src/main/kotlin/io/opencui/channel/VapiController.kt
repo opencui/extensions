@@ -262,6 +262,7 @@ class VapiController {
                         "finish_reason" to "stop",
                     )
                 ),
+                "usage" to usage
             )
             logger.info("Emit: {${Json.encodeToString(result)}}")
             return Json.encodeToString(result)
