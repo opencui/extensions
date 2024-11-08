@@ -96,6 +96,10 @@ data class ReservationProvider(
     private val zoneId: ZoneId
         get() = ZoneId.of((client!!.calendarList().get("primary").execute() as CalendarListEntry).timeZone)
 
+    override fun getConfiguration(): Configuration {
+        return config
+    }
+
     override fun cloneForSession(userSession: UserSession): IExtension {
         return this.copy(session = userSession)
     }
