@@ -15,6 +15,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
+import java.util.*
 
 // https://platform.openai.com/docs/api-reference/making-requests
 
@@ -81,7 +82,7 @@ data class ChatRequest(
 
     val stream: Boolean,
     val maxTokens: Int,
-    val call: Call,
+    val call: Call? = null,
 
     val phoneNumber: PhoneNumber? = null,
     val customer: Customer? = null,
@@ -184,13 +185,22 @@ class VapiController {
             return ResponseEntity.badRequest().body(mapOf("reason" to "No longer active"))
         }
 
+        val callId = UUID.randomUUID().toString()
+
         val stream = request.stream
-        val type = request.call.type
-        val callId = request.call.id
-        val userId = if (type == WebCallType) {
-            request.call.id
+
+        val userId = if (request.call != null) {
+            val type = request.call.type
+
+            if (type == WebCallType) {
+                request.call.id
+            } else {
+                request.call.customer?.number ?: return ResponseEntity.badRequest()
+                    .body(mapOf("reason" to "No phone number"))
+            }
         } else {
-            request.call.customer?.number ?: return ResponseEntity.badRequest().body(mapOf("reason" to "No phone number"))
+            // This is for testing path.
+            UUID.randomUUID().toString()
         }
 
         val utterance = request.messages.last().content
