@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.http.codec.ServerSentEvent
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
 import java.util.*
@@ -211,10 +212,10 @@ class VapiController {
         return if (stream) {
             logger.info("Despite stream: $stream, client actually accept flow.")
             val resultFlow = rawFlow
-                .map { content: String -> fakeStreamOutput(callId, content) }
+                .map { content: String -> sseConvert(fakeStreamOutput(callId, content)) }
                 .asFlux()
-                .concatWith(Flux.just(fakeStreamOutput(callId, null, true)))
-                .concatWith(Flux.just(fakeUsage(callId, Usage(1, 1, 2))))
+                .concatWith(Flux.just(sseConvert(fakeStreamOutput(callId, null, true))))
+                .concatWith(Flux.just(sseConvert(fakeUsage(callId, Usage(1, 1, 2)))))
 
             ResponseEntity.ok()
                 .contentType(MediaType.TEXT_EVENT_STREAM)
@@ -249,6 +250,11 @@ class VapiController {
                 }.concatWith(Flux.just("data: [DONE]\n\n"))
             }
         }
+
+        fun sseConvert(content: String) =
+            ServerSentEvent.builder<String>()
+                .data(content)
+                .build()
 
         fun fakeBatchOutput(callId: String, content: String?, usage: Usage) : String {
             val result = mapOf(
