@@ -215,14 +215,12 @@ class VapiController {
         private val logger = LoggerFactory.getLogger(VapiController::class.java)
 
         fun convert(stream: Flux<String>) = stream.map {
-                input -> "data: {$input}\n\n"
+                input -> "data: $input\n\n"
             }.concatWith(Flux.just("data: [DONE]\n\n"))
 
 
-        fun sseConvert(stream: Flux<String>) = stream.map { content ->
-            ServerSentEvent.builder<String>()
-                .data(content)
-                .build()
+        fun sseConvert(stream: Flux<String>) = stream.map {
+            content -> ServerSentEvent.builder<String>().data(content).build()
         }
 
         fun fakeStreamOutput(callId: String, content: String?, finish: Boolean = false) : String {
