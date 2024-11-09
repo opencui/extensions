@@ -47,7 +47,6 @@ jar.enabled = true
 
 dependencies {
     implementation('io.opencui:core')
-    implementation 'org.springframework.boot:spring-boot-starter-web:2.7.6'
     implementation 'org.springframework.boot:spring-boot-starter-webflux:2.7.6'
     implementation 'org.springframework.session:spring-session-core:2.7.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
