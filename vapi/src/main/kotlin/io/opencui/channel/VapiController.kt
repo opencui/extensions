@@ -208,33 +208,26 @@ class VapiController {
         logger.info("userInfo: $userInfo")
         val typeSink = TypeSink(ChannelType)
         val rawFlow = Dispatcher.processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
-        return when {
-            acceptHeader.contains(MediaType.TEXT_EVENT_STREAM_VALUE) -> {
-                logger.info("Despite stream: $stream, client actually accept flow.")
-                val resultFlow = rawFlow
-                    .map { content: String -> fakeStreamOutput(callId, content) }
-                    .asFlux()
-                    .concatWith(Flux.just(fakeStreamOutput(callId, null, true)))
-                    .concatWith(Flux.just(fakeUsage(callId, Usage(1, 1, 2))))
+        return if (stream) {
+            logger.info("Despite stream: $stream, client actually accept flow.")
+            val resultFlow = rawFlow
+                .map { content: String -> fakeStreamOutput(callId, content) }
+                .asFlux()
+                .concatWith(Flux.just(fakeStreamOutput(callId, null, true)))
+                .concatWith(Flux.just(fakeUsage(callId, Usage(1, 1, 2))))
 
-                ResponseEntity.ok()
-                    .contentType(MediaType.TEXT_EVENT_STREAM)
-                    .body(resultFlow)
-            }
-            acceptHeader.contains(MediaType.APPLICATION_JSON_VALUE) -> {
-                // For JSON responses, collect all events into a single response
-                logger.info("Despite stream: $stream, client only accept batch.")
-                val textResponse = runBlocking { rawFlow.toList() }.joinToString("  ")
-                val usage = Usage(1, 1, 2)
-                val response = fakeBatchOutput(callId, textResponse, usage)
-                ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(response)
-            }
-            else -> {
-                ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE)
-                    .body(mapOf("error" to "Unsupported Accept header"))
-            }
+            ResponseEntity.ok()
+                .contentType(MediaType.TEXT_EVENT_STREAM)
+                .body(resultFlow)
+        } else {
+            // For JSON responses, collect all events into a single response
+            logger.info("Despite stream: $stream, client only accept batch.")
+            val textResponse = runBlocking { rawFlow.toList() }.joinToString("  ")
+            val usage = Usage(1, 1, 2)
+            val response = fakeBatchOutput(callId, textResponse, usage)
+            ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response)
         }
     }
 
