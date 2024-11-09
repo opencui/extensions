@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
+import org.springframework.http.codec.ServerSentEvent
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
 import java.util.*
@@ -177,17 +178,25 @@ class VapiController {
         @RequestBody request: ChatRequest,
         @RequestHeader(value = "Accept", defaultValue = MediaType.APPLICATION_JSON_VALUE) acceptHeader: String
     ): ResponseEntity<*> {
+
+        val stream = request.stream
+        // We only accept the streaming for voice application.
+        check(stream)
+
         val botInfo = master(lang)
         logger.info("got body: $request")
         val info = Dispatcher.getChatbot(botInfo).getConfiguration(label)
+
         if (info == null) {
             logger.info("could not find configure for $ChannelType/$label")
-            return ResponseEntity.badRequest().body(mapOf("reason" to "No longer active"))
+            return ResponseEntity.badRequest()
+                .contentType(MediaType.TEXT_EVENT_STREAM)
+                .body(Flux.just(sseConvert(Json.encodeToString(mapOf("error" to "No longer active")))))
         }
 
         val callId = UUID.randomUUID().toString()
 
-        val stream = request.stream
+
 
         val userId = if (request.call != null) {
             val type = request.call.type
@@ -196,7 +205,8 @@ class VapiController {
                 request.call.id
             } else {
                 request.call.customer?.number ?: return ResponseEntity.badRequest()
-                    .body(mapOf("reason" to "No phone number"))
+                    .contentType(MediaType.TEXT_EVENT_STREAM)
+                    .body(Flux.just(sseConvert(Json.encodeToString(mapOf("error" to "No phone number")))))
             }
         } else {
             // This is for testing path.
@@ -208,27 +218,17 @@ class VapiController {
         logger.info("userInfo: $userInfo")
         val typeSink = TypeSink(ChannelType)
         val rawFlow = Dispatcher.processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
-        return if (stream) {
-            logger.info("Despite stream: $stream, client actually accept flow.")
-            val resultFlow = rawFlow
-                .map { content: String -> fakeStreamOutput(callId, content) }
-                .asFlux()
-                .concatWith(Flux.just(fakeStreamOutput(callId, null, true)))
-                .concatWith(Flux.just(fakeUsage(callId, Usage(1, 1, 2))))
 
-            ResponseEntity.ok()
-                .contentType(MediaType.TEXT_EVENT_STREAM)
-                .body(resultFlow)
-        } else {
-            // For JSON responses, collect all events into a single response
-            logger.info("Despite stream: $stream, client only accept batch.")
-            val textResponse = runBlocking { rawFlow.toList() }.joinToString("  ")
-            val usage = Usage(1, 1, 2)
-            val response = fakeBatchOutput(callId, textResponse, usage)
-            ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(response)
-        }
+        logger.info("Despite stream: $stream, client actually accept flow.")
+        val resultFlow = rawFlow
+            .map { content: String -> sseConvert(fakeStreamOutput(callId, content)) }
+            .asFlux()
+            .concatWith(Flux.just(sseConvert(fakeStreamOutput(callId, null, true))))
+            .concatWith(Flux.just(sseConvert(fakeUsage(callId, Usage(1, 1, 2)))))
+
+        return ResponseEntity.ok()
+            .contentType(MediaType.TEXT_EVENT_STREAM)
+            .body(resultFlow)
     }
 
     companion object{
@@ -249,6 +249,11 @@ class VapiController {
                 }.concatWith(Flux.just("data: [DONE]\n\n"))
             }
         }
+
+        fun sseConvert(content: String) =
+            ServerSentEvent.builder<String>()
+                .data(content)
+                .build()
 
         fun fakeBatchOutput(callId: String, content: String?, usage: Usage) : String {
             val result = mapOf(
