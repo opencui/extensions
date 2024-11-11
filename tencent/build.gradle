@@ -25,13 +25,13 @@ plugins {
 compileKotlin {
     kotlinOptions {
         freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 }
 compileTestKotlin {
     kotlinOptions {
         freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 }
 
