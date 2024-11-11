@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactor.asFlux
 import org.slf4j.LoggerFactory
 import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
@@ -151,14 +150,15 @@ Method 1: Using switchIfEmpty
 @RestController
 class VapiController {
     @PostMapping(
-    value = [
-        "/IChannel/VapiChannel/v1/{label}/{lang}",
-        "/IChannel/VapiChannel/v1/{label}/{lang}/chat/completions",
-        "/IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}",
-        "/io.opencui.channel.IChannel/VapiChannel/v1/{label}/{lang}",
-        "/io.opencui.channel.IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}" ],
-    consumes = [MediaType.APPLICATION_JSON_VALUE],
-    produces = [MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE])
+        value = [
+            "/IChannel/VapiChannel/v1/{label}/{lang}",
+            "/IChannel/VapiChannel/v1/{label}/{lang}/chat/completions",
+            "/IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}",
+            "/io.opencui.channel.IChannel/VapiChannel/v1/{label}/{lang}",
+            "/io.opencui.channel.IChannel/io.opencui.channel.VapiChannel/v1/{label}/{lang}"],
+        consumes = [MediaType.APPLICATION_JSON_VALUE],
+        produces = [MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE]
+    )
     fun chatCompletions(
         @PathVariable lang: String,
         @PathVariable label: String,
@@ -170,7 +170,7 @@ class VapiController {
         // We only accept the streaming for voice application.
         check(stream)
 
-        val botInfo = master(lang)
+        val botInfo = Dispatcher.master(lang)
         logger.info("got body: $request")
         val info = Dispatcher.getChatbot(botInfo).getConfiguration(label)
 
@@ -187,7 +187,8 @@ class VapiController {
             if (type == WebCallType) {
                 request.call.id
             } else {
-                request.call.customer?.number ?: return convert(Flux.just(Json.encodeToString(mapOf("error" to "No phone number"))))
+                request.call.customer?.number
+                    ?: return convert(Flux.just(Json.encodeToString(mapOf("error" to "No phone number"))))
             }
         } else {
             // This is for testing path.
@@ -198,7 +199,12 @@ class VapiController {
         val userInfo = UserInfo(ChannelType, userId, label, true)
         logger.info("userInfo: $userInfo")
         val typeSink = TypeSink(ChannelType)
-        val rawFlow = Dispatcher.processInboundFlow(userInfo, master(lang), textMessage(utterance, userId), typeSink)
+        val rawFlow = Dispatcher.processInboundFlow(
+            userInfo,
+            Dispatcher.master(lang),
+            textMessage(utterance, userId),
+            typeSink
+        )
 
         val resultFlow = rawFlow
             .map { content: String -> fakeStreamOutput(callId, content) }

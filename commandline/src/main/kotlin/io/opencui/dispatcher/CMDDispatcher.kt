@@ -15,32 +15,33 @@ import io.opencui.sessionmanager.*
  */
 class CMDDispatcher {
 	companion object {
-		@JvmStatic
-		fun init(
-			botPrefix: String,
-			duDuckling: String = "http://127.0.0.1:8000/parse",
-			duHost: String =  "127.0.0.1",
-			duPort: Int = 3001,
-			duProtocol: String = "http") {
-			ObjectMapper().registerModule(KotlinModule())
-			Dispatcher.botPrefix = botPrefix
+        @JvmStatic
+        fun init(
+            botPrefix: String,
+            duDuckling: String = "http://127.0.0.1:8000/parse",
+            duHost: String = "127.0.0.1",
+            duPort: Int = 3001,
+            duProtocol: String = "http"
+        ) {
+            ObjectMapper().registerModule(KotlinModule())
+            Dispatcher.botPrefix = botPrefix
 
-			val botInfo = master()
-			ClojureInitializer.init(listOf("en", "zh"), listOf("./core/libs/duckling-0.4.24-standalone.jar"))
+            val botInfo = Dispatcher.master()
+            ClojureInitializer.init(listOf("en", "zh"), listOf("./core/libs/duckling-0.4.24-standalone.jar"))
 
-			RuntimeConfig.put(TfRestBertNLUModel::class, Triple(duHost, duPort, duProtocol))
-			RuntimeConfig.put(ChatbotLoader::class, InMemoryBotStore(botInfo))
+            RuntimeConfig.put(TfRestBertNLUModel::class, Triple(duHost, duPort, duProtocol))
+            RuntimeConfig.put(ChatbotLoader::class, InMemoryBotStore(botInfo))
 
-			// TODO: for persistent, we need more extra coding and deployment of storage.
-			val sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
+            // TODO: for persistent, we need more extra coding and deployment of storage.
+            val sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
 
-			// This make sure that we keep the existing index if we have it.
-			// I think the dispatcher can not be used as is.
-			Dispatcher.sessionManager = sessionManager
-			Dispatcher.botPrefix = botPrefix
-			// ChatbotLoader.init(File("./jardir/"), botPrefix)
-			Dispatcher.logger.info("finish the builder initialization.")
-		}
+            // This make sure that we keep the existing index if we have it.
+            // I think the dispatcher can not be used as is.
+            Dispatcher.sessionManager = sessionManager
+            Dispatcher.botPrefix = botPrefix
+            // ChatbotLoader.init(File("./jardir/"), botPrefix)
+            Dispatcher.logger.info("finish the builder initialization.")
+        }
 
 		@JvmStatic
 		fun main(args: Array<String>) {

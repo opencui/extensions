@@ -56,7 +56,7 @@ class TwilioResource{
         val txt = body.Body
         val msgTimestemp = "$body.From}:${DateTimeFormatter.ISO_INSTANT.format(Instant.now())}"
         val msgId = BigInteger(1, md.digest(msgTimestemp.toByteArray())).toString(16).padStart(32, '0')
-        Dispatcher.processInbound(userInfo, master(lang), textMessage(txt, msgId))
+        Dispatcher.processInbound(userInfo, Dispatcher.master(lang), textMessage(txt, msgId))
         return ResponseEntity("EVENT_RECEIVED", HttpStatus.OK)
     }
 

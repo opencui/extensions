@@ -17,8 +17,13 @@ import io.opencui.du.ClojureInitializer
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RestController
 
 
+@RestController
 @Configuration
 @SpringBootApplication(scanBasePackages = ["io.opencui"])
 class DispatchService(
@@ -26,8 +31,13 @@ class DispatchService(
 	@Value("\${du.host}") val duHost: String,
 	@Value("\${du.port}") val duPort: String,
 	@Value("\${du.protocol}") val duProtocol: String,
-	@Value("\${bot.prefix:}") val botPrefix: String
+	@Value("\${bot.prefix:}") val botPrefix: String,
+	@Value("\${languages}") val languageStr: String = "en;zh"
 ) {
+
+	// We try to find the agent jars here.
+	val jarDirStr: String = "./jardir/"
+
 	@EventListener(ApplicationReadyEvent::class)
 	fun init() {
 		ObjectMapper().registerModule(KotlinModule())
@@ -36,29 +46,50 @@ class DispatchService(
 		RuntimeConfig.put(RestNluService::class, "$duProtocol://${duHost}:${duPort}")
 
 		// We assume the launch directory structure and agent-{lang}.jar
-		val jardir = File("./jardir/")
-		val filePattern = "agent-[a-z][a-z].jar".toRegex()
-		val languages = jardir.listFiles()
-			?.filter { it.isFile }
-			?.filter { filePattern.matchEntire(it.name) != null }!!.map { it.name.substring(6, 8)}
+		val languages = languageStr.split(";")
 
-		val clojureInit =   GlobalScope.async {
+		val clojureInit = GlobalScope.async {
 			// Start init in a different thread/coroutine
 			ClojureInitializer.init(languages, listOf(duDuckling))
 		}
 
-		Dispatcher.memoryBased = false
-		Dispatcher.botPrefix = botPrefix
-		val botInfo = master()
-		// This make sure that we keep the existing index if we have it.
-		Dispatcher.sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
-		Dispatcher.botPrefix = botPrefix
-		ChatbotLoader.init(jardir, botPrefix)
-		Dispatcher.logger.info("finish the builder initialization.")
+		if (botPrefix.isNotEmpty()) {
+			loadAgent(botPrefix)
+			Dispatcher.logger.info("finish the builder initialization.")
+		} else {
+			Dispatcher.logger.info("finish the builder initialization without bot.")
+		}
+
 		runBlocking {
 			// Wait for the clojure init to be done.
 			clojureInit.join()
 		}
+	}
+
+	@GetMapping("/botprefix/get")
+    fun getBotPrefix(): String {
+        return Dispatcher.getBotPrefix() ?: ""
+    }
+
+	@GetMapping("/botprefix/set/{botPrefix}/")
+    fun setBotPrefix(
+		@PathVariable botPrefix: String
+	): ResponseEntity<String> {
+		if (Dispatcher.getBotPrefix() != null && Dispatcher.getBotPrefix() != botPrefix)
+			return ResponseEntity.badRequest().build()
+
+		loadAgent(botPrefix)
+		Dispatcher.logger.info("finish the builder initialization with bot.")
+		return ResponseEntity.ok().build()
+    }
+	
+	fun loadAgent(botPrefix: String) {
+		Dispatcher.memoryBased = false
+		Dispatcher.setBotPrefix(botPrefix)
+		val botInfo = Dispatcher.master()
+		// This make sure that we keep the existing index if we have it.
+		Dispatcher.sessionManager = SessionManager(InMemorySessionStore(), InMemoryBotStore(botInfo))
+		ChatbotLoader.init(File(jarDirStr), botPrefix)
 	}
 
 	companion object {

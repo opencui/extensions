@@ -48,14 +48,16 @@ class GBMResource {
             "/IChannel/GBMChannel/v1/{label}/{lang}",
             "/IChannel/io.opencui.channel.GBMChannel/v1/{label}/{lang}",
             "/io.opencui.channel.IChannel/GBMChannel/v1/{label}/{lang}",
-            "/io.opencui.channel.IChannel/io.opencui.channel.GBMChannel/v1/{label}/{lang}" ],
-        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE])
-	fun postResponse(
+            "/io.opencui.channel.IChannel/io.opencui.channel.GBMChannel/v1/{label}/{lang}"],
+        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE]
+    )
+    fun postResponse(
         @PathVariable lang: String,
         @PathVariable label: String,
-        @RequestBody bodyStr: String): ResponseEntity<JsonElement> {
+        @RequestBody bodyStr: String
+    ): ResponseEntity<JsonElement> {
         val body = Json.parseToJsonElement(URLDecoder.decode(bodyStr, Charsets.UTF_8)) as ObjectNode
-        val botInfo = master(lang)
+        val botInfo = Dispatcher.master(lang)
         logger.info("got body: $body")
         val info = Dispatcher.getChatbot(botInfo).getConfiguration(label)
         if (info == null) {
@@ -67,7 +69,7 @@ class GBMResource {
         if (body.containsKey(SECRET)) {
             val secret = body.getString(SECRET)
             val stoken = body.getString(CLIENTTOKEN)
-            val ttoken =  info[CLIENTTOKEN]
+            val ttoken = info[CLIENTTOKEN]
             return if (stoken == ttoken) {
                 ResponseEntity.ok(Json.encodeToJsonElement(mapOf("secret" to secret)))
             } else {
@@ -78,7 +80,7 @@ class GBMResource {
         val conversationId = body.getString(CONVERSATIONID)
         if (body.containsKey(REQUESTID)) {
             val requestId = body.getString(REQUESTID)
-            
+
             var utterance: String? = when {
                 body.containsKey(MESSAGE) -> {
                     val msgJson = body[MESSAGE]!! as JsonObject
@@ -88,6 +90,7 @@ class GBMResource {
                         null
                     }
                 }
+
                 body.containsKey(SUGGESTION) -> {
                     val msgJson = body[SUGGESTION]!! as JsonObject
                     if (msgJson.has(TEXT)) {
@@ -96,6 +99,7 @@ class GBMResource {
                         null
                     }
                 }
+
                 else -> null
             }
 
@@ -103,7 +107,7 @@ class GBMResource {
             if (utterance != null) {
                 // Before we process incoming message, we need to create user session.
                 val userInfo = UserInfo(CHANNELTYPE, conversationId, label, true)
-                Dispatcher.processInbound(userInfo, master(lang), textMessage(utterance, requestId))
+                Dispatcher.processInbound(userInfo, Dispatcher.master(lang), textMessage(utterance, requestId))
             } else {
                 logger.info("no utterance found in $body.")
             }
@@ -112,7 +116,7 @@ class GBMResource {
         }
 
         return ResponseEntity(Json.makePrimitive("EVENT_RECEIVED"), HttpStatus.OK)
-	}
+    }
 
     companion object {
         const val CHANNELTYPE = "gbm"
