@@ -19,7 +19,6 @@ import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.serialization.JsonObject
 import io.opencui.sessionmanager.ChatbotLoader
-import org.jetbrains.kotlin.codegen.optimization.fixStack.restoreStack
 import org.slf4j.LoggerFactory
 import services.opencui.hours.BusinessHours
 import services.opencui.hours.TimeInterval
@@ -850,7 +849,7 @@ data class ReservationProvider(
         logger.info("We are ${cancelled.size} events that we will forward.")
         if (cancelled.size > 0) {
             val sessionManager = Dispatcher.sessionManager
-            val botInfo = master()
+            val botInfo = Dispatcher.master()
             val bot = sessionManager.getAgent(botInfo)
 
             // We expect the function takes a single parameter call slots with List<JsonObject> type.

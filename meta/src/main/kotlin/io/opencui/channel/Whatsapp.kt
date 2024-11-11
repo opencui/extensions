@@ -63,27 +63,29 @@ class WhatsappResources() {
             "/IChannel/io.opencui.channel.WhatsappChannel/v1/{channelId}/{lang}",
             "/io.opencui.channel.IChannel/WhatsappChannel/v1/{channelId}/{lang}",
             "/io.opencui.channel.IChannel/io.opencui.channel.WhatsappChannel/v1/{channelId}/{lang}"],
-        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_OCTET_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE])
-	fun getResponse(
-            @PathVariable("lang") lang: String,
-            @PathVariable("channelId") channelId: String,
-            @RequestParam("hub.mode") mode: String,
-            @RequestParam("hub.verify_token") token: String,
-            @RequestParam("hub.challenge") challenge: String): ResponseEntity<String> {
-		val botInfo = master(lang)
-		val info = Dispatcher.getChatbot(botInfo).getConfiguration(channelId)
-				?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
+        consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_OCTET_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE]
+    )
+    fun getResponse(
+        @PathVariable("lang") lang: String,
+        @PathVariable("channelId") channelId: String,
+        @RequestParam("hub.mode") mode: String,
+        @RequestParam("hub.verify_token") token: String,
+        @RequestParam("hub.challenge") challenge: String
+    ): ResponseEntity<String> {
+        val botInfo = Dispatcher.master(lang)
+        val info = Dispatcher.getChatbot(botInfo).getConfiguration(channelId)
+            ?: return ResponseEntity("No longer active", HttpStatus.NOT_FOUND)
         // TODO(sean): remove this to prevent leak.
         logger.info("info = $info for ::$channelId:$token:$challenge:$mode")
         return if (mode != "subscribe" || token != info[VERIFYTOKEN]) {
-	    logger.info("token mismatch...")
-	    ResponseEntity("Wrong Verify Token", HttpStatus.BAD_REQUEST)
-	} else {
-	    ResponseEntity.ok(challenge)
-	}
-	}
+            logger.info("token mismatch...")
+            ResponseEntity("Wrong Verify Token", HttpStatus.BAD_REQUEST)
+        } else {
+            ResponseEntity.ok(challenge)
+        }
+    }
 
-	/*
+    /*
      * The type of the attachment. Must be one of the following:image, video, audio, file
      * url:  URL of the file to upload. Max file size is 25MB (after encoding).
      * A Timeout is set to 75 sec for videos and 10 secs for every other file type.
@@ -95,14 +97,18 @@ class WhatsappResources() {
             "/io.opencui.channel.IChannel/WhatsappChannel/v1/{channelId}/{lang}",
             "/io.opencui.channel.IChannel/io.opencui.channel.WhatsappChannel/v1/{channelId}/{lang}"],
         consumes = [MediaType.APPLICATION_JSON_VALUE],
-        produces = [MediaType.APPLICATION_JSON_VALUE])
-	fun postResponse(
-			@PathVariable("lang") lang: String,
-			@PathVariable("channelId") channelId: String,
-		    @RequestBody body: WhatsappMessage
+        produces = [MediaType.APPLICATION_JSON_VALUE]
+    )
+    fun postResponse(
+        @PathVariable("lang") lang: String,
+        @PathVariable("channelId") channelId: String,
+        @RequestBody body: WhatsappMessage
     ): ResponseEntity<String> {
-        val botInfo = master(lang)
-		Dispatcher.getChatbot(botInfo).getConfiguration(channelId)?: return ResponseEntity("NotFound", HttpStatus.NOT_FOUND)
+        val botInfo = Dispatcher.master(lang)
+        Dispatcher.getChatbot(botInfo).getConfiguration(channelId) ?: return ResponseEntity(
+            "NotFound",
+            HttpStatus.NOT_FOUND
+        )
         logger.info(Json.encodeToJsonElement(body).toPrettyString())
 
         // There are a list of change in the message.
@@ -112,7 +118,7 @@ class WhatsappResources() {
                 if (change.value?.messages == null) continue
 
                 val userName = change.value?.contacts?.get(0)?.profile?.name ?: null
-                
+
                 for (message in change.value!!.messages!!) {
 
                     // For now, we only handle the text input message. Down the road
@@ -132,12 +138,12 @@ class WhatsappResources() {
                         userInfo.name = PersonName(userName)
                     }
 
-                    Dispatcher.processInbound(userInfo, master(lang), textMessage(txt, msgId))
+                    Dispatcher.processInbound(userInfo, Dispatcher.master(lang), textMessage(txt, msgId))
                 }
             }
         }
         return ResponseEntity.ok("ok")
-	}
+    }
 
     companion object {
         const val VERIFYTOKEN = "verify_token"

@@ -224,46 +224,50 @@ class MessengerResources() {
             "/IChannel/MessengerChannel/v1/{channelId}/{lang}",
             "/IChannel/io.opencui.channel.MessengerChannel/v1/{channelId}/{lang}",
             "/io.opencui.channel.IChannel/MessengerChannel/v1/{channelId}/{lang}",
-            "/io.opencui.channel.IChannel/io.opencui.channel.MessengerChannel/v1/{channelId}/{lang}"])
-	fun getResponse(
-            @PathVariable lang: String,
-            @PathVariable channelId: String,
-            @RequestParam("hub.mode") mode: String,
-            @RequestParam("hub.verify_token") token: String,
-            @RequestParam("hub.challenge") challenge: String): ResponseEntity<String> {
+            "/io.opencui.channel.IChannel/io.opencui.channel.MessengerChannel/v1/{channelId}/{lang}"]
+    )
+    fun getResponse(
+        @PathVariable lang: String,
+        @PathVariable channelId: String,
+        @RequestParam("hub.mode") mode: String,
+        @RequestParam("hub.verify_token") token: String,
+        @RequestParam("hub.challenge") challenge: String
+    ): ResponseEntity<String> {
         logger.info("RECEIVED get request ::$channelId:$token:$challenge")
-		val botInfo = master(lang)
-		val info = Dispatcher.getChatbot(botInfo).getConfiguration(channelId)
-				?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Did not find ::$channelId")
+        val botInfo = Dispatcher.master(lang)
+        val info = Dispatcher.getChatbot(botInfo).getConfiguration(channelId)
+            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Did not find ::$channelId")
         logger.info("info = $info for ::$channelId:$token:$challenge")
-		if (mode =="subscribe") {
+        if (mode == "subscribe") {
             if (token != info[VERIFYTOKEN]) {
                 logger.info("Token mismatch...")
             } else {
                 return ResponseEntity(challenge, HttpStatus.OK)
             }
-		}
-		return ResponseEntity("Wrong Verify Token", HttpStatus.FORBIDDEN)
-	}
+        }
+        return ResponseEntity("Wrong Verify Token", HttpStatus.FORBIDDEN)
+    }
 
-	/*
+    /*
      * The type of the attachment. Must be one of the following:image, video, audio, file
      * url:  URL of the file to upload. Max file size is 25MB (after encoding).
      * A Timeout is set to 75 sec for videos and 10 secs for every other file type.
      */
-	@PostMapping(
+    @PostMapping(
         value = [
             "/IChannel/MessengerChannel/v1/{channelId}/{lang}",
             "/IChannel/io.opencui.channel.MessengerChannel/v1/{channelId}/{lang}",
             "/io.opencui.channel.IChannel/MessengerChannel/v1/{channelId}/{lang}",
-            "/io.opencui.channel.IChannel/io.opencui.channel.MessengerChannel/v1/{channelId}/{lang}"])
-	fun postResponse(
-			@PathVariable lang: String,
-			@PathVariable channelId: String,
-			@RequestBody body: MessengerReceiveRequest): ResponseEntity<String> {
+            "/io.opencui.channel.IChannel/io.opencui.channel.MessengerChannel/v1/{channelId}/{lang}"]
+    )
+    fun postResponse(
+        @PathVariable lang: String,
+        @PathVariable channelId: String,
+        @RequestBody body: MessengerReceiveRequest
+    ): ResponseEntity<String> {
         logger.info("RECEIVED post request from messenger body: ${body.toString()}")
-		val botInfo = master(lang)
-		val bot = Dispatcher.getChatbot(botInfo)
+        val botInfo = Dispatcher.master(lang)
+        val bot = Dispatcher.getChatbot(botInfo)
 
         // This make sure that we have this channelId
         bot.getConfiguration(channelId)
@@ -271,12 +275,12 @@ class MessengerResources() {
 
         // Now we need to get the channel.
 
-		if (body.subscription == "page") {
-			body.entry.forEach {
-				logger.info(it.toString())
+        if (body.subscription == "page") {
+            body.entry.forEach {
+                logger.info(it.toString())
                 // We only process the first message.
-				val event = it.messaging[0]
-				val psid = event.getObject(SENDER).getPrimitive(ID).content()
+                val event = it.messaging[0]
+                val psid = event.getObject(SENDER).getPrimitive(ID).content()
 
                 // only have the messages for now.
                 if (event.has(MESSAGE)) {
@@ -286,15 +290,15 @@ class MessengerResources() {
                     if (message.containsKey(TEXT)) {
                         val txt = message.getPrimitive(TEXT).content()
                         val userInfo = UserInfo(CHANNELTYPE, psid, channelId, true)
-                        Dispatcher.processInbound(userInfo, master(lang), textMessage(txt, msgId))
+                        Dispatcher.processInbound(userInfo, Dispatcher.master(lang), textMessage(txt, msgId))
                     }
                 }
-			}
-			return ResponseEntity("EVENT_RECEIVED", HttpStatus.OK)
-		} else {
-			return ResponseEntity("Not a page", HttpStatus.NOT_FOUND)
-		}
-	}
+            }
+            return ResponseEntity("EVENT_RECEIVED", HttpStatus.OK)
+        } else {
+            return ResponseEntity("Not a page", HttpStatus.NOT_FOUND)
+        }
+    }
 
     companion object {
         const val CHANNELTYPE = "MessengerChannel"
