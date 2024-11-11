@@ -67,12 +67,12 @@ class DispatchService(
 	}
 
 	@GetMapping("/botprefix/get")
-    fun getBotPrefix(): String {
+    fun committed(): String {
         return Dispatcher.getBotPrefix() ?: ""
     }
 
 	@GetMapping("/botprefix/set/{botPrefix}/")
-    fun setBotPrefix(
+    fun commit(
 		@PathVariable botPrefix: String
 	): ResponseEntity<String> {
 		if (Dispatcher.getBotPrefix() != null && Dispatcher.getBotPrefix() != botPrefix)
