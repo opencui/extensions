@@ -24,7 +24,7 @@ class CMDDispatcher {
             duProtocol: String = "http"
         ) {
             ObjectMapper().registerModule(KotlinModule())
-            Dispatcher.botPrefix = botPrefix
+            Dispatcher.setBotPrefix(botPrefix)
 
             val botInfo = Dispatcher.master()
             ClojureInitializer.init(listOf("en", "zh"), listOf("./core/libs/duckling-0.4.24-standalone.jar"))
@@ -38,7 +38,7 @@ class CMDDispatcher {
             // This make sure that we keep the existing index if we have it.
             // I think the dispatcher can not be used as is.
             Dispatcher.sessionManager = sessionManager
-            Dispatcher.botPrefix = botPrefix
+
             // ChatbotLoader.init(File("./jardir/"), botPrefix)
             Dispatcher.logger.info("finish the builder initialization.")
         }
