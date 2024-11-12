@@ -32,7 +32,7 @@ class DispatchService(
 	@Value("\${du.port}") val duPort: String,
 	@Value("\${du.protocol}") val duProtocol: String,
 	@Value("\${bot.prefix:}") val botPrefix: String,
-	@Value("\${languages}") val languageStr: String = "en;zh"
+	@Value("\${languages:en;zh}") val languageStr: String = "en;zh"
 ) {
 
 	// We try to find the agent jars here.
