@@ -31,8 +31,7 @@ class DispatchService(
 	@Value("\${du.host}") val duHost: String,
 	@Value("\${du.port}") val duPort: String,
 	@Value("\${du.protocol}") val duProtocol: String,
-	@Value("\${bot.prefix:}") val botPrefix: String,
-	@Value("\${languages:en;zh}") val languageStr: String = "en;zh"
+	@Value("\${bot.prefix:}") val botPrefix: String
 ) {
 
 	// We try to find the agent jars here.
@@ -45,6 +44,7 @@ class DispatchService(
 		// Use the same the format for new nlu service.
 		RuntimeConfig.put(RestNluService::class, "$duProtocol://${duHost}:${duPort}")
 
+		val languageStr: String = "en;zh"
 		// We assume the launch directory structure and agent-{lang}.jar
 		val languages = languageStr.split(";")
 
