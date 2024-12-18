@@ -47,13 +47,13 @@ jar.enabled = true
 
 dependencies {
     implementation('io.opencui:core')
-    implementation 'org.springframework.boot:spring-boot-starter-webflux:2.7.6'
-    implementation 'org.springframework.session:spring-session-core:2.7.0'
+    implementation "org.springframework.boot:spring-boot-starter-webflux:${boot_version}"
+    implementation "org.springframework.session:spring-session-core:${boot_version}"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlin:kotlin-compiler"
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.6.4"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:${kotlin_version}"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-reactor:${kotlin_version}"
     implementation "com.fasterxml.jackson.core:jackson-core:${jackson_version}"
     implementation "com.fasterxml.jackson.core:jackson-annotations:${jackson_version}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${jackson_version}"
