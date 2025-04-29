@@ -21,19 +21,19 @@ plugins {
     id "maven-publish"
 }
 
-group 'io.opencui.channel'
-version '1.0-SNAPSHOT'
+group = 'io.opencui.channel'
+version = '1.0-SNAPSHOT'
 
 compileKotlin {
     kotlinOptions {
         freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
 }
 compileTestKotlin {
     kotlinOptions {
         freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "17"
+        jvmTarget = "21"
     }
 }
 
@@ -41,9 +41,6 @@ repositories {
     maven { url 'https://repository.jboss.org/nexus/content/groups/public/' }
     mavenLocal()
     mavenCentral()
-    flatDir {
-        dirs '../../core/libs'
-    }
 }
 
 jar.enabled = true

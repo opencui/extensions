@@ -21,7 +21,7 @@ import kotlin.collections.MutableList
 import kotlin.reflect.KMutableProperty0
 
 
-public data class ResourceType(
+public abstract class ValueEntity(
     @get:JsonIgnore
     public override var value: String
 ) : IEntity {
@@ -35,37 +35,21 @@ public data class ResourceType(
         public val valueGood: ((String) -> Boolean)? = { true }
     }
 }
+
+public data class ResourceType(
+    @get:JsonIgnore
+    override var value: String
+) : ValueEntity(value)
 
 public data class ResourceName(
     @get:JsonIgnore
-    public override var value: String
-) : IEntity {
-    public override var origValue: String? = null
-
-    @JsonValue
-    public override fun toString(): String = value
-
-
-    public companion object {
-        @JsonIgnore
-        public val valueGood: ((String) -> Boolean)? = { true }
-    }
-}
+    override var value: String
+) : ValueEntity(value)
 
 public data class LocationName(
     @get:JsonIgnore
-    public override var value: String
-) : IEntity {
-    public override var origValue: String? = null
-
-    @JsonValue
-    public override fun toString(): String = value
-
-    public companion object {
-        @JsonIgnore
-        public val valueGood: ((String) -> Boolean)? = { true }
-    }
-}
+    override var value: String
+) : ValueEntity(value)
 
 
 
