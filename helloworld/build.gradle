@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.9.25'
-    id 'org.jetbrains.kotlin.plugin.serialization' version '1.9.25'
+    id 'org.jetbrains.kotlin.jvm' version '2.1.20'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '2.1.20'
     id 'idea'
     id 'java-library'
     id 'maven-publish'
@@ -12,7 +12,7 @@ group = "io.opencui.extensions"
 version = '1.0.1-SNAPSHOT'
 
 ext {
-    kotlin_version = '1.9.25'
+    kotlin_version = '2.1.20'
     jackson_version = '2.17.1'
 }
 
@@ -62,7 +62,7 @@ publishing {
     repositories {
         def repo_dir = "${layout.buildDirectory.get()}/repos/"
         maven {
-            url = uri(version.endsWith('SNAPSHOT') ? 
+            url = uri(version.endsWith('SNAPSHOT') ?
                 "${repo_dir}/snapshots" : "${repo_dir}/releases")
         }
     }
