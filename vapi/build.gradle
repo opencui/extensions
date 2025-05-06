@@ -1,6 +1,6 @@
 buildscript {
-    ext.kotlin_version = '2.1.20'
-    ext.jackson_version = '2.13.1'
+    ext.kotlin_version = '1.9.25'
+    ext.jackson_version = '2.17.1'
     ext.boot_version = "2.7.18"
     repositories {
         mavenCentral()
@@ -14,23 +14,15 @@ buildscript {
 plugins {
     id "org.jetbrains.kotlin.jvm" version "${kotlin_version}"
     id "org.jetbrains.kotlin.plugin.spring" version "${kotlin_version}"
-    id 'org.jetbrains.kotlin.plugin.serialization' version "${kotlin_version}"
     id "idea"
     id 'java-library'
     id "maven-publish"
 }
 
-
-compileKotlin {
-    kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "21"
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "21"
+kotlin {
+    jvmToolchain(17)
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict")
     }
 }
 
@@ -38,9 +30,6 @@ repositories {
     maven { url 'https://repository.jboss.org/nexus/content/groups/public/' }
     mavenLocal()
     mavenCentral()
-    flatDir {
-        dirs '../../core/libs'
-    }
 }
 
 jar.enabled = true
@@ -61,8 +50,8 @@ dependencies {
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${jackson_version}"
 }
 
-group 'io.opencui.channel'
-version '1.0-SNAPSHOT'
+group = 'io.opencui.channel'
+version = '1.0-SNAPSHOT'
 
 publishing {
     publications {
@@ -79,10 +68,10 @@ publishing {
         }
     }
     repositories {
+        def repo_dir = "${layout.buildDirectory.get()}/repos/"
         maven {
-            def releasesRepoUrl = "$buildDir/repos/releases"
-            def snapshotsRepoUrl = "$buildDir/repos/snapshots"
-            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            url = uri(version.endsWith('SNAPSHOT') ?
+                    "${repo_dir}/snapshots" : "${repo_dir}/releases")
         }
     }
 }
