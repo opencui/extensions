@@ -3,14 +3,6 @@ buildscript {
     ext.kotlin_version = '1.9.25'
     ext.jackson_version = '2.17.1'
     ext.boot_version = "2.7.18"
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}"
-    }
 }
 
 plugins {
@@ -20,9 +12,6 @@ plugins {
     id "java-library"
     id "maven-publish"
 }
-
-group "io.opencui.dispatcher"
-version '1.0-SNAPSHOT'
 
 kotlin {
     jvmToolchain(17)
@@ -35,9 +24,6 @@ repositories {
     maven { url 'https://repository.jboss.org/nexus/content/groups/public/' }
     mavenLocal()
     mavenCentral()
-    flatDir {
-        dirs '../../core/libs'
-    }
 }
 
 dependencies {
@@ -59,6 +45,9 @@ dependencies {
 }
 
 jar.enabled = true
+
+group = "io.opencui.dispatcher"
+version = '1.0-SNAPSHOT'
 
 publishing {
     publications {
