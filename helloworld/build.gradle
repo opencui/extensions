@@ -1,36 +1,19 @@
 buildscript {
     ext.kotlin_version = '1.9.25'
-    ext.jackson_version = '2.13.1'
-    ext.boot_version = '2.7.18'
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
+    ext.jackson_version = '2.17.1'
 }
 
 plugins {
-    id "org.jetbrains.kotlin.jvm" version "${kotlin_version}"
-    id "org.jetbrains.kotlin.plugin.spring" version "${kotlin_version}"
-    id 'org.jetbrains.kotlin.plugin.serialization' version "${kotlin_version}"
-    id "idea"
+    id 'org.jetbrains.kotlin.jvm' version "${kotlin_version}"
+    id 'idea'
     id 'java-library'
-    id "maven-publish"
+    id 'maven-publish'
 }
 
-
-compileKotlin {
-    kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "17"
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "17"
+kotlin {
+    jvmToolchain(17)
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict")
     }
 }
 
@@ -38,30 +21,17 @@ repositories {
     maven { url 'https://repository.jboss.org/nexus/content/groups/public/' }
     mavenLocal()
     mavenCentral()
-    flatDir {
-        dirs '../../core/libs'
-    }
 }
-
-
-jar.enabled = true
 
 dependencies {
-    implementation('io.opencui:core')
-    implementation "org.springframework.boot:spring-boot-starter-web:${boot_version}"
-    implementation 'org.springframework.session:spring-session-core:2.7.4'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib"
-    implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation "org.jetbrains.kotlin:kotlin-compiler"
-    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
-    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
-    testImplementation "org.springframework.boot:spring-boot-starter-test:${boot_version}"
+    implementation 'io.opencui:core'
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${jackson_version}"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit:${kotlin_version}"
 }
 
-group "io.opencui.extensions"
-version '1.0-SNAPSHOT'
 
+group = "io.opencui.extensions.hello"
+version = '1.0.1-SNAPSHOT'
 
 publishing {
     publications {
@@ -78,10 +48,10 @@ publishing {
         }
     }
     repositories {
+        def repo_dir = "${layout.buildDirectory.get()}/repos/"
         maven {
-            def releasesRepoUrl = "$buildDir/repos/releases"
-            def snapshotsRepoUrl = "$buildDir/repos/snapshots"
-            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            url = uri(version.endsWith('SNAPSHOT') ?
+                "${repo_dir}/snapshots" : "${repo_dir}/releases")
         }
     }
 }

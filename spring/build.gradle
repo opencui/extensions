@@ -1,40 +1,22 @@
 
 buildscript {
     ext.kotlin_version = '1.9.25'
-    ext.jackson_version = '2.13.1'
+    ext.jackson_version = '2.17.1'
     ext.boot_version = "2.7.18"
-    repositories {
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}"
-    }
 }
 
 plugins {
     id "org.jetbrains.kotlin.jvm" version "${kotlin_version}"
     id "org.jetbrains.kotlin.plugin.spring" version "${kotlin_version}"
-    id 'org.jetbrains.kotlin.plugin.serialization' version "${kotlin_version}"
     id "idea"
     id "java-library"
     id "maven-publish"
 }
 
-group "io.opencui.dispatcher"
-version '1.0-SNAPSHOT'
-
-compileKotlin {
-    kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "17"
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
-        jvmTarget = "17"
+kotlin {
+    jvmToolchain(17)
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict")
     }
 }
 
@@ -42,9 +24,6 @@ repositories {
     maven { url 'https://repository.jboss.org/nexus/content/groups/public/' }
     mavenLocal()
     mavenCentral()
-    flatDir {
-        dirs '../../core/libs'
-    }
 }
 
 dependencies {
@@ -67,6 +46,9 @@ dependencies {
 
 jar.enabled = true
 
+group = "io.opencui.dispatcher"
+version = '1.0-SNAPSHOT'
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -82,10 +64,10 @@ publishing {
         }
     }
     repositories {
+        def repo_dir = "${layout.buildDirectory.get()}/repos/"
         maven {
-            def releasesRepoUrl = "$buildDir/repos/releases"
-            def snapshotsRepoUrl = "$buildDir/repos/snapshots"
-            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            url = uri(version.endsWith('SNAPSHOT') ?
+                    "${repo_dir}/snapshots" : "${repo_dir}/releases")
         }
     }
 }

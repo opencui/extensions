@@ -21,12 +21,15 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 
 @RestController
 @Configuration
 @SpringBootApplication(scanBasePackages = ["io.opencui"])
 class DispatchService(
+	// Spring Boot injected properties
 	@Value("\${du.duckling}") val duDuckling: String,
 	@Value("\${du.host}") val duHost: String,
 	@Value("\${du.port}") val duPort: String,
@@ -34,12 +37,15 @@ class DispatchService(
 	@Value("\${bot.prefix:}") val botPrefix: String
 ) {
 
+	// Logger for instance methods
+	private val logger: Logger = LoggerFactory.getLogger(DispatchService::class.java)
+
 	// We try to find the agent jars here.
 	val jarDirStr: String = "./jardir/"
 
 	@EventListener(ApplicationReadyEvent::class)
 	fun init() {
-		ObjectMapper().registerModule(KotlinModule())
+		ObjectMapper().registerModule(KotlinModule.Builder().build())
 
 		// Use the same the format for new nlu service.
 		RuntimeConfig.put(RestNluService::class, "$duProtocol://${duHost}:${duPort}")
@@ -55,9 +61,9 @@ class DispatchService(
 
 		if (botPrefix.isNotEmpty()) {
 			loadAgent(botPrefix)
-			Dispatcher.logger.info("finish the builder initialization.")
+			logger.info("finish the builder initialization.")
 		} else {
-			Dispatcher.logger.info("finish the builder initialization without bot.")
+			logger.info("finish the builder initialization without bot.")
 		}
 
 		runBlocking {
@@ -79,10 +85,10 @@ class DispatchService(
 			return ResponseEntity.badRequest().build()
 
 		loadAgent(botPrefix)
-		Dispatcher.logger.info("finish the builder initialization with bot.")
+		logger.info("finish the builder initialization with bot.")
 		return ResponseEntity.ok().build()
     }
-	
+
 	fun loadAgent(botPrefix: String) {
 		Dispatcher.memoryBased = false
 		Dispatcher.setBotPrefix(botPrefix)
@@ -93,9 +99,11 @@ class DispatchService(
 	}
 
 	companion object {
+			// Logger for DispatchService
+			private val logger: Logger = LoggerFactory.getLogger(DispatchService::class.java)
 		@JvmStatic
 		fun main(args: Array<String>) {
-			println("******************************** starting from spring...")
+			logger.info("******************************** starting from spring...")
 			runApplication<DispatchService>(*args)
 		}
 	}

@@ -23,7 +23,7 @@ class CMDDispatcher {
             duPort: Int = 3001,
             duProtocol: String = "http"
         ) {
-            ObjectMapper().registerModule(KotlinModule())
+            ObjectMapper().registerModule(KotlinModule.Builder().build())
             Dispatcher.setBotPrefix(botPrefix)
 
             val botInfo = Dispatcher.master()
@@ -61,13 +61,13 @@ class CMDDispatcher {
 				println(Json.encodeToJsonElement(responses).toPrettyString())
 				print("Enter text: ")
 				val line = readLine()
-				
+
 				// line is not blank now.
 				if (line.isNullOrEmpty()) {
 					println("Input is empty.")
 					print("Enter text")
 				}
-				println("Your input is: ${line?.strip()}")
+				println("Your input is: ${line?.trim()}")
 				val session: UserSession = sessionManager.getUserSession(userInfo, botInfo)!!
 				responses = sessionManager.getReplySync(session, line!!, userInfo.channelType!!)
 			}
