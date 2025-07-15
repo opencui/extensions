@@ -23,7 +23,7 @@ class CMDDispatcher {
             duPort: Int = 3001,
             duProtocol: String = "http"
         ) {
-            ObjectMapper().registerModule(KotlinModule())
+            ObjectMapper().registerModule(KotlinModule.Builder().build())
             Dispatcher.setBotPrefix(botPrefix)
 
             val botInfo = Dispatcher.master()
