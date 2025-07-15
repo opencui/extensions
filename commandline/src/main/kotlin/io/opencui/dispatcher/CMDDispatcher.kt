@@ -1,7 +1,5 @@
 package io.opencui.dispatcher
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.opencui.core.*
 import io.opencui.serialization.Json
 import io.opencui.core.Dispatcher
@@ -23,7 +21,7 @@ class CMDDispatcher {
             duPort: Int = 3001,
             duProtocol: String = "http"
         ) {
-            ObjectMapper().registerModule(KotlinModule.Builder().build())
+			Json.initialize()
             Dispatcher.setBotPrefix(botPrefix)
 
             val botInfo = Dispatcher.master()
@@ -67,7 +65,7 @@ class CMDDispatcher {
 					println("Input is empty.")
 					print("Enter text")
 				}
-				println("Your input is: ${line?.strip()}")
+				println("Your input is: ${line?.trim()}")
 				val session: UserSession = sessionManager.getUserSession(userInfo, botInfo)!!
 				responses = sessionManager.getReplySync(session, line!!, userInfo.channelType!!)
 			}

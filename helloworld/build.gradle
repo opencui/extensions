@@ -43,8 +43,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlin:kotlin-compiler"
-    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
     testImplementation "org.springframework.boot:spring-boot-starter-test:${boot_version}"
 }
