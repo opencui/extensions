@@ -37,7 +37,6 @@ compileTestKotlin {
 }
 
 repositories {
-    maven { url 'https://repository.jboss.org/nexus/content/groups/public/' }
     mavenLocal()
     mavenCentral()
     google()
@@ -68,5 +67,4 @@ dependencies {
     implementation 'com.google.auth:google-auth-library-oauth2-http:1.6.0'
     implementation 'com.google.oauth-client:google-oauth-client-jetty:1.32.1'
     implementation 'com.google.apis:google-api-services-sheets:v4-rev20210629-1.32.1'
-    implementation "org.jboss.resteasy:resteasy-client:${jbossResteasyVersion}"
 }
