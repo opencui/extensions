@@ -1,7 +1,5 @@
 package io.opencui.dispatcher
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.opencui.core.*
 import io.opencui.core.Dispatcher
 import io.opencui.du.RestNluService
@@ -14,6 +12,7 @@ import org.springframework.boot.runApplication
 import org.springframework.context.event.EventListener
 import java.io.File
 import io.opencui.du.ClojureInitializer
+import io.opencui.serialization.Json
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
@@ -39,7 +38,7 @@ class DispatchService(
 
 	@EventListener(ApplicationReadyEvent::class)
 	fun init() {
-		ObjectMapper().registerModule(KotlinModule.Builder().build())
+		Json.initialize()
 
 		// Use the same the format for new nlu service.
 		RuntimeConfig.put(RestNluService::class, "$duProtocol://${duHost}:${duPort}")

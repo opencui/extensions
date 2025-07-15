@@ -44,11 +44,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlin:kotlin-compiler"
     implementation "com.twilio.sdk:twilio:9.11.0"
-    implementation "com.fasterxml.jackson.core:jackson-core"
-    implementation "com.fasterxml.jackson.core:jackson-annotations"
-    implementation "com.fasterxml.jackson.core:jackson-databind"
-    implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
 }
 
 group 'io.opencui.channel'

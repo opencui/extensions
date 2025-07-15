@@ -47,11 +47,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "org.jetbrains.kotlin:kotlin-compiler"
-    implementation "com.fasterxml.jackson.core:jackson-core"
-    implementation "com.fasterxml.jackson.core:jackson-annotations"
-    implementation "com.fasterxml.jackson.core:jackson-databind"
-    implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
     implementation 'com.google.apis:google-api-services-rcsbusinessmessaging:1.25.3'
     implementation 'com.google.apis:google-api-services-businessmessages:1.25.4'
     implementation group: 'com.google.api', name: 'gax', version: '1.7.1'

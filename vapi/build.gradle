@@ -44,11 +44,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-compiler"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.7.3"
-    implementation "com.fasterxml.jackson.core:jackson-core"
-    implementation "com.fasterxml.jackson.core:jackson-annotations"
-    implementation "com.fasterxml.jackson.core:jackson-databind"
-    implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
 }
 
 group 'io.opencui.channel'
