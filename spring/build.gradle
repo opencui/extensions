@@ -45,6 +45,9 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
     implementation "redis.clients:jedis:3.2.0"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.8.1" // For Spring WebFlux integration
+
 }
 
 jar.enabled = true
