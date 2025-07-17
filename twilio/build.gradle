@@ -42,7 +42,6 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-webflux:${boot_version}"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation "org.jetbrains.kotlin:kotlin-compiler"
     implementation "com.twilio.sdk:twilio:9.11.0"
 }
 
