@@ -46,7 +46,6 @@ dependencies {
     implementation "org.springframework.session:spring-session-core:2.7.4"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation "org.jetbrains.kotlin:kotlin-compiler"
     implementation 'com.google.apis:google-api-services-rcsbusinessmessaging:1.25.3'
     implementation 'com.google.apis:google-api-services-businessmessages:1.25.4'
     implementation group: 'com.google.api', name: 'gax', version: '1.7.1'

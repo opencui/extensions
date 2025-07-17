@@ -42,7 +42,6 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-web:${boot_version}"
     implementation "org.jetbrains.kotlin:kotlin-stdlib"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation "org.jetbrains.kotlin:kotlin-compiler"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
     testImplementation "org.springframework.boot:spring-boot-starter-test:${boot_version}"
 }
