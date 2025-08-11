@@ -39,9 +39,26 @@ repositories {
 dependencies {
     implementation project(":googlecalendar")
     implementation project(":meta")
-    implementation('io.opencui:core') {
+    implementation("io.framely:framely:1.0-SNAPSHOT'")
+    implementation enforcedPlatform("${springGroupId}:${springArtifactId}:${springVersion}")
+    implementation('io.opencui:core:1.1-SNAPSHOT') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }
+    compileOnly 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly 'org.springframework.boot:spring-boot-starter-actuator'
+    compileOnly 'org.springframework.boot:spring-boot-starter-webflux'
+    compileOnly 'org.springframework.session:spring-session-core'
+    compileOnly "org.jetbrains.kotlin:kotlin-stdlib"
+    compileOnly "org.jetbrains.kotlin:kotlin-reflect"
+    compileOnly 'org.jetbrains.kotlinx:kotlinx-coroutines-core'
+    compileOnly "com.google.genai:google-genai:1.8.0"
+    compileOnly "com.fasterxml.jackson.core:jackson-core"
+    compileOnly "com.fasterxml.jackson.core:jackson-annotations"
+    compileOnly "com.fasterxml.jackson.core:jackson-databind"
+    compileOnly "com.fasterxml.jackson.module:jackson-module-kotlin"
+    compileOnly "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
+    compileOnly "redis.clients:jedis:3.2.0"
+    compileOnly 'com.google.guava:guava:33.4.0-jre'
     implementation "org.springframework.boot:spring-boot-starter-web:${boot_version}"
     implementation "org.springframework.boot:spring-boot-starter-actuator:${boot_version}"
     implementation "org.springframework.boot:spring-boot-starter-webflux:${boot_version}"
