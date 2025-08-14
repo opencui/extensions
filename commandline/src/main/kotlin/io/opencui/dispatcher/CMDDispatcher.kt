@@ -48,6 +48,7 @@ class CMDDispatcher {
 			// val botInfo = botInfo("me.test", "slotupdate0724")
 			val botInfo = botInfo("ai.bethere", "tableReservationCopilot")
             // {"type":"BuildReservationModule","slots": [{"value": "\"help me build a reservation module\"", "attribute": "rawUserInput"}], "packageName":"ai.bethere.builder"}
+			// {"type":"BuildReservationModule","slots": [{"value": "\"I have a restaurant, so table reservation. I have no clue how to do this, so give me something.\"", "attribute": "rawUserInput"}], "packageName":"ai.bethere.builder"}
 			init(botInfo.fullName)
 			val userInfo = UserInfo("test_channel", "test_user", null)
 			val sessionManager = Dispatcher.sessionManager
