@@ -21,7 +21,6 @@ class CMDDispatcher {
             duPort: Int = 3001,
             duProtocol: String = "http"
         ) {
-			Json.initialize()
             Dispatcher.setBotPrefix(botPrefix)
 
             val botInfo = Dispatcher.master()
