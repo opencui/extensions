@@ -38,8 +38,6 @@ class DispatchService(
 
 	@EventListener(ApplicationReadyEvent::class)
 	fun init() {
-		Json.initialize()
-
 		// Use the same the format for new nlu service.
 		RuntimeConfig.put(RestNluService::class, "$duProtocol://${duHost}:${duPort}")
 
