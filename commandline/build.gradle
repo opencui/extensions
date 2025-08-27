@@ -10,6 +10,7 @@ plugins {
     id "idea"
     id "java-library"
     id "maven-publish"
+    id 'application'
 }
 
 group "io.opencui.dispatcher"
@@ -39,7 +40,8 @@ repositories {
 dependencies {
     implementation project(":googlecalendar")
     implementation project(":meta")
-    implementation("io.framely:framely:1.0-SNAPSHOT'")
+    // implementation project(":framely")
+    implementation("io.framely:framely:1.0-SNAPSHOT")
     implementation enforcedPlatform("${springGroupId}:${springArtifactId}:${springVersion}")
     implementation('io.opencui:core:1.1-SNAPSHOT') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
@@ -68,3 +70,7 @@ dependencies {
 }
 
 jar.enabled = true
+
+application {
+    mainClassName = 'io.opencui.dispatcher.CMDDispatcher'
+}

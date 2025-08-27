@@ -21,7 +21,6 @@ class CMDDispatcher {
             duPort: Int = 3001,
             duProtocol: String = "http"
         ) {
-			Json.initialize()
             Dispatcher.setBotPrefix(botPrefix)
 
             val botInfo = Dispatcher.master()
@@ -46,7 +45,7 @@ class CMDDispatcher {
 			// val botInfo = botInfo("me.test", "frameVR_0222")
 			// val botInfo = botInfo("me.test", "foodOrderingAppListOf")
 			// val botInfo = botInfo("me.test", "slotupdate0724")
-			val botInfo = botInfo("ai.bethere", "tableReservationCopilot")
+			val botInfo = botInfo("ai.bethere", "reservationCopilot")
             // {"type":"BuildReservationModule","slots": [{"value": "\"help me build a reservation module\"", "attribute": "rawUserInput"}], "packageName":"ai.bethere.builder"}
 			init(botInfo.fullName)
 			val userInfo = UserInfo("test_channel", "test_user", null)
