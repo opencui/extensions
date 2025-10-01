@@ -21,7 +21,6 @@ class CMDDispatcher {
             duPort: Int = 3001,
             duProtocol: String = "http"
         ) {
-			Json.initialize()
             Dispatcher.setBotPrefix(botPrefix)
 
             val botInfo = Dispatcher.master()
@@ -46,7 +45,8 @@ class CMDDispatcher {
 			// val botInfo = botInfo("me.test", "frameVR_0222")
 			// val botInfo = botInfo("me.test", "foodOrderingAppListOf")
 			// val botInfo = botInfo("me.test", "slotupdate0724")
-			val botInfo = botInfo("ai.bethere", "tableReservationCopilot")
+			val botInfo = botInfo("ai.bethere", "reservationCopilot")
+            // [{"type":"BuildReservationModule","slots": [], "packageName":"ai.bethere.reservationBuilder"}, {"type":"RequirementReduction","slots": [{"value": "\"help me build a reservation module\"", "attribute": "rawUserInput"}], "packageName":"ai.bethere.reservationBuilder"}]
             // {"type":"BuildReservationModule","slots": [{"value": "\"help me build a reservation module\"", "attribute": "rawUserInput"}], "packageName":"ai.bethere.builder"}
 			// {"type":"BuildReservationModule","slots": [{"value": "\"I have a restaurant, so table reservation. I have no clue how to do this, so give me something.\"", "attribute": "rawUserInput"}], "packageName":"ai.bethere.builder"}
 			init(botInfo.fullName)
@@ -70,14 +70,18 @@ class CMDDispatcher {
 					line = readLine()?.trim()
 				}
 
-				if (!line.startsWith("{")) {
+				if (line.startsWith("{")) {
+					println("Your input is: ${line?.trim()}")
+					val event = Json.decodeFromString<FrameEvent>(line)
+					responses = sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(event))
+				} else if (line.startsWith("[")) {
+					val events = Json.decodeFromString<List<FrameEvent>>(line)
+					responses = sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, events)
+				} else {
 					println("Your input is: ${line?.trim()}")
 
 					val session: UserSession = sessionManager.getUserSession(userInfo, botInfo)!!
 					responses = sessionManager.getReplySync(session, line!!, userInfo.channelType!!)
-				} else {
-					val event = Json.decodeFromString<FrameEvent>(line)
-					responses = sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(event))
 				}
 			}
 		}

@@ -7,9 +7,10 @@ pluginManagement {
 }
 
 boolean inComposite = gradle.parent != null
-if (!inComposite) {
+//if (!inComposite) {
     includeBuild("../core")
-}
+    includeBuild("../private")     // Add this line
+//}
 
 rootProject.name = 'extensions'
 
