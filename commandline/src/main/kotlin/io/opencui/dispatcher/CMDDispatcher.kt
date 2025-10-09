@@ -7,6 +7,7 @@ import io.opencui.core.user.UserInfo
 import io.opencui.du.ClojureInitializer
 import io.opencui.du.TfRestBertNLUModel
 import io.opencui.sessionmanager.*
+import kotlinx.coroutines.runBlocking
 
 /**
  * This dispatcher is designed to be used for debugging the chatbot in the commandline.
@@ -44,29 +45,39 @@ class CMDDispatcher {
 		fun main(args: Array<String>) {
 			// val botInfo = botInfo("me.test", "frameVR_0222")
 			// val botInfo = botInfo("me.test", "foodOrderingAppListOf")
-			val botInfo = botInfo("me.test", "slotupdate0724")
-
+			// val botInfo = botInfo("me.test", "slotupdate0724")
+			val botInfo = botInfo("ai.bethere", "reservationCopilot")
+            // {"type":"BuildReservationModule","slots": [{"value": "\"help me build a reservation module\"", "attribute": "rawUserInput"}], "packageName":"ai.bethere.builder"}
 			init(botInfo.fullName)
 			val userInfo = UserInfo("test_channel", "test_user", null)
 			val sessionManager = Dispatcher.sessionManager
 
 			val firstSession = sessionManager.createUserSession(userInfo, botInfo)
+			firstSession.sessionId = "DummySessionIdForTesting"
 			val mainEvent = FrameEvent("Main", emptyList(), emptyList(), "${botInfo.fullName}")
-			var responses = sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(mainEvent))
+			var responses = runBlocking { sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(mainEvent)) }
 
 			while (true) {
 				println(Json.encodeToJsonElement(responses).toPrettyString())
-				print("Enter text: ")
-				val line = readLine()
+				print("Enter text or event in json format:")
+
+				var line = readLine()?.trim()
 				
 				// line is not blank now.
-				if (line.isNullOrEmpty()) {
-					println("Input is empty.")
-					print("Enter text")
+				while (line.isNullOrEmpty()) {
+					println("Input is empty, please enter text or event in json format:")
+					line = readLine()?.trim()
 				}
-				println("Your input is: ${line?.trim()}")
-				val session: UserSession = sessionManager.getUserSession(userInfo, botInfo)!!
-				responses = sessionManager.getReplySync(session, line!!, userInfo.channelType!!)
+
+				if (!line.startsWith("{")) {
+					println("Your input is: ${line?.trim()}")
+
+					val session: UserSession = sessionManager.getUserSession(userInfo, botInfo)!!
+					responses = runBlocking {  sessionManager.getReplySync(session, line!!, userInfo.channelType!!) }
+				} else {
+					val event = Json.decodeFromString<FrameEvent>(line)
+					responses = runBlocking {  sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(event)) }
+				}
 			}
 		}
 	}
