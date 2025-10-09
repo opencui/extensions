@@ -7,6 +7,7 @@ import io.opencui.core.user.UserInfo
 import io.opencui.du.ClojureInitializer
 import io.opencui.du.TfRestBertNLUModel
 import io.opencui.sessionmanager.*
+import kotlinx.coroutines.runBlocking
 
 /**
  * This dispatcher is designed to be used for debugging the chatbot in the commandline.
@@ -56,7 +57,7 @@ class CMDDispatcher {
 			val firstSession = sessionManager.createUserSession(userInfo, botInfo)
 			firstSession.sessionId = "DummySessionIdForTesting"
 			val mainEvent = FrameEvent("Main", emptyList(), emptyList(), "${botInfo.fullName}")
-			var responses = sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(mainEvent))
+			var responses = runBlocking { sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(mainEvent)) }
 
 			while (true) {
 				println(Json.encodeToJsonElement(responses).toPrettyString())
@@ -73,15 +74,15 @@ class CMDDispatcher {
 				if (line.startsWith("{")) {
 					println("Your input is: ${line?.trim()}")
 					val event = Json.decodeFromString<FrameEvent>(line)
-					responses = sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(event))
+					responses = runBlocking { sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(event)) }
 				} else if (line.startsWith("[")) {
 					val events = Json.decodeFromString<List<FrameEvent>>(line)
-					responses = sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, events)
+					responses = runBlocking {  sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, events) }
 				} else {
 					println("Your input is: ${line?.trim()}")
 
 					val session: UserSession = sessionManager.getUserSession(userInfo, botInfo)!!
-					responses = sessionManager.getReplySync(session, line!!, userInfo.channelType!!)
+					responses = runBlocking { sessionManager.getReplySync(session, line!!, userInfo.channelType!!) }
 				}
 			}
 		}
