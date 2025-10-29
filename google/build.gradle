@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.9.25'
+    ext.kotlin_version = '2.2.21'
     ext.boot_version = "3.3.13"
 }
 
@@ -17,13 +17,13 @@ version '1.0-SNAPSHOT'
 
 compileKotlin {
     kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
+        freeCompilerArgs = ["-Xjsr305=strict", "-Xlambdas=class"]
         jvmTarget = "17"
     }
 }
 compileTestKotlin {
     kotlinOptions {
-        freeCompilerArgs = ["-Xjsr305=strict"]
+        freeCompilerArgs = ["-Xjsr305=strict", "-Xlambdas=class"]
         jvmTarget = "17"
     }
 }
