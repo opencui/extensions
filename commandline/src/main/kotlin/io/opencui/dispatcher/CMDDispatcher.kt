@@ -77,7 +77,7 @@ class CMDDispatcher {
 					responses = runBlocking { sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, listOf(event)) }
 				} else if (line.startsWith("[")) {
 					val events = Json.decodeFromString<List<FrameEvent>>(line)
-					responses = runBlocking {  sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, events) }
+					responses = runBlocking { sessionManager.getReplySync(firstSession, "", userInfo.channelType!!, events) }
 				} else {
 					println("Your input is: ${line?.trim()}")
 

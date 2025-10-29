@@ -47,7 +47,7 @@ class TwilioResource{
             "/IChannel/io.opencui.channel.TwilioChannel/v1/{channelId}/{lang}",
             "/io.opencui.channel.IChannel/TwilioChannel/v1/{channelId}/{lang}",
             "/io.opencui.channel.IChannel/io.opencui.channel.TwilioChannel/v1/{channelId}/{lang}"])
-    fun postResponse(
+    suspend fun postResponse(
         @RequestParam body: TwilioRequest,
         @PathVariable lang: String,
         @PathVariable channelId: String): ResponseEntity<String> {

@@ -159,7 +159,7 @@ class VapiController {
         consumes = [MediaType.APPLICATION_JSON_VALUE],
         produces = [MediaType.APPLICATION_JSON_VALUE, MediaType.TEXT_EVENT_STREAM_VALUE]
     )
-    fun chatCompletions(
+    suspend fun chatCompletions(
         @PathVariable lang: String,
         @PathVariable label: String,
         @RequestBody request: ChatRequest,
