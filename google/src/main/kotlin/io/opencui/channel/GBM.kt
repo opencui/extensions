@@ -51,7 +51,7 @@ class GBMResource {
             "/io.opencui.channel.IChannel/io.opencui.channel.GBMChannel/v1/{label}/{lang}"],
         consumes = [MediaType.APPLICATION_FORM_URLENCODED_VALUE, MediaType.APPLICATION_JSON_VALUE]
     )
-    fun postResponse(
+    suspend fun postResponse(
         @PathVariable lang: String,
         @PathVariable label: String,
         @RequestBody bodyStr: String

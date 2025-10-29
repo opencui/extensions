@@ -79,7 +79,7 @@ data class Text(    // both OpenID
 @RestController
 class WechatPublicAccountResource {
     @GetMapping("/IChannel/WechatPublicAccountChannel/v1/{label}/{lang}", produces = [MediaType.TEXT_PLAIN_VALUE])
-    fun getResponse(
+    suspend fun getResponse(
         @PathVariable("org") org: String,
         @PathVariable("agentId") agentId: String,
         @PathVariable("label") label: String,
@@ -93,7 +93,7 @@ class WechatPublicAccountResource {
 
     @PostMapping("/IChannel/WechatPublicAccountChannel/v1/{label}/{lang}",
         consumes = [MediaType.TEXT_XML_VALUE], produces = [MediaType.TEXT_XML_VALUE])
-    fun postResponse(
+    suspend fun postResponse(
         @PathVariable("org") org: String,
         @PathVariable("agentId") agentId: String,
         @PathVariable("label") label: String,
